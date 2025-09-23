@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Próximas clases</h2>
+<table>
+  <tr><th>Disciplina</th><th>Profesor</th><th>Fecha</th><th>Inicio</th><th>Fin</th><th></th></tr>
+  {% for c in clases %}
+  <tr>
+    <td>{{ c.sede_deporte }}</td>
+    <td>{{ c.profesor }}</td>
+    <td>{{ c.fecha }}</td>
+    <td>{{ c.hora_inicio }}</td>
+    <td>{{ c.hora_fin }}</td>
+    <td><a href="{% url 'marcar_asistencia' c.id %}">Marcar asistencia</a></td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="6">Sin clases.</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}
