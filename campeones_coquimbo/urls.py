@@ -1,9 +1,11 @@
 from django.contrib import admin
-from django.urls import path
-from applications.atleta import views as atleta_views
+from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', atleta_views.dashboard, name='dashboard'),
-    path('clase/<int:pk>/asistencia/', atleta_views.marcar_asistencia, name='marcar_asistencia'),
+
+    path('', include('applications.atleta.urls')),         # home y asistencia
+    path('core/', include('applications.core.urls')),      # sedes/deportes
+    path('evals/', include('applications.evaluaciones.urls')),  # planificaciones/evaluaciones
+    path('cuentas/', include('applications.usuarios.urls')),    # login/logout
 ]
