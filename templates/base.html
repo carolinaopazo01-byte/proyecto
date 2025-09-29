@@ -1,17 +1,17 @@
-<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <title>Campeones Para Coquimbooooo</title>
-  <link rel="stylesheet" href="/static/styles.css">
-</head>
-<body>
-  <header>
-    <h1>Campeones Para Coquimbo</h1>
-    <nav><a href="/">Inicio</a> | <a href="/admin/">Admin</a></nav>
-    <hr>
-  </header>
-  {% if messages %}{% for m in messages %}<p>{{ m }}</p>{% endfor %}{% endif %}
-  {% block content %}{% endblock %}
-</body>
-</html>
+<nav class="mb-2 d-flex gap-3 align-items-center">
+  <a href="/">Inicio</a>
+  <a href="/core/sedes/">Sedes</a>
+  <a href="/core/deportes/">Deportes</a>
+  <a href="/evals/planificaciones/">Planificaciones</a>
+  <a href="/evals/evaluaciones/">Evaluaciones</a>
+  <a href="/clases/">Clases</a>
+
+  <span class="ms-auto">
+    {% if user.is_authenticated %}
+      Hola, <strong>{{ user.get_full_name|default:user.username }}</strong> |
+      <a href="/cuentas/salir/">Salir</a>
+    {% else %}
+      <a href="/cuentas/login/">Iniciar sesión</a>
+    {% endif %}
+  </span>
+</nav>

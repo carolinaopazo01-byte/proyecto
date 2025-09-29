@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Clases</h2>
+<table class="table table-sm table-hover">
+  <thead><tr><th>Disciplina</th><th>Profesor</th><th>Fecha</th><th>Horario</th></tr></thead>
+  <tbody>
+  {% for c in clases %}
+    <tr>
+      <td>{{ c.sede_deporte }}</td>
+      <td>{{ c.profesor }}</td>
+      <td>{{ c.fecha }}</td>
+      <td>{{ c.hora_inicio }} - {{ c.hora_fin }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="4">No hay clases.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

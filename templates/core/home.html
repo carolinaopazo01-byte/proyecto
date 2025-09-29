@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="text-center py-5">
+  <h2>Bienvenido/a</h2>
+  <p>Esta es la página de inicio. Aquí pondremos el contenido “lindo” más adelante.</p>
+  <p class="mt-3">
+    {% if user.is_authenticated %}
+  Estás conectad@ como <strong>{{ user.get_full_name|default:user.username }}</strong>.
+{% else %}
+  <a class="btn btn-primary" href="/cuentas/login/">Iniciar sesión</a>
+{% endif %}
+
+  </p>
+</div>
+{% endblock %}

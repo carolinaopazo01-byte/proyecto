@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Asistenciaaaa - {{ clase }}</h2>
-<form method="post">{% csrf_token %}
-  <table>
-    <tr><th>Atleta</th><th>Presente</th><th>Observaciones</th></tr>
+<h2>Asistencia - {{ clase }}</h2>
+<form method="post" class="card card-body">{% csrf_token %}
+  <table class="table table-sm">
+    <thead><tr><th>Atleta</th><th>Presente</th><th>Observaciones</th></tr></thead>
+    <tbody>
     {% for form in formset %}
       <tr>
         <td>{{ form.instance.atleta }}</td>
@@ -11,7 +12,8 @@
         <td>{{ form.observaciones }}</td>
       </tr>
     {% endfor %}
+    </tbody>
   </table>
-  <button type="submit">Guardar</button>
+  <button class="btn btn-success">Guardar</button>
 </form>
 {% endblock %}
