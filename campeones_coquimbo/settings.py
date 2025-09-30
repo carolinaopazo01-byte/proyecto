@@ -14,6 +14,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'applications.core',
+    'applications.atleta',
+    'applications.evaluaciones',
+    'applications.usuarios',
 
     # Terceros
     'django_filters',
@@ -44,7 +48,6 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
-                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',

@@ -1,17 +1,103 @@
-{% extends "base.html" %}
-{% block content %}
-<h2>Asistenciaaaa - {{ clase }}</h2>
-<form method="post">{% csrf_token %}
-  <table>
-    <tr><th>Atleta</th><th>Presente</th><th>Observaciones</th></tr>
-    {% for form in formset %}
-      <tr>
-        <td>{{ form.instance.atleta }}</td>
-        <td>{{ form.presente }}</td>
-        <td>{{ form.observaciones }}</td>
-      </tr>
-    {% endfor %}
-  </table>
-  <button type="submit">Guardar</button>
-</form>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Marcar Asistencia - Campeones Para Coquimbo</title>
+
+  <!-- Fuente moderna + iconos -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <style>
+    body{font-family:'Poppins',sans-serif;background:#f4f6f9;margin:0}
+    header{background:#004080;color:#fff;text-align:center;padding:22px}
+    header h1{margin:0;font-size:28px;font-weight:700}
+    header p{margin:6px 0 0}
+    main{max-width:1000px;margin:28px auto;background:#fff;padding:24px;border-radius:12px;box-shadow:0 6px 14px rgba(0,0,0,.1)}
+    .toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+    .toolbar label{font-weight:600;color:#004080}
+    .toolbar select,.toolbar input[type="date"]{padding:8px 10px;border:1px solid #cfd8e3;border-radius:8px;font-size:14px}
+    h2{margin:10px 0 6px;color:#004080}
+    .muted{color:#6b7280;margin:0 0 14px}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{border:1px solid #e5e7eb;padding:12px;text-align:center}
+    th{background:#004080;color:#fff}
+    select.estado{padding:6px 8px;border:1px solid #cfd8e3;border-radius:6px}
+    .btn{display:inline-flex;align-items:center;gap:8px;background:#004080;color:#fff;border:none;padding:12px 18px;border-radius:10px;font-weight:600;cursor:pointer}
+    .btn:hover{background:#003060}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Campeones Para Coquimbo</h1>
+    <p>Marcar asistencia</p>
+  </header>
+
+  <main>
+    <!-- Barra para elegir curso y fecha (por ahora solo visual) -->
+    <div class="toolbar">
+      <label for="curso">Curso:</label>
+      <select id="curso">
+        <option>— Selecciona un curso —</option>
+        <option>Básquetbol Sub-15</option>
+        <option>Fútbol Sub-12</option>
+        <option>Vóleibol Mixto</option>
+      </select>
+
+      <label for="fecha">Fecha:</label>
+      <input id="fecha" type="date" />
+      <button class="btn" type="button" title="Ir"><i class="fas fa-arrow-right"></i> Ir</button>
+    </div>
+
+    <h2>Básquetbol Sub-15</h2>
+    <p class="muted"><i class="fas fa-calendar-alt"></i> Fecha: 2025-09-29</p>
+
+    <!-- Tabla simple de ejemplo -->
+    <form>
+      <table>
+        <thead>
+          <tr>
+            <th>Estudiante</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Ana Pérez</td>
+            <td>
+              <select class="estado">
+                <option>Presente</option>
+                <option>Ausente</option>
+                <option>Justificado</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>Carlos Soto</td>
+            <td>
+              <select class="estado">
+                <option>Presente</option>
+                <option>Ausente</option>
+                <option>Justificado</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>María López</td>
+            <td>
+              <select class="estado">
+                <option>Presente</option>
+                <option>Ausente</option>
+                <option>Justificado</option>
+              </select>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <br />
+      <button class="btn" type="button"><i class="fas fa-save"></i> Guardar asistencia</button>
+    </form>
+  </main>
+</body>
+</html>
