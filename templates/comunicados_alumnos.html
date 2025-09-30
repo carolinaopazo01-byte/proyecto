@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Comunicados | Campeones Para Coquimbo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root{ --azul:#004080; --azul-osc:#003060; --suave:#f4f6f9; --borde:#e5e7eb; --campo:#cfd8e3; --muted:#6b7280; }
+    *{box-sizing:border-box}
+    body{font-family:'Poppins',sans-serif;background:var(--suave);margin:0;color:#0f172a}
+    header{background:var(--azul);color:#fff;text-align:center;padding:22px}
+    header h1{margin:0;font-size:26px;font-weight:700}
+    header p{margin:6px 0 0}
+    main{max-width:1100px;margin:28px auto;background:#fff;padding:22px;border-radius:14px;box-shadow:0 8px 18px rgba(0,0,0,.08)}
+
+    .filters{display:grid;grid-template-columns:1fr 220px 200px 180px 160px;gap:10px;align-items:end;margin-bottom:16px}
+    .filters label{font-weight:600;color:var(--azul)}
+    .filters input,.filters select{padding:10px;border:1px solid var(--campo);border-radius:10px}
+    @media (max-width:980px){ .filters{grid-template-columns:1fr 1fr 1fr} }
+
+    .list{display:grid;gap:12px}
+    .card{border:1px solid var(--borde);border-radius:12px;padding:16px;background:#f8fafc}
+    .header{display:flex;align-items:center;gap:10px;justify-content:space-between}
+    .meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:#e6f0ff;color:var(--azul);font-size:12px;font-weight:600}
+    .title{margin:8px 0 6px;font-size:18px;color:var(--azul);font-weight:700}
+    .snippet{margin:0;color:var(--muted)}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .btn{display:inline-flex;align-items:center;gap:8px;background:var(--azul);color:#fff;border:none;padding:10px 14px;border-radius:10px;font-weight:600;cursor:pointer}
+    .btn:hover{background:var(--azul-osc)}
+    .btn-sec{background:#eef2ff;color:var(--azul);border:1px solid #c7d2fe}
+    .btn-sec:hover{background:#e0e7ff}
+
+    .dot{width:10px;height:10px;border-radius:999px;background:#ff6b6b;display:inline-block}
+    .leido .dot{background:transparent;border:1px solid #cbd5e1}
+    .leido .title{opacity:.8}
+
+    details{margin-top:8px}
+    details summary{cursor:pointer;color:var(--azul);font-weight:600;list-style:none}
+    details summary::-webkit-details-marker{display:none}
+    details .content{padding-top:8px;color:#0f172a}
+    .small{color:var(--muted);font-size:12px}
+
+    .empty{border:2px dashed #cfd8e3;border-radius:12px;padding:20px;text-align:center;color:var(--muted)}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Campeones Para Coquimbo</h1>
+  <p>Comunicados</p>
+</header>
+
+<main>
+
+  <div class="filters" aria-label="Filtros de comunicados">
+    <div>
+      <label for="q">Buscar</label><br>
+      <input id="q" type="search" placeholder="Título, contenido, profesor...">
+    </div>
+    <div>
+      <label for="curso">Curso</label><br>
+      <select id="curso">
+        <option value="">Todos</option>
+        <option>Básquetbol Sub-15</option>
+        <option>Vóleibol Mixto</option>
+      </select>
+    </div>
+    <div>
+      <label for="tipo">Tipo</label><br>
+      <select id="tipo">
+        <option value="">Todos</option>
+        <option>General</option>
+        <option>Curso</option>
+        <option>Urgente</option>
+      </select>
+    </div>
+    <div>
+      <label for="estado">Estado</label><br>
+      <select id="estado">
+        <option value="">Todos</option>
+        <option value="No leído">No leído</option>
+        <option value="Leído">Leído</option>
+      </select>
+    </div>
+    <div>
+      <label for="desde">Desde</label><br>
+      <input id="desde" type="date">
+    </div>
+  </div>
+
+
+  <div class="list" id="listado">
+    <!-- Comunicado 1 (no leído) -->
+    <article class="card" data-curso="Básquetbol Sub-15" data-tipo="Curso" data-fecha="2025-09-29" data-estado="No leído">
+      <div class="header">
+        <div class="meta">
+          <span class="dot" aria-label="No leído"></span>
+          <span class="chip"><i class="fa-solid fa-book-open"></i> Básquetbol Sub-15</span>
+          <span class="chip"><i class="fa-solid fa-tag"></i> Curso</span>
+          <span class="small"><i class="fa-solid fa-calendar-day"></i> 29-09-2025 · 10:30</span>
+        </div>
+        <button class="btn-sec btn-toggle" title="Marcar leído/no leído"><i class="fa-solid fa-envelope-open"></i></button>
+      </div>
+      <h3 class="title">Cambio de horario miércoles</h3>
+      <p class="snippet">Este miércoles la clase comenzará a las 18:30 por disponibilidad de cancha…</p>
+
+      <details>
+        <summary>Ver detalle</summary>
+        <div class="content">
+          <p>Estimados, por disposición de la sede usaremos la <strong>Cancha 2</strong> y el inicio será a las <strong>18:30</strong>. Traer hidratación.</p>
+          <ul class="small">
+            <li>Profesor: Juan Pérez</li>
+            <li>Ubicación: Sede Central · Cancha 2</li>
+          </ul>
+        </div>
+      </details>
+
+      <div class="actions">
+        <button class="btn"><i class="fa-solid fa-eye"></i> Ver</button>
+        <button class="btn-sec"><i class="fa-solid fa-file-arrow-down"></i> Guardar</button>
+      </div>
+    </article>
+
+
+    <article class="card leido" data-curso="Vóleibol Mixto" data-tipo="General" data-fecha="2025-09-27" data-estado="Leído">
+      <div class="header">
+        <div class="meta">
+          <span class="dot" aria-label="Leído"></span>
+          <span class="chip"><i class="fa-solid fa-book-open"></i> Vóleibol Mixto</span>
+          <span class="chip"><i class="fa-solid fa-tag"></i> General</span>
+          <span class="small"><i class="fa-solid fa-calendar-day"></i> 27-09-2025 · 09:00</span>
+        </div>
+        <button class="btn-sec btn-toggle" title="Marcar leído/no leído"><i class="fa-solid fa-envelope"></i></button>
+      </div>
+      <h3 class="title">Implementación personal</h3>
+      <p class="snippet">Se recuerda traer rodilleras y botella de agua en cada sesión…</p>
+
+      <details>
+        <summary>Ver detalle</summary>
+        <div class="content">
+          <p>Para la seguridad de todos, por favor traer <strong>rodilleras</strong> y una <strong>botella de agua</strong> con nombre.</p>
+          <ul class="small">
+            <li>Profesor: Carolina Díaz</li>
+            <li>Ubicación: Gimnasio 2° piso</li>
+          </ul>
+        </div>
+      </details>
+
+      <div class="actions">
+        <button class="btn"><i class="fa-solid fa-eye"></i> Ver</button>
+        <button class="btn-sec"><i class="fa-solid fa-file-arrow-down"></i> Guardar</button>
+      </div>
+    </article>
+
+
+    <article class="card" data-curso="Básquetbol Sub-15" data-tipo="Urgente" data-fecha="2025-09-26" data-estado="No leído">
+      <div class="header">
+        <div class="meta">
+          <span class="dot" aria-label="No leído"></span>
+          <span class="chip"><i class="fa-solid fa-book-open"></i> Básquetbol Sub-15</span>
+          <span class="chip"><i class="fa-solid fa-triangle-exclamation"></i> Urgente</span>
+          <span class="small"><i class="fa-solid fa-calendar-day"></i> 26-09-2025 · 19:45</span>
+        </div>
+        <button class="btn-sec btn-toggle" title="Marcar leído/no leído"><i class="fa-solid fa-envelope-open-text"></i></button>
+      </div>
+      <h3 class="title">Ingreso por acceso lateral</h3>
+      <p class="snippet">Por trabajos en la entrada principal, usar acceso lateral por Av. Deportes…</p>
+
+      <details>
+        <summary>Ver detalle</summary>
+        <div class="content">
+          <p>Durante esta semana la puerta principal estará cerrada. Usar el <strong>acceso lateral</strong> por Av. Deportes. Señalética disponible.</p>
+        </div>
+      </details>
+
+      <div class="actions">
+        <button class="btn"><i class="fa-solid fa-eye"></i> Ver</button>
+        <button class="btn-sec"><i class="fa-solid fa-file-arrow-down"></i> Guardar</button>
+      </div>
+    </article>
+  </div>
+
+
+  <div id="empty" class="empty" style="display:none;">
+    <i class="fa-solid fa-inbox"></i>
+    <p>No hay comunicados para los filtros seleccionados.</p>
+  </div>
+</main>
+
+<script>
+  const q = document.getElementById('q');
+  const curso = document.getElementById('curso');
+  const tipo = document.getElementById('tipo');
+  const estado = document.getElementById('estado');
+  const desde = document.getElementById('desde');
+  const cards = [...document.querySelectorAll('.list .card')];
+  const empty = document.getElementById('empty');
+
+  const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'');
+
+  function inRange(dateStr, from){
+    if(!from) return true;
+    return new Date(dateStr) >= new Date(from);
+    // (cuando quieras, puedes agregar "hasta")
+  }
+
+  function filtra(){
+    const tq = norm(q.value), c = curso.value, t = tipo.value, e = estado.value, f = desde.value;
+    let visibles = 0;
+
+    cards.forEach(card=>{
+      const text = norm(card.innerText);
+      const okQ = !tq || text.includes(tq);
+      const okC = !c || card.dataset.curso === c;
+      const okT = !t || card.dataset.tipo === t;
+      const okE = !e || card.dataset.estado === e;
+      const okF = inRange(card.dataset.fecha, f);
+
+      const show = okQ && okC && okT && okE && okF;
+      card.style.display = show ? '' : 'none';
+      if(show) visibles++;
+    });
+
+    empty.style.display = visibles ? 'none' : '';
+  }
+
+  // Marcar leído / no leído (solo UI)
+  document.querySelectorAll('.btn-toggle').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const card = btn.closest('.card');
+      const isRead = card.classList.toggle('leido');
+      card.dataset.estado = isRead ? 'Leído' : 'No leído';
+      filtra();
+    });
+  });
+
+  [q, curso, tipo, estado, desde].forEach(el=>el.addEventListener('input', filtra));
+  filtra();
+</script>
+</body>
+</html>

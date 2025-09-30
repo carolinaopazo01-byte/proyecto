@@ -1,9 +1,10 @@
 from django.contrib import admin
-from django.urls import path
-from applications.atleta import views as atleta_views
+from django.urls import path, include
+from applications.core import views as core_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', atleta_views.dashboard, name='dashboard'),
-    path('clase/<int:pk>/asistencia/', atleta_views.marcar_asistencia, name='marcar_asistencia'),
+    path('', include('applications.core.urls')),
+    path('asistencia/', core_views.asistencia, name='asistencia'),                    # sin curso seleccionado
+    path('asistencia/<int:curso_id>/', core_views.asistencia, name='asistencia_curso'),  # con curso
 ]

@@ -1,3 +1,4 @@
 from django.shortcuts import render
 
-# Create your views here.
+def marcar_asistencia(request):
+    return render(request, "core/marcar_asistencia.html")

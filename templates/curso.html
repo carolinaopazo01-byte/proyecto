@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Detalle del Curso | Campeones Para Coquimbo</title>
+
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <style>
+    :root{
+      --azul:#004080;
+      --azul-osc:#003060;
+      --suave:#f4f6f9;
+      --borde:#e5e7eb;
+      --chip:#e6f0ff;
+      --texto:#0f172a;
+    }
+    *{box-sizing:border-box}
+    body{font-family:'Poppins',sans-serif;background:var(--suave);color:var(--texto);margin:0}
+    header{background:var(--azul);color:#fff;padding:24px}
+    header .wrap{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    header h1{margin:0;font-size:26px;font-weight:700}
+    header .crumbs{font-size:12px;opacity:.9}
+    header .crumbs a{color:#fff;text-decoration:none}
+    header .crumbs span{opacity:.8}
+
+    main{max-width:1200px;margin:24px auto;background:#fff;padding:24px;border-radius:14px;box-shadow:0 8px 18px rgba(0,0,0,.08)}
+    .top-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-bottom:10px}
+    .btn{display:inline-flex;align-items:center;gap:8px;background:var(--azul);color:#fff;border:none;padding:11px 16px;border-radius:10px;font-weight:600;cursor:pointer}
+    .btn:hover{background:var(--azul-osc)}
+    .btn-sec{background:#eef2ff;color:var(--azul);border:1px solid #c7d2fe}
+    .btn-sec:hover{background:#e0e7ff}
+    .btn-warn{background:#ffe9e9;color:#9c1c1c;border:1px solid #fecaca}
+    .btn-warn:hover{background:#ffdede}
+
+    .grid{display:grid;grid-template-columns:2fr 1fr;gap:18px}
+    @media (max-width:980px){ .grid{grid-template-columns:1fr} }
+
+    .card{background:#f8fafc;border:1px solid var(--borde);border-radius:12px;padding:18px}
+    .card h2{margin:0 0 10px;color:var(--azul);font-size:18px}
+    .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+    .kv{background:#fff;border:1px solid var(--borde);border-radius:10px;padding:12px}
+    .kv .k{font-size:12px;color:#64748b}
+    .kv .v{font-weight:700;margin-top:4px}
+    .chip{display:inline-block;padding:4px 10px;border-radius:999px;background:var(--chip);color:var(--azul);font-size:12px;font-weight:600}
+
+    table{width:100%;border-collapse:collapse}
+    thead th{background:var(--azul);color:#fff;text-align:left;padding:10px;border-bottom:1px solid var(--borde)}
+    tbody td{padding:10px;border-bottom:1px solid var(--borde)}
+    .small{color:#64748b;font-size:12px}
+    .muted{color:#6b7280}
+
+    details summary{cursor:pointer;color:var(--azul);font-weight:600}
+    details ul{margin:8px 0 0 18px}
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div>
+      <div class="crumbs">
+        <a href="/admin/cursos/">Cursos</a> <span>›</span> Detalle del curso
+      </div>
+      <h1>Básquetbol Sub-15</h1>
+      <div class="small">ID interno: CUR-000123</div>
+    </div>
+    <div class="top-actions">
+      <button class="btn-sec"><i class="fa-solid fa-arrow-left"></i> Volver</button>
+      <button class="btn-sec"><i class="fa-solid fa-copy"></i> Duplicar</button>
+      <button class="btn"><i class="fa-solid fa-pen"></i> Editar</button>
+      <button class="btn"><i class="fa-solid fa-file-export"></i> Exportar planificación</button>
+      <button class="btn-warn"><i class="fa-solid fa-power-off"></i> Desactivar</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="grid">
+
+    <section class="card">
+      <h2>Resumen del curso</h2>
+      <div class="meta">
+        <div class="kv">
+          <div class="k">Programa</div>
+          <div class="v"><span class="chip">Formativo</span></div>
+        </div>
+        <div class="kv">
+          <div class="k">Disciplina</div>
+          <div class="v">Básquetbol</div>
+        </div>
+        <div class="kv">
+          <div class="k">Categoría</div>
+          <div class="v">Sub-15</div>
+        </div>
+        <div class="kv">
+          <div class="k">Profesor</div>
+          <div class="v">Juan Pérez</div>
+        </div>
+        <div class="kv">
+          <div class="k">Sede</div>
+          <div class="v">Sede Central</div>
+        </div>
+        <div class="kv">
+          <div class="k">Cupos</div>
+          <div class="v">18 / 25</div>
+        </div>
+        <div class="kv">
+          <div class="k">Estado</div>
+          <div class="v"><span class="chip">Activo</span></div>
+        </div>
+        <div class="kv">
+          <div class="k">Fecha de inicio</div>
+          <div class="v">01-10-2025</div>
+        </div>
+      </div>
+    </section>
+
+
+    <aside class="card">
+      <h2>Accesos rápidos</h2>
+      <ul>
+        <li><i class="fa-solid fa-user-group"></i> Lista de inscritos</li>
+        <li><i class="fa-solid fa-list-check"></i> Lista de espera</li>
+        <li><i class="fa-solid fa-clipboard-check"></i> Últimas asistencias</li>
+        <li><i class="fa-solid fa-bell"></i> Comunicados del curso</li>
+        <li><i class="fa-solid fa-folder-open"></i> Documentos del curso</li>
+      </ul>
+    </aside>
+  </div>
+
+  <!-- Planificación -->
+  <section class="card" style="margin-top:18px;">
+    <h2>Planificación del curso</h2>
+    <p class="muted">Lugar, horario y calendario de realización.</p>
+    <table aria-label="Planificación de sesiones">
+      <thead>
+        <tr>
+          <th>Día</th>
+          <th>Horario</th>
+          <th>Ubicación</th>
+          <th>Periodo</th>
+          <th>Observaciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Lunes / Miércoles</td>
+          <td>18:00 – 19:30</td>
+          <td>Cancha 1 · Sede Central</td>
+          <td>01-10-2025 a 30-12-2025</td>
+          <td>Traer botella de agua</td>
+        </tr>
+        <tr>
+          <td>Viernes</td>
+          <td>18:00 – 19:00</td>
+          <td>Gimnasio 2º piso · Sede Central</td>
+          <td>01-10-2025 a 30-12-2025</td>
+          <td>Sesión técnica</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="small" style="margin-top:8px;">* Fechas sujetas a disponibilidad de la sede.</div>
+  </section>
+
+  <!-- secciones plegables -->
+  <section class="card" style="margin-top:18px;">
+    <h2>Información adicional</h2>
+    <details open>
+      <summary>Observaciones generales</summary>
+      <ul>
+        <li>Validar planificación mensual con coordinación.</li>
+        <li>Mantener control de asistencia en la primera media hora.</li>
+      </ul>
+    </details>
+    <details style="margin-top:10px;">
+      <summary>Últimas asistencias registradas</summary>
+      <ul>
+        <li>28-09-2025 · 16 presentes, 2 ausentes, 0 justificados.</li>
+        <li>25-09-2025 · 17 presentes, 1 ausente, 0 justificados.</li>
+      </ul>
+    </details>
+    <details style="margin-top:10px;">
+      <summary>Documentos del curso</summary>
+      <ul>
+        <li>Plan de sesiones Octubre (PDF)</li>
+        <li>Protocolo de uso de gimnasio (PDF)</li>
+      </ul>
+    </details>
+  </section>
+</main>
+</body>
+</html>

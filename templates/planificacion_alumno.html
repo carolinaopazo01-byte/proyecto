@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Planificación | Campeones Para Coquimbo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root{ --azul:#004080; --azul-osc:#003060; --suave:#f4f6f9; --borde:#e5e7eb; --campo:#cfd8e3; --muted:#6b7280; }
+    *{box-sizing:border-box}
+    body{font-family:'Poppins',sans-serif;background:var(--suave);margin:0;color:#0f172a}
+    header{background:var(--azul);color:#fff;text-align:center;padding:22px}
+    header h1{margin:0;font-size:26px;font-weight:700}
+    header p{margin:6px 0 0}
+
+    main{max-width:1150px;margin:28px auto;background:#fff;padding:22px;border-radius:14px;box-shadow:0 8px 18px rgba(0,0,0,.08)}
+    .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:14px}
+    .filters label{font-weight:600;color:var(--azul)}
+    .filters input,.filters select{padding:10px;border:1px solid var(--campo);border-radius:10px}
+    .spacer{flex:1}
+
+    .view-toggle{display:flex;gap:8px;margin-bottom:12px}
+    .btn{display:inline-flex;align-items:center;gap:8px;background:var(--azul);color:#fff;border:none;padding:10px 14px;border-radius:10px;font-weight:600;cursor:pointer}
+    .btn:hover{background:var(--azul-osc)}
+    .btn-outline{background:#eef2ff;color:var(--azul);border:1px solid #c7d2fe}
+    .btn-outline.active{background:var(--azul);color:#fff;border-color:var(--azul)}
+    .empty{border:2px dashed #cfd8e3;border-radius:12px;padding:20px;text-align:center;color:var(--muted);margin-top:10px}
+
+    /* Lista */
+    .table-wrap{overflow:auto;border:1px solid var(--borde);border-radius:12px}
+    table{width:100%;border-collapse:collapse}
+    thead th{position:sticky;top:0;background:var(--azul);color:#fff;padding:10px;text-align:left}
+    tbody td{border-top:1px solid var(--borde);padding:10px;vertical-align:top}
+    .chip{display:inline-block;padding:4px 10px;border-radius:999px;background:#e6f0ff;color:#004080;font-size:12px;font-weight:600}
+
+    /* Semana */
+    .week{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
+    .day{border:1px solid var(--borde);border-radius:12px;background:#f8fafc;min-height:160px;display:flex;flex-direction:column}
+    .day h4{margin:0;padding:10px 12px;background:#f1f5f9;border-bottom:1px solid var(--borde);font-size:14px;color:#004080}
+    .events{padding:10px;display:flex;flex-direction:column;gap:8px}
+    .event{border:1px solid var(--borde);background:#fff;border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:4px}
+    .event .title{font-weight:700;color:#004080}
+    .event .meta{font-size:12px;color:#475569}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Campeones Para Coquimbo</h1>
+  <p>Planificación del alumno</p>
+</header>
+
+<main>
+  <!-- Filtros -->
+  <div class="filters" aria-label="Filtros de planificación">
+    <div>
+      <label for="curso">Curso</label><br>
+      <select id="curso">
+        <option value="">Todos</option>
+        <option>Básquetbol Sub-15</option>
+        <option>Vóleibol Mixto</option>
+      </select>
+    </div>
+    <div>
+      <label for="desde">Desde</label><br>
+      <input id="desde" type="date">
+    </div>
+    <div>
+      <label for="hasta">Hasta</label><br>
+      <input id="hasta" type="date">
+    </div>
+    <div>
+      <label for="sede">Sede</label><br>
+      <select id="sede">
+        <option value="">Todas</option>
+        <option>Sede Central</option>
+        <option>Gimnasio 2° piso</option>
+      </select>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" type="button"><i class="fa-solid fa-file-arrow-down"></i> Exportar</button>
+  </div>
+
+  <!-- Cambiar vista -->
+  <div class="view-toggle" role="tablist" aria-label="Selecciona vista">
+    <button id="btnLista" class="btn-outline active" type="button"><i class="fa-solid fa-list"></i> Lista</button>
+    <button id="btnSemana" class="btn-outline" type="button"><i class="fa-solid fa-calendar-week"></i> Semana</button>
+  </div>
+
+  <!-- Vista: Lista -->
+  <section id="vistaLista">
+    <div class="table-wrap">
+      <table id="tabla" aria-label="Próximas clases">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Curso</th>
+            <th>Horario</th>
+            <th>Lugar</th>
+            <th>Profesor</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!--  ejemplo -->
+          <tr class="row-item" data-curso="Básquetbol Sub-15" data-fecha="2025-10-01" data-sede="Sede Central">
+            <td>2025-10-01</td>
+            <td><span class="chip">Básquetbol Sub-15</span></td>
+            <td>18:00–19:30</td>
+            <td>Cancha 1 · Sede Central</td>
+            <td>Juan Pérez</td>
+            <td>Programada</td>
+          </tr>
+          <tr class="row-item" data-curso="Básquetbol Sub-15" data-fecha="2025-10-03" data-sede="Sede Central">
+            <td>2025-10-03</td>
+            <td><span class="chip">Básquetbol Sub-15</span></td>
+            <td>18:00–19:00</td>
+            <td>Gimnasio · Sede Central</td>
+            <td>Juan Pérez</td>
+            <td>Programada</td>
+          </tr>
+          <tr class="row-item" data-curso="Vóleibol Mixto" data-fecha="2025-10-02" data-sede="Gimnasio 2° piso">
+            <td>2025-10-02</td>
+            <td><span class="chip">Vóleibol Mixto</span></td>
+            <td>19:00–20:30</td>
+            <td>Gimnasio 2° piso</td>
+            <td>Carolina Díaz</td>
+            <td>Programada</td>
+          </tr>
+          <tr class="row-item" data-curso="Vóleibol Mixto" data-fecha="2025-10-07" data-sede="Gimnasio 2° piso">
+            <td>2025-10-07</td>
+            <td><span class="chip">Vóleibol Mixto</span></td>
+            <td>19:00–20:30</td>
+            <td>Gimnasio 2° piso</td>
+            <td>Carolina Díaz</td>
+            <td>Programada</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="emptyList" class="empty" style="display:none;">
+      <i class="fa-solid fa-inbox"></i>
+      <p>No hay clases para los filtros seleccionados.</p>
+    </div>
+  </section>
+
+  <!-- Vista: Semana -->
+  <section id="vistaSemana" style="display:none;">
+    <div class="week" id="semana">
+      <!-- Lunes -->
+      <div class="day" data-dia="2025-09-29">
+        <h4>Lun 29-09</h4>
+        <div class="events">
+          <!-- (sin eventos de ejemplo) -->
+        </div>
+      </div>
+      <!-- Martes -->
+      <div class="day" data-dia="2025-09-30">
+        <h4>Mar 30-09</h4>
+        <div class="events"></div>
+      </div>
+      <!-- Miércoles -->
+      <div class="day" data-dia="2025-10-01">
+        <h4>Mié 01-10</h4>
+        <div class="events">
+          <div class="event ev-item" data-curso="Básquetbol Sub-15" data-fecha="2025-10-01" data-sede="Sede Central">
+            <div class="title">Básquetbol Sub-15</div>
+            <div class="meta"><i class="fa-regular fa-clock"></i> 18:00–19:30 · <i class="fa-solid fa-location-dot"></i> Cancha 1 · Sede Central</div>
+            <div class="meta"><i class="fa-solid fa-user"></i> Juan Pérez</div>
+          </div>
+        </div>
+      </div>
+      <!-- Jueves -->
+      <div class="day" data-dia="2025-10-02">
+        <h4>Jue 02-10</h4>
+        <div class="events">
+          <div class="event ev-item" data-curso="Vóleibol Mixto" data-fecha="2025-10-02" data-sede="Gimnasio 2° piso">
+            <div class="title">Vóleibol Mixto</div>
+            <div class="meta"><i class="fa-regular fa-clock"></i> 19:00–20:30 · <i class="fa-solid fa-location-dot"></i> Gimnasio 2° piso</div>
+            <div class="meta"><i class="fa-solid fa-user"></i> Carolina Díaz</div>
+          </div>
+        </div>
+      </div>
+      <!-- Viernes -->
+      <div class="day" data-dia="2025-10-03">
+        <h4>Vie 03-10</h4>
+        <div class="events">
+          <div class="event ev-item" data-curso="Básquetbol Sub-15" data-fecha="2025-10-03" data-sede="Sede Central">
+            <div class="title">Básquetbol Sub-15</div>
+            <div class="meta"><i class="fa-regular fa-clock"></i> 18:00–19:00 · <i class="fa-solid fa-location-dot"></i> Gimnasio · Sede Central</div>
+            <div class="meta"><i class="fa-solid fa-user"></i> Juan Pérez</div>
+          </div>
+        </div>
+      </div>
+      <!-- Sábado -->
+      <div class="day" data-dia="2025-10-04">
+        <h4>Sáb 04-10</h4>
+        <div class="events"></div>
+      </div>
+      <!-- Domingo -->
+      <div class="day" data-dia="2025-10-05">
+        <h4>Dom 05-10</h4>
+        <div class="events"></div>
+      </div>
+    </div>
+    <div id="emptyWeek" class="empty" style="display:none;">
+      <i class="fa-solid fa-inbox"></i>
+      <p>No hay clases en esta semana para los filtros seleccionados.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+  // Elementos UI
+  const curso = document.getElementById('curso');
+  const desde = document.getElementById('desde');
+  const hasta = document.getElementById('hasta');
+  const sede  = document.getElementById('sede');
+
+  const btnLista  = document.getElementById('btnLista');
+  const btnSemana = document.getElementById('btnSemana');
+  const vistaLista  = document.getElementById('vistaLista');
+  const vistaSemana = document.getElementById('vistaSemana');
+
+  // Items de datos
+  const rows = [...document.querySelectorAll('.row-item')];  // tabla
+  const evts = [...document.querySelectorAll('.ev-item')];   // semana
+
+  const emptyList = document.getElementById('emptyList');
+  const emptyWeek = document.getElementById('emptyWeek');
+
+  function inRange(dateStr, d, h){
+    if(!d && !h) return true;
+    const x = new Date(dateStr);
+    if(d && x < new Date(d)) return false;
+    if(h && x > new Date(h)) return false;
+    return true;
+  }
+
+  function filtra(){
+    const c = curso.value;
+    const d = desde.value;
+    const h = hasta.value;
+    const s = sede.value;
+
+    // Tabla
+    let visList = 0;
+    rows.forEach(tr=>{
+      const okC = !c || tr.dataset.curso === c;
+      const okF = inRange(tr.dataset.fecha, d, h);
+      const okS = !s || tr.dataset.sede === s;
+      const show = okC && okF && okS;
+      tr.style.display = show ? '' : 'none';
+      if(show) visList++;
+    });
+    emptyList.style.display = visList ? 'none' : '';
+
+    // Semana
+    let visWeek = 0;
+    evts.forEach(ev=>{
+      const okC = !c || ev.dataset.curso === c;
+      const okF = inRange(ev.dataset.fecha, d, h);
+      const okS = !s || ev.dataset.sede === s;
+      const show = okC && okF && okS;
+      ev.style.display = show ? '' : 'none';
+      if(show) visWeek++;
+    });
+    emptyWeek.style.display = visWeek ? 'none' : '';
+  }
+
+  [curso, desde, hasta, sede].forEach(el=>el.addEventListener('input', filtra));
+
+  // Toggle vistas
+  btnLista.addEventListener('click', ()=>{
+    btnLista.classList.add('active'); btnSemana.classList.remove('active');
+    vistaLista.style.display=''; vistaSemana.style.display='none';
+  });
+
+  btnSemana.addEventListener('click', ()=>{
+    btnSemana.classList.add('active'); btnLista.classList.remove('active');
+    vistaSemana.style.display=''; vistaLista.style.display='none';
+  });
+
+  // Init
+  filtra();
+</script>
+</body>
+</html>

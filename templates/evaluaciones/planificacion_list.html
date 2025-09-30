@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Planificaciones</h2>
+<table class="table table-sm">
+  <thead><tr><th>Nombre</th><th>Mes</th><th>Profesor</th></tr></thead>
+  <tbody>
+  {% for p in planes %}
+    <tr><td>{{ p.nombre }}</td><td>{{ p.mes }}</td><td>{{ p.profesor }}</td></tr>
+  {% empty %}
+    <tr><td colspan="3">No hay planificaciones.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

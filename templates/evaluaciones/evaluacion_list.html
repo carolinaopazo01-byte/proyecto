@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Evaluaciones</h2>
+<table class="table table-sm">
+  <thead><tr><th>Atleta</th><th>Tipo</th><th>Fecha</th><th>Profesional</th></tr></thead>
+  <tbody>
+  {% for e in evals %}
+    <tr>
+      <td>{{ e.atleta }}</td>
+      <td>{{ e.get_tipo_evaluacion_display }}</td>
+      <td>{{ e.fecha }}</td>
+      <td>{{ e.profesional }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="4">No hay evaluaciones.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

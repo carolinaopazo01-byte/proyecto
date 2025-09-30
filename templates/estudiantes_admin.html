@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Estudiantes – Administración | Campeones Para Coquimbo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root{ --azul:#004080; --azul-osc:#003060; --suave:#f4f6f9; --borde:#e5e7eb; --campo:#cfd8e3; }
+    *{box-sizing:border-box} body{font-family:'Poppins',sans-serif;background:var(--suave);margin:0}
+    header{background:var(--azul);color:#fff;text-align:center;padding:22px}
+    header h1{margin:0;font-size:28px;font-weight:700}
+    header p{margin:6px 0 0}
+    main{max-width:1200px;margin:28px auto;background:#fff;padding:24px;border-radius:14px;box-shadow:0 8px 18px rgba(0,0,0,.08)}
+    .toolbar{display:grid;grid-template-columns:1fr 180px 220px 200px 160px auto auto;gap:10px;align-items:end;margin-bottom:14px}
+    .toolbar label{font-weight:600;color:var(--azul)}
+    .toolbar input,.toolbar select{width:100%;padding:10px;border:1px solid var(--campo);border-radius:10px;font-size:14px}
+    .btn{display:inline-flex;align-items:center;gap:8px;background:var(--azul);color:#fff;border:none;padding:11px 16px;border-radius:10px;font-weight:600;cursor:pointer}
+    .btn:hover{background:var(--azul-osc)}
+    .btn-sec{background:#eef2ff;color:var(--azul);border:1px solid #c7d2fe}
+    .btn-sec:hover{background:#e0e7ff}
+    .table-wrap{overflow:auto;border:1px solid var(--borde);border-radius:12px}
+    table{width:100%;border-collapse:collapse}
+    thead th{position:sticky;top:0;background:var(--azul);color:#fff;padding:12px;text-align:left}
+    tbody td{border-top:1px solid var(--borde);padding:12px;vertical-align:top}
+    .chip{display:inline-block;padding:4px 10px;border-radius:999px;background:#e6f0ff;color:var(--azul);font-size:12px;font-weight:600}
+    .estado-activo{background:#e6ffed;color:#0a7f3f}
+    .estado-inactivo{background:#ffe9e9;color:#9c1c1c}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    @media (max-width:1000px){ .toolbar{grid-template-columns:1fr 1fr 1fr} }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Campeones Para Coquimbo</h1>
+  <p>Gestión de estudiantes (Administrador)</p>
+</header>
+
+<main>
+  <div class="toolbar">
+    <div>
+      <label for="q">Buscar (nombre o RUT)</label>
+      <input id="q" type="search" placeholder="Ej: Ana Pérez o 12345678K">
+    </div>
+    <div>
+      <label for="prog">Programa</label>
+      <select id="prog"><option value="">Todos</option><option>Formativo</option><option>Alto Rendimiento</option></select>
+    </div>
+    <div>
+      <label for="curso">Curso</label>
+      <select id="curso">
+        <option value="">Todos</option>
+        <option>Básquetbol Sub-15</option>
+        <option>Fútbol Sub-12</option>
+        <option>Vóleibol Mixto</option>
+      </select>
+    </div>
+    <div>
+      <label for="estado">Estado</label>
+      <select id="estado"><option value="">Todos</option><option>Activo</option><option>Inactivo</option></select>
+    </div>
+    <button id="limpiar" class="btn-sec"><i class="fa-solid fa-eraser"></i> Limpiar</button>
+    <button class="btn"><i class="fa-solid fa-user-plus"></i> Nuevo estudiante</button>
+  </div>
+
+  <div class="table-wrap">
+    <table id="tabla-estudiantes">
+      <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>RUT</th>
+        <th>Programa</th>
+        <th>Curso</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr data-prog="Formativo" data-curso="Básquetbol Sub-15" data-estado="Activo">
+        <td>Ana Pérez</td>
+        <td>12345678K</td>
+        <td><span class="chip">Formativo</span></td>
+        <td>Básquetbol Sub-15</td>
+        <td><span class="chip estado-activo">Activo</span></td>
+        <td class="actions">
+          <button class="btn-sec" title="Ver ficha"><i class="fa-solid fa-eye"></i></button>
+          <button class="btn-sec" title="Editar"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn-sec" title="Desactivar"><i class="fa-solid fa-power-off"></i></button>
+        </td>
+      </tr>
+      <tr data-prog="Formativo" data-curso="Fútbol Sub-12" data-estado="Activo">
+        <td>Carlos Soto</td>
+        <td>98765432-1</td>
+        <td><span class="chip">Formativo</span></td>
+        <td>Fútbol Sub-12</td>
+        <td><span class="chip estado-activo">Activo</span></td>
+        <td class="actions">
+          <button class="btn-sec"><i class="fa-solid fa-eye"></i></button>
+          <button class="btn-sec"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn-sec"><i class="fa-solid fa-power-off"></i></button>
+        </td>
+      </tr>
+      <tr data-prog="Alto Rendimiento" data-curso="Vóleibol Élite" data-estado="Inactivo">
+        <td>María López</td>
+        <td>11222333-4</td>
+        <td><span class="chip">Alto Rendimiento</span></td>
+        <td>Vóleibol Élite</td>
+        <td><span class="chip estado-inactivo">Inactivo</span></td>
+        <td class="actions">
+          <button class="btn-sec"><i class="fa-solid fa-eye"></i></button>
+          <button class="btn-sec"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn-sec"><i class="fa-solid fa-rotate-left"></i></button>
+        </td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+  // Filtros rápidos (front)
+  const q = document.getElementById('q'), prog = document.getElementById('prog'),
+        curso = document.getElementById('curso'), estado = document.getElementById('estado'),
+        limpiar = document.getElementById('limpiar'),
+        rows = [...document.querySelectorAll('#tabla-estudiantes tbody tr')];
+
+  const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'');
+
+  function filtra(){
+    const tq = norm(q.value), tp = prog.value, tc = curso.value, te = estado.value;
+    rows.forEach(tr=>{
+      const texto = norm(tr.innerText);
+      const okQ = !tq || texto.includes(tq);
+      const okP = !tp || tr.dataset.prog === tp;
+      const okC = !tc || tr.dataset.curso === tc;
+      const okE = !te || tr.dataset.estado === te;
+      tr.style.display = (okQ && okP && okC && okE) ? '' : 'none';
+    });
+  }
+
+  [q, prog, curso, estado].forEach(el=>el.addEventListener('input', filtra));
+  limpiar.addEventListener('click', ()=>{ q.value=''; prog.value=''; curso.value=''; estado.value=''; filtra(); });
+</script>
+</body>
+</html>

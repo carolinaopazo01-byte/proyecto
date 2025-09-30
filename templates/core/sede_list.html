@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Sedes</h2>
+<ul class="list-group">
+  {% for s in sedes %}
+    <li class="list-group-item d-flex justify-content-between">
+      <span>{{ s.nombre }}</span>
+      <small class="text-muted">{{ s.capacidad }} cupos</small>
+    </li>
+  {% empty %}
+    <li class="list-group-item">No hay sedes.</li>
+  {% endfor %}
+</ul>
+{% endblock %}
