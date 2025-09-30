@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Reportes | Campeones Para Coquimbo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root{ --azul:#004080; --azul-osc:#003060; --suave:#f4f6f9; --borde:#e5e7eb; }
+    *{box-sizing:border-box} body{font-family:'Poppins',sans-serif;background:var(--suave);margin:0}
+    header{background:var(--azul);color:#fff;text-align:center;padding:22px}
+    header h1{margin:0;font-size:28px;font-weight:700}
+    header p{margin:6px 0 0}
+    main{max-width:1100px;margin:28px auto;background:#fff;padding:24px;border-radius:14px;box-shadow:0 8px 18px rgba(0,0,0,.08)}
+    .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:18px}
+    .filters label{font-weight:600;color:var(--azul)}
+    .filters input, .filters select{padding:10px;border:1px solid #cfd8e3;border-radius:10px}
+    .btn{display:inline-flex;align-items:center;gap:8px;background:var(--azul);color:#fff;border:none;padding:11px 16px;border-radius:10px;font-weight:600;cursor:pointer}
+    .btn:hover{background:var(--azul-osc)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:10px}
+    .card{background:#f8fafc;border:1px solid var(--borde);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:8px}
+    .card h3{margin:0;color:var(--azul)}
+    .card p{margin:0;color:#475569}
+    .card .actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Campeones Para Coquimbo</h1>
+  <p>Reportes</p>
+</header>
+
+<main>
+  <div class="filters">
+    <div>
+      <label for="desde">Desde</label><br>
+      <input id="desde" type="date">
+    </div>
+    <div>
+      <label for="hasta">Hasta</label><br>
+      <input id="hasta" type="date">
+    </div>
+    <div>
+      <label for="filtro">Filtro rápido</label><br>
+      <select id="filtro">
+        <option>Última semana</option>
+        <option>Último mes</option>
+        <option>Último trimestre</option>
+      </select>
+    </div>
+    <button class="btn"><i class="fa-solid fa-magnifying-glass-chart"></i> Generar</button>
+    <button class="btn"><i class="fa-solid fa-file-arrow-down"></i> Exportar</button>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3><i class="fa-solid fa-triangle-exclamation"></i> Inasistencias Semanal</h3>
+      <p>Consolidado por curso y profesor.</p>
+      <div class="actions">
+        <button class="btn"><i class="fa-solid fa-eye"></i> Ver</button>
+        <button class="btn"><i class="fa-solid fa-file-export"></i> Exportar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><i class="fa-solid fa-clipboard-check"></i> Asistencia por Clase</h3>
+      <p>Detalle por sesión con estados (presente/ausente/justificado).</p>
+      <div class="actions">
+        <button class="btn"><i class="fa-solid fa-eye"></i> Ver</button>
+        <button class="btn"><i class="fa-solid fa-file-export"></i> Exportar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><i class="fa-solid fa-user-plus"></i> Inscripciones</h3>
+      <p>Matrículas por curso y lista de espera.</p>
+      <div class="actions">
+        <button class="btn"><i class="fa-solid fa-eye"></i> Ver</button>
+        <button class="btn"><i class="fa-solid fa-file-export"></i> Exportar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><i class="fa-solid fa-calendar-days"></i> Calendario Consolidado</h3>
+      <p>Clases, citas y eventos por sede y disciplina.</p>
+      <div class="actions">
+        <button class="btn"><i class="fa-solid fa-eye"></i> Ver</button>
+        <button class="btn"><i class="fa-solid fa-file-export"></i> Exportar</button>
+      </div>
+    </div>
+  </div>
+</main>
+</body>
+</html>

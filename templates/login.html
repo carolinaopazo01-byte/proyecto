@@ -1,8 +1,44 @@
-{% extends "base.html" %}
-{% block content %}
-<h2>Iniciar sesión</h2>
-<form method="post">{% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit">Entrar</button>
-</form>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Iniciar Sesión | Campeones Para Coquimbo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root{ --azul:#004080; --azul-osc:#003060; --suave:#f4f6f9; --borde:#cfd8e3; }
+    *{box-sizing:border-box} body{font-family:'Poppins',sans-serif;background:var(--suave);margin:0}
+    header{background:var(--azul);color:#fff;text-align:center;padding:24px}
+    header h1{margin:0;font-size:28px;font-weight:700}
+    header p{margin:6px 0 0}
+    .wrap{max-width:420px;margin:40px auto;background:#fff;padding:26px;border-radius:14px;box-shadow:0 8px 18px rgba(0,0,0,.08)}
+    label{display:block;font-weight:600;margin:8px 0 6px;color:var(--azul)}
+    input{width:100%;padding:12px;border:1px solid var(--borde);border-radius:10px;font-size:14px}
+    .btn{width:100%;margin-top:14px;display:inline-flex;justify-content:center;gap:8px;align-items:center;background:var(--azul);color:#fff;border:none;padding:12px;border-radius:10px;font-weight:600;cursor:pointer}
+    .btn:hover{background:var(--azul-osc)}
+    .help{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:14px}
+    .help a{text-decoration:none;color:var(--azul);font-weight:600}
+    .muted{color:#6b7280;font-size:12px;margin-top:6px}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Campeones Para Coquimbo</h1>
+  <p>Iniciar sesión</p>
+</header>
+
+<div class="wrap">
+  <label for="rut">RUT (sin puntos ni guion)</label>
+  <input id="rut" type="text" placeholder="Ejem: 12345678K" autocomplete="username" />
+
+  <label for="pass">Contraseña</label>
+  <input id="pass" type="password" placeholder="Tu contraseña" autocomplete="current-password" />
+
+  <button class="btn" type="button"><i class="fa-solid fa-right-to-bracket"></i> Entrar</button>
+  <div class="help">
+    <span class="muted">¿Primera vez? Te asignaremos una contraseña temporal.</span>
+    <a href="#">¿Olvidaste tu contraseña?</a>
+  </div>
+</div>
+</body>
+</html>

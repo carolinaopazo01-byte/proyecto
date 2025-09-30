@@ -1,22 +1,10 @@
 from django.contrib import admin
 from django.urls import path, include
-from applications.core import views as core_views  # 👈 importamos el home
+from applications.core import views as core_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-
-    # Home (página en blanco)
-    path('', core_views.home, name='home'),
-
-    # Core bajo /core/...  (sedes, deportes, login de core)
-    path('core/', include('applications.core.urls')),
-
-    # Clases y asistencia
-    path('', include('applications.atleta.urls')),
-
-    # Evals/planificaciones
-    path('evals/', include('applications.evaluaciones.urls')),
-
-    # Login/Logout “oficial”
-    path('cuentas/', include('applications.usuarios.urls')),
+    path('', include('applications.core.urls')),
+    path('asistencia/', core_views.asistencia, name='asistencia'),                    # sin curso seleccionado
+    path('asistencia/<int:curso_id>/', core_views.asistencia, name='asistencia_curso'),  # con curso
 ]
