@@ -14,19 +14,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'applications.core',
-    'applications.atleta',
-    'applications.evaluaciones',
-    'applications.usuarios',
 
     # Terceros
     'django_filters',
 
     # Tus apps
-    'applications.usuarios.apps.UsuariosConfig',
     'applications.core',
-    'applications.atleta.apps.AtletaConfig',     # importante para signals
+    'applications.atleta.apps.AtletaConfig',   # importante para signals
     'applications.evaluaciones',
+    'applications.usuarios.apps.UsuariosConfig',
 ]
 
 MIDDLEWARE = [
