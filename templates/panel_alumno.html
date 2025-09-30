@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Panel del Alumno | Campeones Para Coquimbo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root{--azul:#004080;--azul-osc:#003060;--suave:#f4f6f9;--borde:#e5e7eb}
+    *{box-sizing:border-box}
+    body{font-family:'Poppins',sans-serif;background:var(--suave);margin:0}
+    header{background:var(--azul);color:#fff;text-align:center;padding:22px}
+    header h1{margin:0;font-size:26px;font-weight:700}
+    header p{margin:6px 0 0}
+    main{max-width:1100px;margin:28px auto;padding:0 16px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+    .card{background:#fff;border:1px solid var(--borde);border-radius:14px;padding:18px;text-decoration:none;color:#0f172a;display:flex;flex-direction:column;gap:8px;box-shadow:0 8px 18px rgba(0,0,0,.06)}
+    .card h3{margin:0;color:#004080;font-size:18px}
+    .card i{font-size:28px;color:#004080}
+    .card:hover{box-shadow:0 10px 22px rgba(0,0,0,.12)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+    @media (max-width:900px){.row{grid-template-columns:1fr}}
+    .box{background:#fff;border:1px solid var(--borde);border-radius:14px;padding:16px}
+    .box h4{margin:0 0 10px;color:#004080}
+    ul{margin:0;padding-left:18px}
+    li{margin:6px 0}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Campeones Para Coquimbo</h1>
+  <p>Panel del Alumno</p>
+</header>
+
+<main>
+  <!-- Accesos rápidos -->
+  <div class="grid" aria-label="Accesos del alumno">
+    <a href="/alumno/cursos/" class="card">
+      <i class="fa-solid fa-book-open"></i>
+      <h3>Mis cursos</h3>
+      <p>Revisa disciplinas, profesor, sede y horarios.</p>
+    </a>
+    <a href="/alumno/asistencia/" class="card">
+      <i class="fa-solid fa-clipboard-check"></i>
+      <h3>Mi asistencia</h3>
+      <p>Historial y porcentaje por curso.</p>
+    </a>
+    <a href="/alumno/planificacion/" class="card">
+      <i class="fa-solid fa-calendar-days"></i>
+      <h3>Planificación</h3>
+      <p>Próximas clases: día, hora y lugar.</p>
+    </a>
+    <a href="/alumno/comunicados/" class="card">
+      <i class="fa-solid fa-bullhorn"></i>
+      <h3>Comunicados</h3>
+      <p>Anuncios de tus cursos.</p>
+    </a>
+    <a href="/alumno/documentos/" class="card">
+      <i class="fa-solid fa-file-shield"></i>
+      <h3>Documentos / Protocolos</h3>
+      <p>Solo visualización.</p>
+    </a>
+    <a href="/alumno/perfil/" class="card">
+      <i class="fa-solid fa-user"></i>
+      <h3>Mi perfil</h3>
+      <p>Datos personales y contacto.</p>
+    </a>
+  </div>
+
+  <!-- Resumen rápido -->
+  <div class="row">
+    <div class="box">
+      <h4>Próximas clases</h4>
+      <ul>
+        <li><strong>Básquetbol Sub-15</strong> — Lun 18:00 · Cancha 1 (Sede Central)</li>
+        <li><strong>Vóleibol Mixto</strong> — Mié 19:00 · Gimnasio 2° piso</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h4>Últimos comunicados</h4>
+      <ul>
+        <li>[Básquetbol] Cambio de horario miércoles</li>
+        <li>[Vóleibol] Traer implementación personal</li>
+      </ul>
+    </div>
+  </div>
+</main>
+</body>
+</html>

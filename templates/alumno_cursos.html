@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mis Cursos | Campeones Para Coquimbo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root{--azul:#004080;--azul-osc:#003060;--suave:#f4f6f9;--borde:#e5e7eb}
+    *{box-sizing:border-box}
+    body{font-family:'Poppins',sans-serif;background:var(--suave);margin:0}
+    header{background:var(--azul);color:#fff;text-align:center;padding:22px}
+    header h1{margin:0;font-size:26px;font-weight:700}
+    header p{margin:6px 0 0}
+    main{max-width:1100px;margin:28px auto;background:#fff;padding:20px;border-radius:14px;box-shadow:0 8px 18px rgba(0,0,0,.08)}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:14px}
+    .toolbar input,.toolbar select{padding:10px;border:1px solid #cfd8e3;border-radius:10px}
+    .table-wrap{overflow:auto;border:1px solid var(--borde);border-radius:12px}
+    table{width:100%;border-collapse:collapse}
+    thead th{position:sticky;top:0;background:var(--azul);color:#fff;padding:12px;text-align:left}
+    tbody td{border-top:1px solid var(--borde);padding:12px;vertical-align:top}
+    .chip{display:inline-block;padding:4px 10px;border-radius:999px;background:#e6f0ff;color:#004080;font-size:12px;font-weight:600}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Campeones Para Coquimbo</h1>
+  <p>Mis cursos</p>
+</header>
+
+<main>
+  <!-- Filtros rápidos -->
+  <div class="toolbar">
+    <input id="q" type="search" placeholder="Buscar por curso / profesor / sede" style="flex:1">
+    <select id="disc">
+      <option value="">Todas las disciplinas</option>
+      <option>Básquetbol</option>
+      <option>Fútbol</option>
+      <option>Vóleibol</option>
+    </select>
+    <select id="sede">
+      <option value="">Todas las sedes</option>
+      <option>Sede Central</option>
+      <option>Complejo Deportivo Peñuelas</option>
+    </select>
+  </div>
+
+  <!-- Tabla de mis cursos -->
+  <div class="table-wrap">
+    <table id="tabla-cursos" aria-label="Cursos del alumno">
+      <thead>
+      <tr>
+        <th>Curso</th>
+        <th>Profesor</th>
+        <th>Sede</th>
+        <th>Próximos horarios</th>
+        <th>Estado</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr data-disc="Básquetbol" data-sede="Sede Central">
+        <td><strong>Básquetbol Sub-15</strong><br><span class="chip">Básquetbol</span></td>
+        <td>Juan Pérez</td>
+        <td>Sede Central</td>
+        <td>Lun/Mié 18:00–19:30 · Cancha 1</td>
+        <td><span class="chip">Activo</span></td>
+      </tr>
+      <tr data-disc="Vóleibol" data-sede="Sede Central">
+        <td><strong>Vóleibol Mixto</strong><br><span class="chip">Vóleibol</span></td>
+        <td>Carolina Díaz</td>
+        <td>Sede Central</td>
+        <td>Mar/Jue 19:00–20:30 · Gimnasio 2° piso</td>
+        <td><span class="chip">Activo</span></td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+  // Filtro simple en el front
+  const q=document.getElementById('q'), disc=document.getElementById('disc'), sede=document.getElementById('sede');
+  const rows=[...document.querySelectorAll('#tabla-cursos tbody tr')];
+  const norm=s=>(s||'').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'');
+  function filtra(){
+    const tq=norm(q.value), td=disc.value, ts=sede.value;
+    rows.forEach(tr=>{
+      const txt=norm(tr.innerText);
+      const okQ=!tq||txt.includes(tq);
+      const okD=!td||tr.dataset.disc===td;
+      const okS=!ts||tr.dataset.sede===ts;
+      tr.style.display=(okQ&&okD&&okS)?'':'none';
+    });
+  }
+  [q,disc,sede].forEach(el=>el.addEventListener('input',filtra));
+</script>
+</body>
+</html>

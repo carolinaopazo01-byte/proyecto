@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mi Asistencia | Campeones Para Coquimbo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root{ --azul:#004080; --azul-osc:#003060; --suave:#f4f6f9; --borde:#e5e7eb; --campo:#cfd8e3; --ok:#e6ffed; --warn:#fff7e6; --err:#ffe9e9; }
+    *{box-sizing:border-box}
+    body{font-family:'Poppins',sans-serif;background:var(--suave);margin:0}
+    header{background:var(--azul);color:#fff;text-align:center;padding:22px}
+    header h1{margin:0;font-size:26px;font-weight:700}
+    header p{margin:6px 0 0}
+    main{max-width:1100px;margin:28px auto;background:#fff;padding:22px;border-radius:14px;box-shadow:0 8px 18px rgba(0,0,0,.08)}
+
+    .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:16px}
+    .filters label{font-weight:600;color:var(--azul)}
+    .filters select,.filters input{padding:10px;border:1px solid var(--campo);border-radius:10px}
+
+    .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:14px}
+    .card{background:#f8fafc;border:1px solid var(--borde);border-radius:12px;padding:14px}
+    .card h3{margin:0;color:var(--azul);font-size:16px}
+    .card .num{font-size:22px;font-weight:700;margin-top:6px}
+    .bar{height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-top:8px}
+    .bar > div{height:100%;background:var(--azul);width:0%}
+
+    .table-wrap{overflow:auto;border:1px solid var(--borde);border-radius:12px}
+    table{width:100%;border-collapse:collapse}
+    thead th{position:sticky;top:0;background:var(--azul);color:#fff;padding:10px;text-align:left}
+    tbody td{border-top:1px solid var(--borde);padding:10px;vertical-align:top}
+    .chip{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600}
+    .pres{background:var(--ok);color:#0a7f3f}
+    .aus{background:var(--err);color:#9c1c1c}
+    .jus{background:#e6f0ff;color:var(--azul)}
+    .muted{color:#6b7280}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Campeones Para Coquimbo</h1>
+  <p>Mi asistencia</p>
+</header>
+
+<main>
+  <!-- Filtros -->
+  <div class="filters">
+    <div>
+      <label for="curso">Curso</label><br>
+      <select id="curso">
+        <option value="">Todos</option>
+        <option>Básquetbol Sub-15</option>
+        <option>Vóleibol Mixto</option>
+      </select>
+    </div>
+    <div>
+      <label for="desde">Desde</label><br>
+      <input id="desde" type="date">
+    </div>
+    <div>
+      <label for="hasta">Hasta</label><br>
+      <input id="hasta" type="date">
+    </div>
+    <div>
+      <label for="estado">Estado</label><br>
+      <select id="estado">
+        <option value="">Todos</option>
+        <option value="Presente">Presente</option>
+        <option value="Ausente">Ausente</option>
+        <option value="Justificado">Justificado</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Resumen -->
+  <div class="summary" id="summary">
+    <div class="card">
+      <h3>Total clases</h3>
+      <div class="num" id="tot">0</div>
+    </div>
+    <div class="card">
+      <h3>Presentes</h3>
+      <div class="num" id="pres">0</div>
+    </div>
+    <div class="card">
+      <h3>Ausentes</h3>
+      <div class="num" id="aus">0</div>
+    </div>
+    <div class="card">
+      <h3>Justificados</h3>
+      <div class="num" id="jus">0</div>
+    </div>
+    <div class="card">
+      <h3>Asistencia (%)</h3>
+      <div class="num" id="pct">0%</div>
+      <div class="bar"><div id="bar"></div></div>
+      <div class="muted" style="margin-top:6px">Presentes / (Total - Justificados)</div>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  <div class="table-wrap">
+    <table id="tabla" aria-label="Historial de asistencia">
+      <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Curso</th>
+        <th>Horario</th>
+        <th>Lugar</th>
+        <th>Estado</th>
+        <th>Observación</th>
+      </tr>
+      </thead>
+      <tbody>
+      <!-- Datos de ejemplo -->
+      <tr data-curso="Básquetbol Sub-15" data-fecha="2025-09-28" data-estado="Presente">
+        <td>2025-09-28</td>
+        <td>Básquetbol Sub-15</td>
+        <td>18:00–19:30</td>
+        <td>Cancha 1 · Sede Central</td>
+        <td><span class="chip pres">Presente</span></td>
+        <td></td>
+      </tr>
+      <tr data-curso="Básquetbol Sub-15" data-fecha="2025-09-25" data-estado="Ausente">
+        <td>2025-09-25</td>
+        <td>Básquetbol Sub-15</td>
+        <td>18:00–19:30</td>
+        <td>Cancha 1 · Sede Central</td>
+        <td><span class="chip aus">Ausente</span></td>
+        <td></td>
+      </tr>
+      <tr data-curso="Vóleibol Mixto" data-fecha="2025-09-24" data-estado="Justificado">
+        <td>2025-09-24</td>
+        <td>Vóleibol Mixto</td>
+        <td>19:00–20:30</td>
+        <td>Gimnasio 2° piso</td>
+        <td><span class="chip jus">Justificado</span></td>
+        <td>Certificado médico</td>
+      </tr>
+      <tr data-curso="Vóleibol Mixto" data-fecha="2025-09-21" data-estado="Presente">
+        <td>2025-09-21</td>
+        <td>Vóleibol Mixto</td>
+        <td>19:00–20:30</td>
+        <td>Gimnasio 2° piso</td>
+        <td><span class="chip pres">Presente</span></td>
+        <td></td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+  const $curso = document.getElementById('curso');
+  const $desde = document.getElementById('desde');
+  const $hasta = document.getElementById('hasta');
+  const $estado = document.getElementById('estado');
+  const rows = [...document.querySelectorAll('#tabla tbody tr')];
+
+  const $tot = document.getElementById('tot');
+  const $pre = document.getElementById('pres');
+  const $aus = document.getElementById('aus');
+  const $jus = document.getElementById('jus');
+  const $pct = document.getElementById('pct');
+  const $bar = document.getElementById('bar');
+
+  function inRange(dateStr, desde, hasta){
+    if(!desde && !hasta) return true;
+    const d = new Date(dateStr);
+    if(desde && d < new Date(desde)) return false;
+    if(hasta && d > new Date(hasta)) return false;
+    return true;
+  }
+
+  function filtra(){
+    const c = $curso.value;
+    const d = $desde.value;
+    const h = $hasta.value;
+    const e = $estado.value;
+
+    rows.forEach(tr=>{
+      const okCurso = !c || tr.dataset.curso === c;
+      const okFecha = inRange(tr.dataset.fecha, d, h);
+      const okEstado = !e || tr.dataset.estado === e;
+      tr.style.display = (okCurso && okFecha && okEstado) ? '' : 'none';
+    });
+
+    recalcula();
+  }
+
+  function recalcula(){
+    const visibles = rows.filter(tr => tr.style.display !== 'none');
+    const total = visibles.length;
+    const pres = visibles.filter(tr => tr.dataset.estado === 'Presente').length;
+    const aus  = visibles.filter(tr => tr.dataset.estado === 'Ausente').length;
+    const jus  = visibles.filter(tr => tr.dataset.estado === 'Justificado').length;
+
+    const base = Math.max(total - jus, 0);
+    const pct = base ? Math.round((pres / base) * 100) : 0;
+
+    $tot.textContent = total;
+    $pre.textContent = pres;
+    $aus.textContent = aus;
+    $jus.textContent = jus;
+    $pct.textContent = pct + '%';
+    $bar.style.width = pct + '%';
+  }
+
+  [$curso,$desde,$hasta,$estado].forEach(el=>el.addEventListener('input', filtra));
+  // init
+  filtra();
+</script>
+</body>
+</html>
