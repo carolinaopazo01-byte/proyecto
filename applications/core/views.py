@@ -1,9 +1,9 @@
-# applications/core/views.py
+from django.http import HttpResponse
 from django.shortcuts import render
 
 
 def inicio(request):
-    return render(request, "core/inicio.html")
+    return render(request, "/inicio.html")
 
 def marcar_asistencia(request):
     return render(request, "core/marcar_asistencia.html")
@@ -63,3 +63,7 @@ def evaluacion_list(request):
 
 def planificacion_list(request):
     return render(request, "evaluaciones/planificacion_list.html")
+
+def alumno_cursos(request):
+    return render(request, "alumno_cursos.html")
+
