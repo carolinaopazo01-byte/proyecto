@@ -1,8 +1,76 @@
 {% extends "base.html" %}
+{% block title %}Login{% endblock %}
+{% block header %}{% endblock %} {# ocultamos h2 del base en esta vista #}
+
 {% block content %}
-<h2>Iniciar sesión</h2>
-<form method="post">{% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit">Entrar</button>
-</form>
+<style>
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.45);
+    display: flex; align-items: center; justify-content: center; z-index: 50;
+  }
+  .modal {
+    width: 100%; max-width: 420px; background: #fff; border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.2); position: relative; padding: 20px;
+  }
+  .modal header { display:flex; justify-content: space-between; align-items:center; margin-bottom: 12px;}
+  .modal h3 { margin:0; font-size: 18px; color:#003366; }
+  .close { background: none; border: none; font-size: 20px; cursor: pointer; }
+  .field { display:flex; flex-direction: column; gap:6px; margin: 12px 0; }
+  .input {
+    width: 100%; padding: 10px 12px; border:1px solid #ddd; border-radius: 8px;
+    font-size: 14px;
+  }
+  .pw-wrap { position: relative; }
+  .toggle {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; font-size: 12px; color:#003366;
+  }
+  .actions { display:flex; justify-content: center; margin-top: 16px; }
+  .btn-primary {
+    padding:10px 16px; border: none; border-radius: 8px; background:#003366; color:#fff; cursor:pointer;
+  }
+</style>
+
+<div class="overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="login-title">
+    <header>
+      <h3 id="login-title">Iniciar sesión</h3>
+      <!-- Cerrar (X): vuelve a la página anterior -->
+      <button class="close" title="Cerrar" onclick="window.history.back()">✖</button>
+    </header>
+
+    <form method="post">
+      {% csrf_token %}
+
+      <div class="field">
+        <label for="rut">RUT</label>
+        <input class="input" id="rut" name="rut" type="text" placeholder="12.345.678-9" autocomplete="username" required />
+      </div>
+
+      <div class="field pw-wrap">
+        <label for="password">Contraseña</label>
+        <input class="input" id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required />
+        <button type="button" class="toggle" onclick="togglePw()">ver</button>
+      </div>
+
+      <div class="actions">
+        <button class="btn-primary" type="submit">Continuar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function togglePw() {
+    const pw = document.getElementById('password');
+    const btn = event.currentTarget;
+    if (pw.type === 'password') {
+      pw.type = 'text';
+      btn.textContent = 'ocultar';
+    } else {
+      pw.type = 'password';
+      btn.textContent = 'ver';
+    }
+  }
+</script>
 {% endblock %}

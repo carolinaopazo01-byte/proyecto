@@ -1,7 +1,11 @@
 {% extends "base.html" %}
-{% block title %}{{ nombre_pagina }}{% endblock %}
+{% block title %}Inicio{% endblock %}
+{% block header %}Inicio{% endblock %}
+
 {% block content %}
-  <h2>{{ mensaje }}</h2>
-  <p>Bienvenida a la página de inicio.</p>
-  <p><a href="{% url 'core:acerca' %}">Ir a Acerca</a></p>
+  <p>
+    <strong>Campeones para Coquimbo</strong> es una iniciativa municipal para impulsar el deporte
+    formativo y de alto rendimiento en la comuna. Aquí podrás gestionar estudiantes, cursos,
+    asistencia, planificación y comunicados, además de acceder a la agenda del Equipo Multidisciplinario.
+  </p>
 {% endblock %}

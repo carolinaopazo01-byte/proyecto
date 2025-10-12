@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Nuevo comunicado{% endblock %}
+{% block header %}CORE / Comunicados - Crear{% endblock %}
+{% block content %}
+  <form method="post">
+    {% csrf_token %}
+    <p><input class="btn" type="submit" value="Enviar comunicado (POST)"></p>
+  </form>
+{% endblock %}

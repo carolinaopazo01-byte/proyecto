@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Planificación{% endblock %}
+{% block header %}CORE / Planificación - Subir{% endblock %}
+{% block subtitle %}Formulario mínimo de ejemplo{% endblock %}
+
+{% block content %}
+  <form method="post">
+    {% csrf_token %}
+    <p><input class="btn" type="submit" value="Subir (POST)"></p>
+  </form>
+
+  <p>
+    <a class="btn" href="{% url 'core:comunicados_list' %}">Ir a Comunicados</a>
+    <a class="btn" href="{% url 'core:cursos_list' %}">Ir a Cursos</a>
+  </p>
+{% endblock %}

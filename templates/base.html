@@ -1,20 +1,108 @@
 <!doctype html>
 <html lang="es">
   <head>
-    <meta charset="utf-8">
-    <title>{% block title %}Mi sitio{% endblock %}</title>
+    <meta charset="utf-8" />
+    <title>{% block title %}Campeones para Coquimbo{% endblock %}</title>
+    <style>
+      body {
+        font-family: system-ui, Arial, sans-serif;
+        margin: 24px;
+        background-color: #fafafa;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #003366;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 10px;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 22px;
+        letter-spacing: 0.5px;
+      }
+      nav a {
+        color: white;
+        text-decoration: none;
+        margin-left: 16px;
+        padding: 6px 10px;
+        border-radius: 6px;
+      }
+      nav a:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+      .bar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin: 16px 0;
+      }
+      .btn {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        text-decoration: none;
+        color: #222;
+        background: #f0f0f0;
+      }
+      .btn:hover {
+        background: #e2e2e2;
+      }
+      h2 {
+        margin: 10px 0;
+        color: #003366;
+      }
+      main {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      }
+    </style>
   </head>
   <body>
     <header>
-      <h1>Layout base</h1>
+      <h1>Campeones para Coquimbo</h1>
+<nav>
+  <a href="{% url 'core:home' %}">🏠 Home</a>
+  <a href="{% url 'usuarios:login_rut' %}">🔑 Login</a>
+
+  <!-- Informativas (se abren en nueva pestaña) -->
+  <a target="_blank" href="{% url 'core:quienes' %}">Quiénes somos</a>
+  <a target="_blank" href="{% url 'core:procesos' %}">Procesos de inscripción</a>
+  <a target="_blank" href="{% url 'core:deportes' %}">Deportes y recintos</a>
+  <a target="_blank" href="{% url 'core:equipo' %}">Equipo Multidisciplinario</a>
+</nav>
+
     </header>
 
+    <div class="bar">
+      <a class="btn" href="javascript:history.back()">← Atrás</a>
+      <a class="btn" href="{% url 'core:home' %}">🏠 Inicio</a>
+      {% if next_url %}
+        <a class="btn" href="{{ next_url }}">Siguiente →</a>
+      {% endif %}
+    </div>
+
     <main>
+      <h2>{% block header %}{% endblock %}</h2>
       {% block content %}{% endblock %}
     </main>
+  <footer style="margin-top:24px; color:#555; font-size:14px;">
+  <hr style="border:none;border-top:1px solid #eee;margin:16px 0;">
+  <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between;">
+    <div>
+      <strong>Redes sociales:</strong>
+      Facebook: <em>Campeones para Coquimbo</em> ·
+      Instagram: <em>@CampeonesParaCoquimbo</em>
+    </div>
+    <div>
+      Municipalidad de Coquimbo
+    </div>
+  </div>
+</footer>
 
-    <footer>
-      <small>©</small>
-    </footer>
   </body>
 </html>

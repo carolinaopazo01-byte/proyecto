@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Bienvenido{% endblock %}
+{% block header %}Bienvenido{% endblock %}
+
+{% block content %}
+  <p>Acceso correcto. ¡Bienvenida/o a Campeones para Coquimbo!</p>
+
+  <div style="margin:16px 0; display:flex; flex-wrap:wrap; gap:12px;">
+    <a class="btn" href="{% url 'core:estudiantes_list' %}">Estudiantes</a>
+    <a class="btn" href="{% url 'core:cursos_list' %}">Cursos</a>
+    <a class="btn" href="{% url 'core:profesores_list' %}">Profesores</a>
+    <a class="btn" href="{% url 'core:planificacion_upload' %}">Planificación</a>
+    <a class="btn" href="{% url 'core:comunicados_list' %}">Comunicados</a>
+  </div>
+{% endblock %}
