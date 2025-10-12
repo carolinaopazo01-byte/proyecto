@@ -48,3 +48,22 @@ class Apoderado(models.Model):
 
     def __str__(self):
         return f"Apoderado: {self.usuario}"
+
+# --- funciones de ayuda para autenticación por RUT ---
+
+def normalizar_rut(rut: str) -> str:
+    """
+    Limpia y deja el rut sin puntos, en minúscula, con guion.
+    Ej: '12.345.678-K' → '12345678-k'
+    """
+    if not rut:
+        return ""
+    r = rut.replace(".", "").replace(" ", "").strip()
+    if "-" in r:
+        pre, dv = r.split("-", 1)
+        return f"{pre}-{dv.lower()}"
+    return r.lower()
+
+
+from django.contrib.auth import get_user_model
+User = get_user_model()

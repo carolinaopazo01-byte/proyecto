@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block header %}{{ titulo }}{% endblock %}
+{% block content %}
+  <p>Hola, <strong>{{ request.user.username }}</strong>.</p>
+  <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:12px;">
+    <a class="btn" href="{% url 'core:estudiantes_list' %}">Estudiantes</a>
+    <a class="btn" href="{% url 'core:cursos_list' %}">Cursos</a>
+    <a class="btn" href="{% url 'core:profesores_list' %}">Profesores</a>
+    <a class="btn" href="{% url 'core:planificacion_upload' %}">Planificación</a>
+    <a class="btn" href="{% url 'core:comunicados_list' %}">Comunicados</a>
+  </div>
+  <p style="margin-top:20px;"><a class="btn" href="{% url 'usuarios:logout' %}">Salir</a></p>
+{% endblock %}

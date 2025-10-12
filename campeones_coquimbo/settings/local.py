@@ -12,3 +12,9 @@ DATABASES = {
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+
+AUTH_USER_MODEL = "usuarios.Usuario"
+AUTHENTICATION_BACKENDS = [
+    "applications.usuarios.auth_backends.RutBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]

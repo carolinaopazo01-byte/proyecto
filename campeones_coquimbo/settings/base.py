@@ -50,8 +50,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'campeones_coquimbo.wsgi.application'
 
-
-
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -66,5 +64,8 @@ USE_TZ = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# OJO: label de la app es 'usuarios'
-AUTH_USER_MODEL = 'usuarios.Usuario'
+AUTH_USER_MODEL = "usuarios.Usuario"
+AUTHENTICATION_BACKENDS = [
+    "applications.usuarios.auth_backends.RutBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]

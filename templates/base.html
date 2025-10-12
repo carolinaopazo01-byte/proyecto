@@ -67,14 +67,21 @@
       <h1>Campeones para Coquimbo</h1>
 <nav>
   <a href="{% url 'core:home' %}">🏠 Home</a>
-  <a href="{% url 'usuarios:login_rut' %}">🔑 Login</a>
 
-  <!-- Informativas (se abren en nueva pestaña) -->
+  {% if request.user.is_authenticated %}
+    <span style="margin-left:12px;">Hola, {{ request.user.username }}</span>
+    <a href="{% url 'usuarios:logout' %}">Salir</a>
+  {% else %}
+    <a href="{% url 'usuarios:login_rut' %}">🔑 Login</a>
+  {% endif %}
+
+  <!-- Informativas -->
   <a target="_blank" href="{% url 'core:quienes' %}">Quiénes somos</a>
   <a target="_blank" href="{% url 'core:procesos' %}">Procesos de inscripción</a>
   <a target="_blank" href="{% url 'core:deportes' %}">Deportes y recintos</a>
   <a target="_blank" href="{% url 'core:equipo' %}">Equipo Multidisciplinario</a>
 </nav>
+
 
     </header>
 
