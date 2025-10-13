@@ -1,8 +1,15 @@
+# applications/core/admin.py
 from django.contrib import admin
 from .models import Sede, Deporte, SedeDeporte, Evento, Comunicado
 
+# Estos se registran de forma simple
 admin.site.register(Sede)
 admin.site.register(Deporte)
 admin.site.register(SedeDeporte)
 admin.site.register(Evento)
-admin.site.register(Comunicado)
+
+# Comunicado: usa un ModelAdmin (no lo registres dos veces)
+@admin.register(Comunicado)
+class ComunicadoAdmin(admin.ModelAdmin):
+    list_display = ("titulo", "autor", "creado")
+    search_fields = ("titulo", "cuerpo")

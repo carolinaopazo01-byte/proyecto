@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AddField(
-            model_name='cita',
+            model_name='Cita',
             name='profesional',
             field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='usuarios.profesionalmulti'),
         ),

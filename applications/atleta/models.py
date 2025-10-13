@@ -81,3 +81,14 @@ class AsistenciaProfesor(models.Model):
 
     def __str__(self):
         return f"{self.profesor} {self.fecha}"
+
+class Cita(models.Model):
+    profesional = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="citas_recibe")
+    paciente = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="citas_paciente")
+    fecha = models.DateField()
+    hora = models.TimeField()
+    estado = models.CharField(max_length=20, default="agendada")  # agendada, realizada, cancelada
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-fecha", "-hora"]

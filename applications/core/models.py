@@ -48,10 +48,34 @@ class Evento(models.Model):
 
 
 class Comunicado(models.Model):
-    titulo = models.CharField(max_length=150)
-    contenido = models.TextField()
-    creado_por = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True)
-    creado_en = models.DateTimeField(auto_now_add=True)
+    titulo = models.CharField(max_length=200)
+    cuerpo = models.TextField()
+    autor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-creado"]
 
     def __str__(self):
         return self.titulo
+
+class Planificacion(models.Model):
+    profesor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    mes = models.DateField(help_text="Usa el primer día del mes (ej: 2025-10-01)")
+    archivo = models.FileField(upload_to="planificaciones/")
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-creado"]
+
+class AsistenciaClase(models.Model):
+    curso_id = models.IntegerField()  # placeholder hasta que tengas modelo Curso
+    fecha = models.DateField()
+    profesor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    creado = models.DateTimeField(auto_now_add=True)
+
+class AsistenciaAlumno(models.Model):
+    asistencia = models.ForeignKey(AsistenciaClase, on_delete=models.CASCADE, related_name="alumnos")
+    estudiante_id = models.IntegerField()  # placeholder hasta modelo Estudiante
+    presente = models.BooleanField(default=False)
+    justificado = models.BooleanField(default=False)

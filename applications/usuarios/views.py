@@ -4,26 +4,44 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.views.decorators.http import require_http_methods
 
-from .models import Usuario, normalizar_rut
+# Control de acceso por rol
+from applications.usuarios.utils import role_required
+from applications.usuarios.models import Usuario
 
+from .models import Usuario, normalizar_rut
 
 def _redirigir_por_tipo(user: Usuario):
     """
-    Envía al panel según el tipo_usuario del modelo personalizado Usuario.
+    Envía automáticamente al área principal según el tipo_usuario.
     """
     tipo = user.tipo_usuario
-    if tipo == Usuario.Tipo.ADMIN:
-        return redirect("usuarios:panel_admin")
-    elif tipo == Usuario.Tipo.COORD:
-        return redirect("usuarios:panel_coordinador")
-    elif tipo == Usuario.Tipo.PROF:
-        return redirect("usuarios:panel_profesor")
-    elif tipo == Usuario.Tipo.APOD:
-        return redirect("usuarios:panel_apoderado")
-    elif tipo == Usuario.Tipo.PROF_MULT:
-        return redirect("usuarios:panel_prof_multidisciplinario")
-    return redirect("usuarios:panel_atleta")
 
+    if tipo == Usuario.Tipo.ADMIN:
+        # Acceso total: panel de control
+        return redirect("usuarios:panel_admin")
+
+    elif tipo == Usuario.Tipo.COORD:
+        # Supervisión de cursos y planificación
+        return redirect("core:cursos_list")
+
+    elif tipo == Usuario.Tipo.PROF:
+        # Profesores inician en planificación
+        return redirect("core:planificacion_upload")
+
+    elif tipo == Usuario.Tipo.PROF_MULT:
+        # Equipo multidisciplinario va directo a su agenda
+        return redirect("atleta:agenda_disponible")
+
+    elif tipo == Usuario.Tipo.APOD:
+        # Apoderados ven comunicados por defecto
+        return redirect("core:comunicados_list")
+
+    elif tipo == Usuario.Tipo.ATLE:
+        # Atletas (AR o Formativo) revisan agenda
+        return redirect("atleta:agenda_disponible")
+
+    # En caso de tipo desconocido
+    return redirect("core:home")
 
 @require_http_methods(["GET", "POST"])
 def login_rut(request):
@@ -51,26 +69,26 @@ def logout_view(request):
 
 # ----------------- PANELES POR ROL -----------------
 
-@login_required
+@role_required(Usuario.Tipo.ADMIN)
 def panel_admin(request):
     return render(request, "usuarios/panel.html", {"titulo": "Panel Administrador"})
 
-@login_required
+@role_required(Usuario.Tipo.COORD)
 def panel_coordinador(request):
     return render(request, "usuarios/panel.html", {"titulo": "Panel Coordinador"})
 
-@login_required
+@role_required(Usuario.Tipo.PROF)
 def panel_profesor(request):
     return render(request, "usuarios/panel.html", {"titulo": "Panel Profesor/Entrenador"})
 
-@login_required
+@role_required(Usuario.Tipo.APOD)
 def panel_apoderado(request):
     return render(request, "usuarios/panel.html", {"titulo": "Panel Apoderado"})
 
-@login_required
+@role_required(Usuario.Tipo.PROF_MULT)
 def panel_prof_multidisciplinario(request):
     return render(request, "usuarios/panel.html", {"titulo": "Panel Profesional Multidisciplinario"})
 
-@login_required
+@role_required(Usuario.Tipo.ATLE)
 def panel_atleta(request):
     return render(request, "usuarios/panel.html", {"titulo": "Panel Atleta"})
