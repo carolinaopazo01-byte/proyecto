@@ -79,3 +79,27 @@ class AsistenciaAlumno(models.Model):
     estudiante_id = models.IntegerField()  # placeholder hasta modelo Estudiante
     presente = models.BooleanField(default=False)
     justificado = models.BooleanField(default=False)
+
+class Curso(models.Model):
+    class Programa(models.TextChoices):
+        FORMATIVO = "FORM", "Formativo"
+        ALTO_REND = "ALTO", "Alto rendimiento"
+
+    nombre = models.CharField(max_length=120)
+    programa = models.CharField(max_length=5, choices=Programa.choices, default=Programa.FORMATIVO)
+    disciplina = models.ForeignKey("core.Deporte", on_delete=models.PROTECT)
+    categoria = models.CharField(max_length=80, blank=True)  # ej: Sub-14, Adulto, etc.
+    profesor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, limit_choices_to={"tipo_usuario": "PROF"})
+    horario = models.CharField(max_length=120, help_text="Ej: Lun y Mié 18:00-19:30")
+    sede = models.ForeignKey("core.Sede", on_delete=models.PROTECT)
+    cupos = models.PositiveIntegerField(default=20)
+    publicado = models.BooleanField(default=False)  # RF: publicación del curso
+    lista_espera = models.BooleanField(default=True)  # RF: habilitar lista de espera
+
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-creado"]
+
+    def __str__(self):
+        return f"{self.nombre} - {self.get_programa_display()} - {self.disciplina}"

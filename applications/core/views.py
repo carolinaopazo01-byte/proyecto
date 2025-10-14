@@ -2,8 +2,8 @@
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.views.decorators.http import require_http_methods
-
-from .models import Comunicado
+from .forms import CursoForm
+from .models import Comunicado, Curso
 
 # Control de acceso por rol
 from applications.usuarios.utils import role_required
@@ -34,14 +34,20 @@ def estudiante_create(request):
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET"])
 def cursos_list(request):
-    return render(request, "core/cursos_list.html")
+    cursos = Curso.objects.select_related("disciplina", "profesor", "sede").all()[:100]
+    return render(request, "core/cursos_list.html", {"cursos": cursos})
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
 def curso_create(request):
     if request.method == "POST":
-        return HttpResponse("CORE / Cursos - CREAR (POST) -> guardado OK")
-    return HttpResponse("CORE / Cursos - FORMULARIO CREAR (GET)")
+        form = CursoForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("core:cursos_list")
+    else:
+        form = CursoForm()
+    return render(request, "core/curso_form.html", {"form": form})
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])

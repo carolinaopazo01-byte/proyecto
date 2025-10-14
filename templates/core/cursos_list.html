@@ -1,7 +1,40 @@
 {% extends "base.html" %}
 {% block title %}Cursos{% endblock %}
 {% block header %}Cursos{% endblock %}
+
 {% block content %}
-  <p>Listado de Cursos</p>
   <p><a class="btn" href="{% url 'core:curso_create' %}">➕ Nuevo curso</a></p>
+
+  {% if cursos %}
+  <table border="1" cellpadding="6" cellspacing="0">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Programa</th>
+        <th>Disciplina</th>
+        <th>Profesor</th>
+        <th>Horario</th>
+        <th>Sede</th>
+        <th>Cupos</th>
+        <th>Publicado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in cursos %}
+      <tr>
+        <td>{{ c.nombre }}</td>
+        <td>{{ c.get_programa_display }}</td>
+        <td>{{ c.disciplina }}</td>
+        <td>{{ c.profesor.username }}</td>
+        <td>{{ c.horario }}</td>
+        <td>{{ c.sede }}</td>
+        <td>{{ c.cupos }}</td>
+        <td>{{ c.publicado|yesno:"Sí,No" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p>No hay cursos creados.</p>
+  {% endif %}
 {% endblock %}

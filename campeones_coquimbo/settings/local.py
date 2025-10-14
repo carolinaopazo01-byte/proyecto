@@ -1,6 +1,7 @@
 from .base import *
 
 DEBUG = True
+SECRET_KEY = 'admin123'
 ALLOWED_HOSTS = []
 
 DATABASES = {

@@ -1,9 +1,23 @@
 {% extends "base.html" %}
 {% block title %}Comunicados{% endblock %}
-{% block header %}Comunicados{% endblock %}
+{% block header %}Listado de Comunicados{% endblock %}
+
 {% block content %}
-  <p>Listado de Comunicados</p>
-  <p>
-    <a class="btn" href="{% url 'core:comunicado_create' %}">➕ Nuevo comunicado</a>
-  </p>
+  {% if request.user.tipo_usuario in "ADMIN,COORD,PROF,PMUL" %}
+    <p><a class="btn" href="{% url 'core:comunicado_create' %}">➕ Nuevo comunicado</a></p>
+  {% endif %}
+
+  {% if data %}
+    <ul style="list-style:none; padding:0; display:grid; gap:12px;">
+      {% for c in data %}
+        <li style="border:1px solid #ddd; border-radius:8px; padding:12px;">
+          <h3 style="margin:0 0 6px 0;">{{ c.titulo }}</h3>
+          <small>por {{ c.autor.username }} — {{ c.creado|date:"d/m/Y H:i" }}</small>
+          <p style="margin-top:8px; white-space:pre-wrap;">{{ c.cuerpo }}</p>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No hay comunicados aún.</p>
+  {% endif %}
 {% endblock %}

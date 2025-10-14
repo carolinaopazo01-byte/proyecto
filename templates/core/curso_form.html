@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Nuevo curso{% endblock %}
+{% block header %}Crear curso{% endblock %}
+
+{% block content %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div style="display:grid; gap:12px; max-width:760px;">
+      {% for field in form %}
+        <div>
+          <label><strong>{{ field.label }}:</strong></label><br>
+          {{ field }}
+          {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+          {% for e in field.errors %}
+            <div style="color:#b00020">{{ e }}</div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+
+      <div style="display:flex; gap:10px; margin-top:8px;">
+        <button class="btn" type="submit">Guardar</button>
+        <a class="btn" href="{% url 'core:cursos_list' %}">Cancelar</a>
+      </div>
+    </div>
+  </form>
+{% endblock %}

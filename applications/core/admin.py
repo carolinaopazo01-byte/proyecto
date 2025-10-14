@@ -1,6 +1,5 @@
-# applications/core/admin.py
 from django.contrib import admin
-from .models import Sede, Deporte, SedeDeporte, Evento, Comunicado
+from .models import Sede, Deporte, SedeDeporte, Evento, Comunicado, Curso
 
 # Estos se registran de forma simple
 admin.site.register(Sede)
@@ -13,3 +12,9 @@ admin.site.register(Evento)
 class ComunicadoAdmin(admin.ModelAdmin):
     list_display = ("titulo", "autor", "creado")
     search_fields = ("titulo", "cuerpo")
+
+@admin.register(Curso)
+class CursoAdmin(admin.ModelAdmin):
+    list_display = ("nombre", "programa", "disciplina", "profesor", "sede", "cupos", "publicado")
+    list_filter = ("programa", "publicado", "disciplina", "sede")
+    search_fields = ("nombre", "profesor__username")

@@ -1,9 +1,29 @@
 {% extends "base.html" %}
-{% block title %}Nuevo comunicado{% endblock %}
-{% block header %}CORE / Comunicados - Crear{% endblock %}
+{% block title %}Nuevo Comunicado{% endblock %}
+{% block header %}Crear Comunicado{% endblock %}
+
 {% block content %}
+  {% if error %}
+    <p style="color:#b00020;">{{ error }}</p>
+  {% endif %}
+
   <form method="post">
     {% csrf_token %}
-    <p><input class="btn" type="submit" value="Enviar comunicado (POST)"></p>
+    <div style="display:flex; flex-direction:column; gap:10px; max-width:700px;">
+      <label>
+        Título<br>
+        <input type="text" name="titulo" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;">
+      </label>
+
+      <label>
+        Cuerpo<br>
+        <textarea name="cuerpo" rows="6" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></textarea>
+      </label>
+
+      <div style="display:flex; gap:10px; margin-top:8px;">
+        <button class="btn" type="submit">Guardar</button>
+        <a class="btn" href="{% url 'core:comunicados_list' %}">Cancelar</a>
+      </div>
+    </div>
   </form>
 {% endblock %}
