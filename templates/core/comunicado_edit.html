@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Editar Comunicado{% endblock %}
+{% block header %}Editar Comunicado{% endblock %}
+
+{% block content %}
+  <form method="post">
+    {% csrf_token %}
+    <div style="display:flex; flex-direction:column; gap:10px; max-width:700px;">
+      <label>
+        Título<br>
+        <input type="text" name="titulo" value="{{ comunicado.titulo }}" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;">
+      </label>
+
+      <label>
+        Cuerpo<br>
+        <textarea name="cuerpo" rows="6" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;">{{ comunicado.cuerpo }}</textarea>
+      </label>
+
+      <div style="display:flex; gap:10px; margin-top:8px;">
+        <button class="btn" type="submit">Guardar cambios</button>
+        <a class="btn" href="{% url 'core:comunicados_list' %}">Cancelar</a>
+      </div>
+    </div>
+  </form>
+{% endblock %}

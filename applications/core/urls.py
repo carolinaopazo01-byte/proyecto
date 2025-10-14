@@ -28,6 +28,8 @@ urlpatterns = [
 
     path("comunicados/", views.comunicados_list, name="comunicados_list"),
     path("comunicados/nuevo/", views.comunicado_create, name="comunicado_create"),
+    path("comunicados/<int:comunicado_id>/editar/", views.comunicado_edit, name="comunicado_edit"),
+    path("comunicados/<int:comunicado_id>/eliminar/", views.comunicado_delete, name="comunicado_delete"),
 
     path("reportes/inasistencias/", views.reporte_inasistencias, name="reporte_inasistencias"),
     path("reportes/asistencia/clase/<int:clase_id>/", views.reporte_asistencia_por_clase, name="reporte_asistencia_por_clase"),

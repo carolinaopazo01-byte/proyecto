@@ -2,6 +2,9 @@
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.views.decorators.http import require_http_methods
+from django.shortcuts import get_object_or_404
+from django.contrib import messages
+
 from .forms import CursoForm
 from .models import Comunicado, Curso
 
@@ -142,7 +145,43 @@ def comunicado_create(request):
         return render(request, "core/comunicado_create.html", {"error": "Completa título y cuerpo."})
     return render(request, "core/comunicado_create.html")
 
+# ------- Editar Comunicado -------
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF, Usuario.Tipo.PROF_MULT)
+@require_http_methods(["GET", "POST"])
+def comunicado_edit(request, comunicado_id):
+    comunicado = get_object_or_404(Comunicado, id=comunicado_id)
 
+    # Solo el autor o admin/coordinador pueden editar
+    if request.user != comunicado.autor and request.user.tipo_usuario not in [Usuario.Tipo.ADMIN, Usuario.Tipo.COORD]:
+        return HttpResponse("No tienes permisos para editar este comunicado.", status=403)
+
+    if request.method == "POST":
+        titulo = (request.POST.get("titulo") or "").strip()
+        cuerpo = (request.POST.get("cuerpo") or "").strip()
+        if titulo and cuerpo:
+            comunicado.titulo = titulo
+            comunicado.cuerpo = cuerpo
+            comunicado.save()
+            messages.success(request, "Comunicado actualizado correctamente.")
+            return redirect("core:comunicados_list")
+        else:
+            messages.error(request, "Debes completar todos los campos.")
+
+    return render(request, "core/comunicado_edit.html", {"comunicado": comunicado})
+
+# ------- Eliminar Comunicado -------
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF, Usuario.Tipo.PROF_MULT)
+@require_http_methods(["POST"])
+def comunicado_delete(request, comunicado_id):
+    comunicado = get_object_or_404(Comunicado, id=comunicado_id)
+
+    # Solo el autor o admin/coordinador pueden eliminar
+    if request.user != comunicado.autor and request.user.tipo_usuario not in [Usuario.Tipo.ADMIN, Usuario.Tipo.COORD]:
+        return HttpResponse("No tienes permisos para eliminar este comunicado.", status=403)
+
+    comunicado.delete()
+    messages.success(request, "Comunicado eliminado correctamente.")
+    return redirect("core:comunicados_list")
 # ------- Reportes -------
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET"])

@@ -14,6 +14,14 @@
           <h3 style="margin:0 0 6px 0;">{{ c.titulo }}</h3>
           <small>por {{ c.autor.username }} — {{ c.creado|date:"d/m/Y H:i" }}</small>
           <p style="margin-top:8px; white-space:pre-wrap;">{{ c.cuerpo }}</p>
+
+          {% if request.user == c.autor or request.user.tipo_usuario in "ADMIN,COORD" %}
+            <form method="post" action="{% url 'core:comunicado_delete' c.id %}" style="display:inline;">
+              {% csrf_token %}
+              <a class="btn" href="{% url 'core:comunicado_edit' c.id %}">✏️ Editar</a>
+              <button class="btn" type="submit" style="background:#d9534f; color:white;">🗑️ Eliminar</button>
+            </form>
+          {% endif %}
         </li>
       {% endfor %}
     </ul>
