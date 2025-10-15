@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Sedes{% endblock %}
+{% block header %}Sedes{% endblock %}
+
+{% block content %}
+  <p><a class="btn" href="{% url 'core:sede_create' %}">➕ Nueva sede</a></p>
+
+  {% if sedes %}
+  <table border="1" cellpadding="6" cellspacing="0">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Dirección</th>
+        <th>Capacidad</th>
+        <th>Descripción</th>
+        <th style="min-width:160px;">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in sedes %}
+      <tr>
+        <td>{{ s.nombre }}</td>
+        <td>{{ s.direccion }}</td>
+        <td>{{ s.capacidad }}</td>
+        <td style="max-width:400px; white-space:pre-wrap;">{{ s.descripcion }}</td>
+        <td>
+          <a class="btn" href="{% url 'core:sede_edit' s.id %}">✏️ Editar</a>
+          <form method="post" action="{% url 'core:sede_delete' s.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button class="btn" type="submit" onclick="return confirm('¿Eliminar esta sede?');" style="background:#d9534f; color:white;">
+              🗑️ Eliminar
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p>No hay sedes registradas.</p>
+  {% endif %}
+{% endblock %}

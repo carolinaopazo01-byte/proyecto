@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Panel Administrador{% endblock %}
+{% block header %}Panel Administrador{% endblock %}
+
+{% block content %}
+  <p>Hola, <strong>{{ rut }}</strong>.</p>
+
+  <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:10px;">
+    <a class="btn" href="{% url 'core:cursos_list' %}">Cursos</a>
+    <a class="btn" href="{% url 'core:estudiantes_list' %}">Estudiantes</a>
+    <a class="btn" href="{% url 'core:planificacion_upload' %}">Planificación</a>
+    <a class="btn" href="{% url 'core:reporte_inasistencias' %}">Reportes</a>
+
+    <!-- Gestión en Admin -->
+      <a class="btn" href="{% url 'core:sedes_list' %}">Sedes</a>
+      <a class="btn" href="/admin/core/deporte/" target="_blank" rel="noopener">Deportes</a>
+  </div>
+
+  <div style="margin-top:18px;">
+    <a class="btn" href="{% url 'usuarios:logout' %}">Salir</a>
+  </div>
+{% endblock %}

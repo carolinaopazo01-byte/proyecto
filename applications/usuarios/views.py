@@ -70,8 +70,13 @@ def logout_view(request):
 # ----------------- PANELES POR ROL -----------------
 
 @role_required(Usuario.Tipo.ADMIN)
+@require_http_methods(["GET"])
 def panel_admin(request):
-    return render(request, "usuarios/panel.html", {"titulo": "Panel Administrador"})
+    # Puedes pasar métricas rápidas al panel si quieres
+    ctx = {
+        "rut": request.user.username,
+    }
+    return render(request, "usuarios/panel_admin.html", ctx)
 
 @role_required(Usuario.Tipo.COORD)
 def panel_coordinador(request):

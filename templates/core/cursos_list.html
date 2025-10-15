@@ -17,6 +17,7 @@
         <th>Sede</th>
         <th>Cupos</th>
         <th>Publicado</th>
+        <th style="min-width:160px;">Acciones</th>
       </tr>
     </thead>
     <tbody>
@@ -30,6 +31,15 @@
         <td>{{ c.sede }}</td>
         <td>{{ c.cupos }}</td>
         <td>{{ c.publicado|yesno:"Sí,No" }}</td>
+        <td>
+          <a class="btn" href="{% url 'core:curso_edit' c.id %}">✏️ Editar</a>
+          <form method="post" action="{% url 'core:curso_delete' c.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button class="btn" type="submit" onclick="return confirm('¿Eliminar este curso?');" style="background:#d9534f; color:white;">
+              🗑️ Eliminar
+            </button>
+          </form>
+        </td>
       </tr>
       {% endfor %}
     </tbody>

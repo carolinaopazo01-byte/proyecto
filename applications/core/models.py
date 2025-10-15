@@ -1,13 +1,14 @@
 from django.db import models
 from django.conf import settings
+from django.db import models
 
 Usuario = settings.AUTH_USER_MODEL
 
 class Sede(models.Model):
-    nombre = models.CharField(max_length=100)
+    nombre = models.CharField(max_length=150, unique=True)
     direccion = models.CharField(max_length=200, blank=True)
     descripcion = models.TextField(blank=True)
-    capacidad = models.IntegerField(default=0)
+    capacidad = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return self.nombre
@@ -20,7 +21,6 @@ class Deporte(models.Model):
 
     def __str__(self):
         return self.nombre
-
 
 class SedeDeporte(models.Model):
     sede = models.ForeignKey(Sede, on_delete=models.CASCADE, related_name='disciplinas')
@@ -103,3 +103,32 @@ class Curso(models.Model):
 
     def __str__(self):
         return f"{self.nombre} - {self.get_programa_display()} - {self.disciplina}"
+
+    # --- ESTUDIANTE ---
+
+
+from django.db import models  # ya lo tienes arriba; si está, no repitas
+
+
+class Estudiante(models.Model):
+    rut = models.CharField(max_length=12, unique=True)
+    nombres = models.CharField(max_length=120)
+    apellidos = models.CharField(max_length=120)
+    fecha_nacimiento = models.DateField(null=True, blank=True)
+    email = models.EmailField(blank=True)
+    telefono = models.CharField(max_length=20, blank=True)
+
+    apoderado_nombre = models.CharField(max_length=120, blank=True)
+    apoderado_telefono = models.CharField(max_length=20, blank=True)
+
+    # referencia opcional a Curso (si tu modelo Curso existe)
+    curso = models.ForeignKey("Curso", null=True, blank=True, on_delete=models.SET_NULL)
+
+    activo = models.BooleanField(default=True)
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["apellidos", "nombres"]
+
+    def __str__(self):
+        return f"{self.apellidos}, {self.nombres} ({self.rut})"

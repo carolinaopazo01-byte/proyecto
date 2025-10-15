@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{% if is_edit %}Editar estudiante{% else %}Nuevo estudiante{% endif %}{% endblock %}
+{% block header %}{% if is_edit %}Editar estudiante{% else %}Crear estudiante{% endif %}{% endblock %}
+
+{% block content %}
+    <script>
+  (function(){
+    const input = document.querySelector('input[name="rut"]');
+    if (!input) return;
+
+    function limpiarRut(v){ return v.replace(/[.\s]/g,'').replace(/-/g,'').toUpperCase(); }
+    function formatear(v){
+      v = limpiarRut(v);
+      if (!v) return '';
+      let dv = v.slice(-1), base = v.slice(0, -1);
+      // separadores de miles
+      let out = '', cont = 0;
+      for (let i = base.length - 1; i >= 0; i--){
+        out = base[i] + out;
+        cont++;
+        if (cont === 3 && i !== 0){ out = '.' + out; cont = 0; }
+      }
+      return out + '-' + dv;
+    }
+
+    input.addEventListener('input', () => {
+      const start = input.selectionStart;
+      const before = input.value;
+      input.value = formatear(before);
+      // cursor al final para simplificar
+      input.selectionStart = input.selectionEnd = input.value.length;
+    });
+  })();
+</script>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div style="display:grid; gap:12px; max-width:850px;">
+      {% for field in form %}
+        <div>
+          <label><strong>{{ field.label }}:</strong></label><br>
+          {{ field }}
+          {% for e in field.errors %}
+            <div style="color:#b00020">{{ e }}</div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+      <div style="display:flex; gap:10px; margin-top:8px;">
+        <button class="btn" type="submit">{% if is_edit %}Guardar cambios{% else %}Guardar{% endif %}</button>
+        <a class="btn" href="{% url 'core:estudiantes_list' %}">Cancelar</a>
+      </div>
+    </div>
+  </form>
+{% endblock %}
