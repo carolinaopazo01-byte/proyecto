@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Equipo (usuarios)</h2>
+
+<form method="get" class="mb-3">
+  <input name="q" value="{{ q }}" placeholder="Buscar por nombre/usuario/RUT">
+  <button class="btn btn-primary">Buscar</button>
+  <a class="btn btn-success" href="{% url 'usuarios:usuario_create' %}">+ Nuevo</a>
+</form>
+
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>RUT</th><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Email</th><th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for u in items %}
+      <tr>
+        <td>{{ u.rut }}</td>
+        <td>{{ u.first_name }} {{ u.last_name }}</td>
+        <td>{{ u.username }}</td>
+        <td>{{ u.get_tipo_usuario_display }}</td>
+        <td>{{ u.email }}</td>
+        <td>
+          <a class="btn btn-sm btn-outline-primary" href="{% url 'usuarios:usuario_edit' u.id %}">Editar</a>
+          <form method="post" action="{% url 'usuarios:usuario_delete' u.id %}" style="display:inline">
+            {% csrf_token %}
+            <button class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar usuario?')">Borrar</button>
+          </form>
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6">Sin usuarios.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

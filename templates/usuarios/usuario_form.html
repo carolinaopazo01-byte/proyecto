@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ is_edit|yesno:"Editar usuario,Nuevo usuario" }}</h2>
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  <div class="grid">
+    {% for field in form %}
+      <div class="mb-2">
+        <label>{{ field.label }}</label>
+        {{ field }}
+        <div class="text-danger">{{ field.errors }}</div>
+      </div>
+    {% endfor %}
+  </div>
+  <button class="btn btn-primary">Guardar</button>
+  <a class="btn btn-secondary" href="{% url 'usuarios:equipo_list' %}">Cancelar</a>
+</form>
+{% endblock %}

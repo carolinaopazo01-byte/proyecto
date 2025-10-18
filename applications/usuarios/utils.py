@@ -31,3 +31,29 @@ def any_role(*roles):
     def check(user):
         return getattr(user, "is_authenticated", False) and getattr(user, "tipo_usuario", None) in roles
     return check
+
+# applications/usuarios/utils.py
+
+def normalizar_rut(rut: str) -> str:
+    """Devuelve 'XXXXXXXX-DV' (sin puntos, con guion). No valida DV."""
+    if not rut:
+        return ""
+    s = "".join(c for c in rut if c.isdigit() or c.upper() == "K")
+    if len(s) < 2:
+        return s
+    base, dv = s[:-1], s[-1].upper()
+    return f"{base}-{dv}"
+
+def formatear_rut(rut: str) -> str:
+    """Formatea con puntos + guion. No valida DV."""
+    nr = normalizar_rut(rut)
+    if "-" not in nr:
+        return nr
+    base, dv = nr.split("-")
+    partes = []
+    while len(base) > 3:
+        partes.insert(0, base[-3:])
+        base = base[:-3]
+    if base:
+        partes.insert(0, base)
+    return ".".join(partes) + "-" + dv

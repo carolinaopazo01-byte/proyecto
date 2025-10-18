@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Planificación{% endblock %}
+{% block content %}
+<h2>Planificación</h2>
+
+<div class="mb-3">
+  <a class="btn btn-primary" href="{% url 'core:planificacion_create' %}">+ Nueva planificación</a>
+</div>
+
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Nombre</th>
+      <th>Nivel</th>
+      <th>Duración</th>
+      <th>Autor</th>
+      <th>Creado</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for it in items %}
+      <tr>
+        <td>{{ it.nombre }}</td>
+        <td>{{ it.get_nivel_dificultad_display }}</td>
+        <td>{{ it.duracion }}</td>
+        <td>{{ it.autor }}</td>
+        <td>{{ it.creado|date:"Y-m-d H:i" }}</td>
+        <td class="text-end">
+          <a class="btn btn-sm btn-outline-secondary" href="{% url 'core:planificacion_edit' it.id %}">Editar</a>
+          <form action="{% url 'core:planificacion_delete' it.id %}" method="post" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar planificación?');">Eliminar</button>
+          </form>
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6">Aún no hay planificaciones.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

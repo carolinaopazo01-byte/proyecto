@@ -1,8 +1,10 @@
 # applications/core/forms.py
 from django import forms
 from django.core.exceptions import ValidationError
-from .models import Sede, Estudiante
-from applications.usuarios.models import normalizar_rut
+
+from .models import Sede, Estudiante, Curso, Planificacion, Deporte
+from applications.usuarios.utils import normalizar_rut
+
 
 # --- Sede ---
 class SedeForm(forms.ModelForm):
@@ -14,14 +16,18 @@ class SedeForm(forms.ModelForm):
             "capacidad": forms.NumberInput(attrs={"min": 0}),
         }
 
+
 # --- Curso ---
-# Si ya tienes CursoForm definido en otro momento, puedes conservarlo.
-# Lo dejo como placeholder simple por si no existía:
-# from .models import Curso
-# class CursoForm(forms.ModelForm):
-#     class Meta:
-#         model = Curso
-#         fields = "__all__"
+class CursoForm(forms.ModelForm):
+    class Meta:
+        model = Curso
+        # Si tu modelo tiene otros campos, usamos todos para no fallar.
+        fields = "__all__"
+        # (Opcional) Puedes personalizar widgets si quieres:
+        # widgets = {
+        #     "descripcion": forms.Textarea(attrs={"rows": 3}),
+        # }
+
 
 # ====== utilidades RUT (validación y formato) ======
 def _rut_calc_dv(numero: str) -> str:
@@ -31,13 +37,15 @@ def _rut_calc_dv(numero: str) -> str:
         s += int(d) * factores[i]
         i = (i + 1) % len(factores)
     r = 11 - (s % 11)
-    if r == 11: return "0"
-    if r == 10: return "K"
+    if r == 11:
+        return "0"
+    if r == 10:
+        return "K"
     return str(r)
 
 def _rut_formatea(ch: str) -> str:
     base = "".join([c for c in ch if c.isdigit()])
-    dv   = ch[-1].upper()
+    dv = ch[-1].upper()
     partes = []
     while len(base) > 3:
         partes.insert(0, base[-3:])
@@ -45,6 +53,7 @@ def _rut_formatea(ch: str) -> str:
     if base:
         partes.insert(0, base)
     return ".".join(partes) + "-" + dv
+
 
 # --- Estudiante ---
 class EstudianteForm(forms.ModelForm):
@@ -101,3 +110,31 @@ class EstudianteForm(forms.ModelForm):
             obj.save()
             self.save_m2m()
         return obj
+
+#from .models import Sede, Estudiante, Planificacion   # <- añade Planificacion
+
+class PlanificacionForm(forms.ModelForm):
+    class Meta:
+        model = Planificacion
+        fields = ["nombre", "contenido", "metodologia", "duracion", "nivel_dificultad"]
+        widgets = {
+            "contenido": forms.Textarea(attrs={"rows": 4}),
+            "metodologia": forms.Textarea(attrs={"rows": 4}),
+        }
+        labels = {
+            "nombre": "Nombre",
+            "contenido": "Contenido",
+            "metodologia": "Metodología",
+            "duracion": "Duración (HH:MM:SS)",
+            "nivel_dificultad": "Nivel de dificultad",
+        }
+
+class DeporteForm(forms.ModelForm):
+    class Meta:
+        model = Deporte
+        fields = ["nombre", "categoria", "equipamiento"]
+        widgets = {
+            "nombre": forms.TextInput(attrs={"class": "form-control"}),
+            "categoria": forms.TextInput(attrs={"class": "form-control"}),
+            "equipamiento": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+        }

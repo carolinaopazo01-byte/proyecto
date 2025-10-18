@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{% if is_edit %}Editar{% else %}Nueva{% endif %} planificación{% endblock %}
+{% block content %}
+<h2>{% if is_edit %}Editar{% else %}Nueva{% endif %} planificación</h2>
+
+<form method="post">
+  {% csrf_token %}
+  <div class="mb-3">
+    <label class="form-label">Nombre</label>
+    {{ form.nombre }}
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Contenido</label>
+    {{ form.contenido }}
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Metodología</label>
+    {{ form.metodologia }}
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Duración (HH:MM:SS)</label>
+    {{ form.duracion }}
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Nivel de dificultad</label>
+    {{ form.nivel_dificultad }}
+  </div>
+
+  <button class="btn btn-primary" type="submit">Guardar</button>
+  <a class="btn btn-light" href="{% url 'core:planificaciones_list' %}">Cancelar</a>
+</form>
+{% endblock %}

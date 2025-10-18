@@ -4,8 +4,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_http_methods
 from django.db.models import Q
 
-# modelos que NO causan problemas de import aquí
-from .models import Comunicado, Curso, Sede, Estudiante
+from .models import Comunicado, Curso, Sede, Estudiante, Planificacion, Deporte
+from .forms import PlanificacionForm
+from .forms import DeporteForm
 
 # Control de acceso por rol
 from applications.usuarios.utils import role_required
@@ -15,7 +16,6 @@ from applications.usuarios.models import Usuario
 @require_http_methods(["GET"])
 def home(request):
     return render(request, "core/home.html")
-
 
 # ================= ESTUDIANTES =================
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
@@ -35,7 +35,7 @@ def estudiantes_list(request):
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
 def estudiante_create(request):
-    # import perezoso para evitar fallos durante makemigrations
+    # import perezoso para evitar problemas durante makemigrations
     from .forms import EstudianteForm
     if request.method == "POST":
         form = EstudianteForm(request.POST)
@@ -160,14 +160,14 @@ def sede_delete(request, sede_id: int):
 # ================= COMUNICADOS =================
 @role_required(
     Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF,
-    Usuario.Tipo.APOD, Usuario.Tipo.ATLE, Usuario.Tipo.PROF_MULT
+    Usuario.Tipo.APOD, Usuario.Tipo.ATLE, Usuario.Tipo.PMUL   # <- aquí el cambio
 )
 @require_http_methods(["GET"])
 def comunicados_list(request):
     data = Comunicado.objects.all().order_by("-creado")[:50]
     return render(request, "core/comunicados_list.html", {"data": data})
 
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF, Usuario.Tipo.PROF_MULT)
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF, Usuario.Tipo.PMUL)  # <- cambio
 @require_http_methods(["GET", "POST"])
 def comunicado_create(request):
     if request.method == "POST":
@@ -179,7 +179,7 @@ def comunicado_create(request):
         return render(request, "core/comunicado_create.html", {"error": "Completa título y cuerpo."})
     return render(request, "core/comunicado_create.html")
 
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF, Usuario.Tipo.PROF_MULT)
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF, Usuario.Tipo.PMUL)  # <- cambio
 @require_http_methods(["GET", "POST"])
 def comunicado_edit(request, comunicado_id):
     com = get_object_or_404(Comunicado, id=comunicado_id)
@@ -195,7 +195,7 @@ def comunicado_edit(request, comunicado_id):
         return render(request, "core/comunicado_edit.html", {"comunicado": com, "error": "Completa título y cuerpo."})
     return render(request, "core/comunicado_edit.html", {"comunicado": com})
 
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF, Usuario.Tipo.PROF_MULT)
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF, Usuario.Tipo.PMUL)  # <- cambio
 @require_http_methods(["POST"])
 def comunicado_delete(request, comunicado_id):
     com = get_object_or_404(Comunicado, id=comunicado_id)
@@ -221,23 +221,136 @@ def deportes_recintos(request):
 @require_http_methods(["GET"])
 def equipo_multidisciplinario(request):
     return render(request, "pages/equipo.html")
-# ------- Profesores (stubs mínimos para que no falle urls) -------
-from django.http import HttpResponse
-from applications.usuarios.utils import role_required
-from applications.usuarios.models import Usuario
-from django.views.decorators.http import require_http_methods
-from django.shortcuts import render
 
+
+# ------- Profesores (stubs mínimos para que no falle urls) -------
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET"])
 def profesores_list(request):
-    # Más adelante las conectamos a un modelo real
     return render(request, "core/profesores_list.html")
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
 def profesor_create(request):
     if request.method == "POST":
-        # Aquí luego guardaremos profesor real
         return HttpResponse("CORE / Profesores - CREAR (POST) -> guardado OK")
     return render(request, "core/profesor_form.html")
+
+
+# -------- STUBS QUE PUEDEN FALTAR EN URLs --------
+@role_required(Usuario.Tipo.PROF, Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+@require_http_methods(["GET", "POST"])
+def planificacion_upload(request):
+    if request.method == "POST":
+        return HttpResponse("CORE / Planificación - SUBIR (POST) -> OK")
+    return HttpResponse("CORE / Planificación - SUBIR (GET) -> formulario simple")
+
+@role_required(Usuario.Tipo.PROF, Usuario.Tipo.COORD, Usuario.Tipo.ADMIN)
+@require_http_methods(["GET", "POST"])
+def asistencia_profesor(request, curso_id: int):
+    if request.method == "POST":
+        return HttpResponse(f"CORE / Asistencia PROFESOR curso_id={curso_id} (POST) -> registrada")
+    return HttpResponse(f"CORE / Asistencia PROFESOR curso_id={curso_id} (GET) -> pantalla tomar asistencia")
+
+@role_required(Usuario.Tipo.PROF, Usuario.Tipo.COORD, Usuario.Tipo.ADMIN)
+@require_http_methods(["GET", "POST"])
+def asistencia_estudiantes(request, curso_id: int):
+    if request.method == "POST":
+        return HttpResponse(f"CORE / Asistencia ESTUDIANTES curso_id={curso_id} (POST) -> registrada")
+    return HttpResponse(f"CORE / Asistencia ESTUDIANTES curso_id={curso_id} (GET) -> lista alumnos")
+
+@role_required(Usuario.Tipo.PROF, Usuario.Tipo.PMUL, Usuario.Tipo.COORD, Usuario.Tipo.ADMIN)  # <- cambio
+@require_http_methods(["GET", "POST"])
+def ficha_estudiante(request, estudiante_id: int):
+    if request.method == "POST":
+        return HttpResponse(f"CORE / Ficha estudiante_id={estudiante_id} (POST) -> observación agregada")
+    return HttpResponse(f"CORE / Ficha estudiante_id={estudiante_id} (GET) -> ver ficha + historial")
+
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+@require_http_methods(["GET"])
+def reporte_inasistencias(request):
+    return HttpResponse("CORE / Reporte semanal de inasistencias (GET)")
+
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+@require_http_methods(["GET"])
+def reporte_asistencia_por_clase(request, clase_id: int):
+    return HttpResponse(f"CORE / Reporte asistencia clase_id={clase_id} (GET)")
+
+
+# ================= PLANIFICACIÓN =================
+@role_required(Usuario.Tipo.PROF, Usuario.Tipo.COORD, Usuario.Tipo.ADMIN)
+@require_http_methods(["GET"])
+def planificaciones_list(request):
+    qs = Planificacion.objects.order_by("-creado")
+    return render(request, "core/planificaciones_list.html", {"items": qs})
+
+@role_required(Usuario.Tipo.PROF, Usuario.Tipo.COORD, Usuario.Tipo.ADMIN)
+@require_http_methods(["GET", "POST"])
+def planificacion_create(request):
+    if request.method == "POST":
+        form = PlanificacionForm(request.POST)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.autor = request.user if request.user.is_authenticated else None
+            obj.save()
+            return redirect("core:planificaciones_list")
+    else:
+        form = PlanificacionForm()
+    return render(request, "core/planificacion_form.html", {"form": form, "is_edit": False})
+
+@role_required(Usuario.Tipo.PROF, Usuario.Tipo.COORD, Usuario.Tipo.ADMIN)
+@require_http_methods(["GET", "POST"])
+def planificacion_edit(request, plan_id: int):
+    obj = get_object_or_404(Planificacion, pk=plan_id)
+    if request.method == "POST":
+        form = PlanificacionForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            return redirect("core:planificaciones_list")
+    else:
+        form = PlanificacionForm(instance=obj)
+    return render(request, "core/planificacion_form.html", {"form": form, "is_edit": True, "obj": obj})
+
+@role_required(Usuario.Tipo.PROF, Usuario.Tipo.COORD, Usuario.Tipo.ADMIN)
+@require_http_methods(["POST"])
+def planificacion_delete(request, plan_id: int):
+    obj = get_object_or_404(Planificacion, pk=plan_id)
+    obj.delete()
+    return redirect("core:planificaciones_list")
+
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+@require_http_methods(["GET"])
+def deportes_list(request):
+    items = Deporte.objects.all().order_by("nombre")
+    return render(request, "core/deportes_list.html", {"items": items})
+
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+@require_http_methods(["GET", "POST"])
+def deporte_create(request):
+    if request.method == "POST":
+        form = DeporteForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("core:deportes_list")
+    else:
+        form = DeporteForm()
+    return render(request, "core/deporte_form.html", {"form": form, "is_edit": False})
+
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+@require_http_methods(["GET", "POST"])
+def deporte_edit(request, deporte_id: int):
+    obj = get_object_or_404(Deporte, pk=deporte_id)
+    if request.method == "POST":
+        form = DeporteForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            return redirect("core:deportes_list")
+    else:
+        form = DeporteForm(instance=obj)
+    return render(request, "core/deporte_form.html", {"form": form, "is_edit": True, "obj": obj})
+
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+@require_http_methods(["POST"])
+def deporte_delete(request, deporte_id: int):
+    get_object_or_404(Deporte, pk=deporte_id).delete()
+    return redirect("core:deportes_list")
