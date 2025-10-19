@@ -48,6 +48,7 @@ def estudiante_create(request):
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
+
 def estudiante_edit(request, estudiante_id: int):
     from .forms import EstudianteForm
     obj = get_object_or_404(Estudiante, pk=estudiante_id)
@@ -265,6 +266,13 @@ def ficha_estudiante(request, estudiante_id: int):
     if request.method == "POST":
         return HttpResponse(f"CORE / Ficha estudiante_id={estudiante_id} (POST) -> observación agregada")
     return HttpResponse(f"CORE / Ficha estudiante_id={estudiante_id} (GET) -> ver ficha + historial")
+##### REPORTES############
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+def reportes_home(request):
+    """
+    Página de entrada a los reportes (menú simple con links).
+    """
+    return render(request, "core/reportes_home.html")
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET"])

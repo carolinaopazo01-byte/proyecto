@@ -31,7 +31,6 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-
 ROOT_URLCONF = 'campeones_coquimbo.urls'
 
 TEMPLATES = [

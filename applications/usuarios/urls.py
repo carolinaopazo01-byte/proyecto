@@ -1,6 +1,6 @@
 # applications/usuarios/urls.py
 from django.urls import path
-from . import views, views_equipo
+from . import views, views_equipo, views_admin
 
 app_name = "usuarios"
 

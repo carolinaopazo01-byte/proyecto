@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Reportes</h1>
+
+<ul>
+  <li>
+    <a href="{% url 'core:reporte_inasistencias' %}">
+      Reporte semanal de inasistencias
+    </a>
+  </li>
+  <li>
+    <!-- ejemplo: pide un ID de clase al vuelo -->
+    <form method="get" action="{% url 'core:reporte_asistencia_por_clase' 0 %}" onsubmit="
+      const id = document.getElementById('clase_id').value || '0';
+      this.action = this.action.replace('/0/', '/' + id + '/');
+    ">
+      <label>Reporte de asistencia por clase (ID):</label>
+      <input id="clase_id" type="number" min="1" placeholder="Ej: 12">
+      <button type="submit">Ver</button>
+    </form>
+  </li>
+</ul>
+{% endblock %}

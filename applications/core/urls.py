@@ -53,9 +53,9 @@ urlpatterns = [
     path("comunicados/<int:comunicado_id>/eliminar/", views.comunicado_delete, name="comunicado_delete"),
 
     # Reportes
+    path("reportes/", views.reportes_home, name="reportes_home"),
     path("reportes/inasistencias/", views.reporte_inasistencias, name="reporte_inasistencias"),
     path("reportes/asistencia/clase/<int:clase_id>/", views.reporte_asistencia_por_clase, name="reporte_asistencia_por_clase"),
-
     # Sedes
     path("sedes/", views.sedes_list, name="sedes_list"),
     path("sedes/nueva/", views.sede_create, name="sede_create"),
