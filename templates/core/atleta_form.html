@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}{% if is_edit %}Editar atleta{% else %}Nuevo atleta{% endif %}{% endblock %}
+{% block header %}{% if is_edit %}Editar atleta{% else %}Crear atleta{% endif %}{% endblock %}
+
+{% block content %}
+<form method="post" novalidate>
+  {% csrf_token %}
+
+  <!-- 1. Identificación del atleta -->
+  <fieldset class="card mb-3 p-3">
+    <legend class="h5">1. Identificación del/la atleta</legend>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label>RUT</label>
+        {{ form.rut }}
+      </div>
+      <div class="col-md-6">
+        <label>Fecha de nacimiento</label>
+        {{ form.fecha_nacimiento }}
+      </div>
+      <div class="col-md-3">
+        <label>Edad</label>
+        <input id="id_edad_preview" type="number" class="form-control" readonly>
+      </div>
+      <div class="col-md-6">
+        <label>Dirección</label>
+        {{ form.direccion }}
+      </div>
+      <div class="col-md-6">
+        <label>Comuna</label>
+        {{ form.comuna }}
+      </div>
+      <div class="col-md-6">
+        <label>Apoderado (si es menor de edad)</label>
+        {{ form.apoderado }}
+      </div>
+    </div>
+  </fieldset>
+
+  <!-- 3. Información deportiva -->
+  <fieldset class="card mb-3 p-3">
+    <legend class="h5">3. Información deportiva</legend>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label>{{ form.pertenece_organizacion.label }}</label>
+        {{ form.pertenece_organizacion }}
+      </div>
+      <div class="col-md-6" id="club_row">
+        <label>{{ form.club_nombre.label }}</label>
+        {{ form.club_nombre }}
+      </div>
+
+      <div class="col-md-6">
+        <label>Logros</label>
+        <div class="form-check">{{ form.logro_nacional }} <label>Logro nacional</label></div>
+        <div class="form-check">{{ form.logro_internacional }} <label>Logro internacional</label></div>
+      </div>
+      <div class="col-md-3">
+        <label>{{ form.categoria_competida.label }}</label>
+        {{ form.categoria_competida }}
+      </div>
+      <div class="col-md-3">
+        <label>{{ form.puntaje_o_logro.label }}</label>
+        {{ form.puntaje_o_logro }}
+      </div>
+    </div>
+  </fieldset>
+
+  <div class="mt-3 d-flex gap-2">
+    <button class="btn btn-primary" type="submit">Guardar</button>
+    <a class="btn btn-secondary" href="{% url 'core:atletas_list' %}">Cancelar</a>
+  </div>
+</form>
+
+<script>
+  const fnac = document.getElementById("id_fecha_nacimiento");
+  const edadOut = document.getElementById("id_edad_preview");
+  function calcEdad() {
+    if (!fnac.value) { edadOut.value = ""; return; }
+    const d = new Date(fnac.value);
+    const hoy = new Date();
+    let edad = hoy.getFullYear() - d.getFullYear();
+    const m = hoy.getMonth() - d.getMonth();
+    if (m < 0 || (m === 0 && hoy.getDate() < d.getDate())) edad--;
+    edadOut.value = edad >= 0 ? edad : "";
+  }
+  fnac.addEventListener("change", calcEdad);
+  calcEdad();
+</script>
+{% endblock %}

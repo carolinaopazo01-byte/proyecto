@@ -5,24 +5,25 @@ from django.views.decorators.http import require_http_methods
 from django.db.models import Q
 
 from .models import Comunicado, Curso, Sede, Estudiante, Planificacion, Deporte
-from .forms import PlanificacionForm
-from .forms import DeporteForm
+from .forms import PlanificacionForm, DeporteForm  # EstudianteForm se importa perezoso en las vistas
 
 # Control de acceso por rol
 from applications.usuarios.utils import role_required
 from applications.usuarios.models import Usuario
+
 
 # ------- Home (informativo) -------
 @require_http_methods(["GET"])
 def home(request):
     return render(request, "core/home.html")
 
+
 # ================= ESTUDIANTES =================
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET"])
 def estudiantes_list(request):
     q = (request.GET.get("q") or "").strip()
-    qs = Estudiante.objects.all()
+    qs = Estudiante.objects.all().order_by("apellidos", "nombres")
     if q:
         qs = qs.filter(
             Q(rut__icontains=q) |
@@ -31,6 +32,7 @@ def estudiantes_list(request):
             Q(email__icontains=q)
         )
     return render(request, "core/estudiantes_list.html", {"estudiantes": qs, "q": q})
+
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
@@ -46,9 +48,9 @@ def estudiante_create(request):
         form = EstudianteForm()
     return render(request, "core/estudiante_form.html", {"form": form, "is_edit": False})
 
+
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
-
 def estudiante_edit(request, estudiante_id: int):
     from .forms import EstudianteForm
     obj = get_object_or_404(Estudiante, pk=estudiante_id)
@@ -60,6 +62,7 @@ def estudiante_edit(request, estudiante_id: int):
     else:
         form = EstudianteForm(instance=obj)
     return render(request, "core/estudiante_form.html", {"form": form, "is_edit": True, "estudiante": obj})
+
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["POST"])
@@ -75,6 +78,7 @@ def cursos_list(request):
     cursos = Curso.objects.select_related("sede", "profesor").all()
     return render(request, "core/cursos_list.html", {"cursos": cursos})
 
+
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
 def curso_create(request):
@@ -87,6 +91,7 @@ def curso_create(request):
     else:
         form = CursoForm()
     return render(request, "core/curso_form.html", {"form": form, "is_edit": False})
+
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
@@ -102,11 +107,13 @@ def curso_edit(request, curso_id: int):
         form = CursoForm(instance=curso)
     return render(request, "core/curso_form.html", {"form": form, "is_edit": True, "curso": curso})
 
+
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["POST"])
 def curso_delete(request, curso_id: int):
     Curso.objects.filter(pk=curso_id).delete()
     return redirect("core:cursos_list")
+
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
@@ -123,6 +130,7 @@ def sedes_list(request):
     sedes = Sede.objects.all().order_by("nombre")
     return render(request, "core/sedes_list.html", {"sedes": sedes})
 
+
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
 def sede_create(request):
@@ -135,6 +143,7 @@ def sede_create(request):
     else:
         form = SedeForm()
     return render(request, "core/sede_form.html", {"form": form, "is_edit": False})
+
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
@@ -150,6 +159,7 @@ def sede_edit(request, sede_id: int):
         form = SedeForm(instance=sede)
     return render(request, "core/sede_form.html", {"form": form, "is_edit": True, "sede": sede})
 
+
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["POST"])
 def sede_delete(request, sede_id: int):
@@ -161,14 +171,15 @@ def sede_delete(request, sede_id: int):
 # ================= COMUNICADOS =================
 @role_required(
     Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF,
-    Usuario.Tipo.APOD, Usuario.Tipo.ATLE, Usuario.Tipo.PMUL   # <- aquí el cambio
+    Usuario.Tipo.APOD, Usuario.Tipo.ATLE, Usuario.Tipo.PMUL
 )
 @require_http_methods(["GET"])
 def comunicados_list(request):
     data = Comunicado.objects.all().order_by("-creado")[:50]
     return render(request, "core/comunicados_list.html", {"data": data})
 
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF, Usuario.Tipo.PMUL)  # <- cambio
+
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF, Usuario.Tipo.PMUL)
 @require_http_methods(["GET", "POST"])
 def comunicado_create(request):
     if request.method == "POST":
@@ -180,7 +191,8 @@ def comunicado_create(request):
         return render(request, "core/comunicado_create.html", {"error": "Completa título y cuerpo."})
     return render(request, "core/comunicado_create.html")
 
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF, Usuario.Tipo.PMUL)  # <- cambio
+
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF, Usuario.Tipo.PMUL)
 @require_http_methods(["GET", "POST"])
 def comunicado_edit(request, comunicado_id):
     com = get_object_or_404(Comunicado, id=comunicado_id)
@@ -196,7 +208,8 @@ def comunicado_edit(request, comunicado_id):
         return render(request, "core/comunicado_edit.html", {"comunicado": com, "error": "Completa título y cuerpo."})
     return render(request, "core/comunicado_edit.html", {"comunicado": com})
 
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF, Usuario.Tipo.PMUL)  # <- cambio
+
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF, Usuario.Tipo.PMUL)
 @require_http_methods(["POST"])
 def comunicado_delete(request, comunicado_id):
     com = get_object_or_404(Comunicado, id=comunicado_id)
@@ -211,13 +224,16 @@ def comunicado_delete(request, comunicado_id):
 def quienes_somos(request):
     return render(request, "pages/quienes.html")
 
+
 @require_http_methods(["GET"])
 def procesos_inscripcion(request):
     return render(request, "pages/procesos.html")
 
+
 @require_http_methods(["GET"])
 def deportes_recintos(request):
     return render(request, "pages/deportes.html")
+
 
 @require_http_methods(["GET"])
 def equipo_multidisciplinario(request):
@@ -229,6 +245,7 @@ def equipo_multidisciplinario(request):
 @require_http_methods(["GET"])
 def profesores_list(request):
     return render(request, "core/profesores_list.html")
+
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
@@ -246,12 +263,14 @@ def planificacion_upload(request):
         return HttpResponse("CORE / Planificación - SUBIR (POST) -> OK")
     return HttpResponse("CORE / Planificación - SUBIR (GET) -> formulario simple")
 
+
 @role_required(Usuario.Tipo.PROF, Usuario.Tipo.COORD, Usuario.Tipo.ADMIN)
 @require_http_methods(["GET", "POST"])
 def asistencia_profesor(request, curso_id: int):
     if request.method == "POST":
         return HttpResponse(f"CORE / Asistencia PROFESOR curso_id={curso_id} (POST) -> registrada")
     return HttpResponse(f"CORE / Asistencia PROFESOR curso_id={curso_id} (GET) -> pantalla tomar asistencia")
+
 
 @role_required(Usuario.Tipo.PROF, Usuario.Tipo.COORD, Usuario.Tipo.ADMIN)
 @require_http_methods(["GET", "POST"])
@@ -260,24 +279,28 @@ def asistencia_estudiantes(request, curso_id: int):
         return HttpResponse(f"CORE / Asistencia ESTUDIANTES curso_id={curso_id} (POST) -> registrada")
     return HttpResponse(f"CORE / Asistencia ESTUDIANTES curso_id={curso_id} (GET) -> lista alumnos")
 
-@role_required(Usuario.Tipo.PROF, Usuario.Tipo.PMUL, Usuario.Tipo.COORD, Usuario.Tipo.ADMIN)  # <- cambio
+
+@role_required(Usuario.Tipo.PROF, Usuario.Tipo.PMUL, Usuario.Tipo.COORD, Usuario.Tipo.ADMIN)
 @require_http_methods(["GET", "POST"])
 def ficha_estudiante(request, estudiante_id: int):
     if request.method == "POST":
         return HttpResponse(f"CORE / Ficha estudiante_id={estudiante_id} (POST) -> observación agregada")
     return HttpResponse(f"CORE / Ficha estudiante_id={estudiante_id} (GET) -> ver ficha + historial")
-##### REPORTES############
+
+
+# ================= REPORTES =================
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+@require_http_methods(["GET"])
 def reportes_home(request):
-    """
-    Página de entrada a los reportes (menú simple con links).
-    """
+    """Página de entrada a los reportes (menú simple con links)."""
     return render(request, "core/reportes_home.html")
+
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET"])
 def reporte_inasistencias(request):
     return HttpResponse("CORE / Reporte semanal de inasistencias (GET)")
+
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET"])
@@ -285,12 +308,13 @@ def reporte_asistencia_por_clase(request, clase_id: int):
     return HttpResponse(f"CORE / Reporte asistencia clase_id={clase_id} (GET)")
 
 
-# ================= PLANIFICACIÓN =================
+# ================= PLANIFICACIONES =================
 @role_required(Usuario.Tipo.PROF, Usuario.Tipo.COORD, Usuario.Tipo.ADMIN)
 @require_http_methods(["GET"])
 def planificaciones_list(request):
     qs = Planificacion.objects.order_by("-creado")
     return render(request, "core/planificaciones_list.html", {"items": qs})
+
 
 @role_required(Usuario.Tipo.PROF, Usuario.Tipo.COORD, Usuario.Tipo.ADMIN)
 @require_http_methods(["GET", "POST"])
@@ -306,6 +330,7 @@ def planificacion_create(request):
         form = PlanificacionForm()
     return render(request, "core/planificacion_form.html", {"form": form, "is_edit": False})
 
+
 @role_required(Usuario.Tipo.PROF, Usuario.Tipo.COORD, Usuario.Tipo.ADMIN)
 @require_http_methods(["GET", "POST"])
 def planificacion_edit(request, plan_id: int):
@@ -319,6 +344,7 @@ def planificacion_edit(request, plan_id: int):
         form = PlanificacionForm(instance=obj)
     return render(request, "core/planificacion_form.html", {"form": form, "is_edit": True, "obj": obj})
 
+
 @role_required(Usuario.Tipo.PROF, Usuario.Tipo.COORD, Usuario.Tipo.ADMIN)
 @require_http_methods(["POST"])
 def planificacion_delete(request, plan_id: int):
@@ -326,11 +352,14 @@ def planificacion_delete(request, plan_id: int):
     obj.delete()
     return redirect("core:planificaciones_list")
 
+
+# ================= DEPORTES =================
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET"])
 def deportes_list(request):
     items = Deporte.objects.all().order_by("nombre")
     return render(request, "core/deportes_list.html", {"items": items})
+
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
@@ -344,6 +373,7 @@ def deporte_create(request):
         form = DeporteForm()
     return render(request, "core/deporte_form.html", {"form": form, "is_edit": False})
 
+
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
 def deporte_edit(request, deporte_id: int):
@@ -356,6 +386,7 @@ def deporte_edit(request, deporte_id: int):
     else:
         form = DeporteForm(instance=obj)
     return render(request, "core/deporte_form.html", {"form": form, "is_edit": True, "obj": obj})
+
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["POST"])

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Atletas{% endblock %}
+{% block header %}Listado de atletas{% endblock %}
+{% block content %}
+<div style="display:flex; gap:10px; margin-bottom:10px;">
+  <a class="btn" href="{% url 'core:atleta_create' %}">➕ Nuevo atleta</a>
+  <form method="get">
+    <input type="text" name="q" value="{{ q }}" placeholder="Buscar por RUT" style="padding:5px;">
+    <button class="btn">Buscar</button>
+  </form>
+</div>
+
+{% if atletas %}
+<table class="table table-striped">
+  <thead><tr><th>Nombre</th><th>RUT</th><th>Edad</th><th>Comuna</th><th>Acciones</th></tr></thead>
+  <tbody>
+    {% for a in atletas %}
+    <tr>
+      <td>{{ a.usuario.get_full_name }}</td>
+      <td>{{ a.rut }}</td>
+      <td>{{ a.edad }}</td>
+      <td>{{ a.comuna }}</td>
+      <td>
+        <a class="btn" href="{% url 'core:atleta_edit' a.id %}">Editar</a>
+        <form method="post" action="{% url 'core:atleta_delete' a.id %}" style="display:inline;">{% csrf_token %}
+          <button class="btn btn-danger" onclick="return confirm('¿Eliminar?');">Eliminar</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No hay atletas registrados.</p>
+{% endif %}
+{% endblock %}
