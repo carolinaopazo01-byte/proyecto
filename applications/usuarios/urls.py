@@ -1,6 +1,6 @@
 # applications/usuarios/urls.py
 from django.urls import path
-from . import views, views_equipo, views_admin
+from . import views#, views_equipo, views_admin
 
 app_name = "usuarios"
 
@@ -17,8 +17,20 @@ urlpatterns = [
     path("panel/atleta/", views.panel_atleta, name="panel_atleta"),
 
     # Equipo (CRUD)
-    path("equipo/", views_equipo.equipo_list, name="equipo_list"),
-    path("equipo/nuevo/", views_equipo.usuario_create, name="usuario_create"),
-    path("equipo/<int:user_id>/editar/", views_equipo.usuario_edit, name="usuario_edit"),
-    path("equipo/<int:user_id>/eliminar/", views_equipo.usuario_delete, name="usuario_delete"),
-]
+    # nombres “nuevos”
+    path("equipo/", views.usuarios_list, name="usuarios_list"),
+    path("equipo/nuevo/", views.usuario_create, name="usuario_create"),
+    path("equipo/<int:usuario_id>/", views.usuario_detail, name="usuario_detail"),
+    path("equipo/<int:usuario_id>/editar/", views.usuario_edit, name="usuario_edit"),
+    path("equipo/<int:usuario_id>/toggle/", views.usuario_toggle_active, name="usuario_toggle_active"),
+    path("equipo/<int:usuario_id>/eliminar/", views.usuario_delete, name="usuario_delete"),
+
+    # alias para plantillas antiguas
+    path("equipo/nuevo/", views.usuario_create, name="equipo_new"),
+    path("equipo/", views.usuarios_list, name="equipo_list"),
+    path("equipo/<int:usuario_id>/editar/", views.usuario_edit, name="equipo_edit"),
+    path("equipo/<int:usuario_id>/eliminar/", views.usuario_delete, name="equipo_delete"),
+    path("equipo/<int:usuario_id>/toggle/", views.usuario_toggle_active, name="equipo_toggle"),
+    path("equipo/<int:usuario_id>/", views.usuario_detail, name="equipo_view"),
+
+  ]

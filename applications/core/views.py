@@ -18,7 +18,7 @@ def home(request):
     return render(request, "core/home.html")
 
 
-# ================= ESTUDIANTES =================
+# ESTUDIANTES
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET"])
 def estudiantes_list(request):
@@ -82,30 +82,41 @@ def cursos_list(request):
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
 def curso_create(request):
-    from .forms import CursoForm
+    from .forms import CursoForm, CursoHorarioFormSet
     if request.method == "POST":
         form = CursoForm(request.POST)
-        if form.is_valid():
-            form.save()
+        formset = CursoHorarioFormSet(request.POST)
+        if form.is_valid() and formset.is_valid():
+            curso = form.save()
+            formset.instance = curso
+            formset.save()
             return redirect("core:cursos_list")
     else:
         form = CursoForm()
-    return render(request, "core/curso_form.html", {"form": form, "is_edit": False})
+        formset = CursoHorarioFormSet()
+    return render(request, "core/curso_form.html", {
+        "form": form, "formset": formset, "is_edit": False
+    })
 
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
 def curso_edit(request, curso_id: int):
-    from .forms import CursoForm
+    from .forms import CursoForm, CursoHorarioFormSet
     curso = get_object_or_404(Curso, pk=curso_id)
     if request.method == "POST":
         form = CursoForm(request.POST, instance=curso)
-        if form.is_valid():
+        formset = CursoHorarioFormSet(request.POST, instance=curso)
+        if form.is_valid() and formset.is_valid():
             form.save()
+            formset.save()
             return redirect("core:cursos_list")
     else:
         form = CursoForm(instance=curso)
-    return render(request, "core/curso_form.html", {"form": form, "is_edit": True, "curso": curso})
+        formset = CursoHorarioFormSet(instance=curso)
+    return render(request, "core/curso_form.html", {
+        "form": form, "formset": formset, "is_edit": True, "curso": curso
+    })
 
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
@@ -121,7 +132,6 @@ def curso_configurar_cupos(request, curso_id: int):
     if request.method == "POST":
         return HttpResponse(f"CORE / Cursos - CONFIGURAR CUPOS curso_id={curso_id} (POST) -> OK")
     return HttpResponse(f"CORE / Cursos - CONFIGURAR CUPOS curso_id={curso_id} (GET) -> formulario")
-
 
 # ================= SEDES =================
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)

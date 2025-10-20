@@ -1,25 +1,38 @@
 {% extends "base.html" %}
+{% block title %}Deportes{% endblock %}
+{% block header %}Deportes{% endblock %}
+
 {% block content %}
-<h2>Deportes</h2>
-<a class="btn btn-primary mb-3" href="{% url 'core:deporte_create' %}">Nuevo deporte</a>
-<table class="table table-striped">
-  <thead><tr><th>Nombre</th><th>Categoría</th><th></th></tr></thead>
-  <tbody>
-  {% for d in items %}
-    <tr>
-      <td>{{ d.nombre }}</td>
-      <td>{{ d.categoria }}</td>
-      <td class="text-end">
-        <a class="btn btn-sm btn-secondary" href="{% url 'core:deporte_edit' d.id %}">Editar</a>
-        <form action="{% url 'core:deporte_delete' d.id %}" method="post" style="display:inline;">
-          {% csrf_token %}
-          <button class="btn btn-sm btn-danger" onclick="return confirm('¿Eliminar?');">Eliminar</button>
-        </form>
-      </td>
-    </tr>
-  {% empty %}
-    <tr><td colspan="3">No hay deportes cargados.</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+<div style="display:flex; gap:10px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
+  <a class="btn" href="{% url 'core:deporte_create' %}">+ Nuevo deporte</a>
+</div>
+
+{% if items %}
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Categoría</th>
+        <th style="width:180px;">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in items %}
+        <tr>
+          <td>{{ d.nombre }}</td>
+          <td>{{ d.categoria }}</td>
+          <td>
+            <a class="btn" href="{% url 'core:deporte_edit' d.id %}">Editar</a>
+            <form method="post" action="{% url 'core:deporte_delete' d.id %}" style="display:inline;" onsubmit="return confirm('¿Eliminar este deporte?');">
+              {% csrf_token %}
+              <button class="btn" type="submit" style="background:#d9534f; color:#fff;">Eliminar</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>No hay deportes cargados.</p>
+{% endif %}
 {% endblock %}

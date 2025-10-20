@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Equipo (usuarios){% endblock %}
+{% block header %}Equipo (usuarios){% endblock %}
+
+{% block content %}
+<form method="get" class="mb-3" style="display:flex; gap:10px; flex-wrap:wrap; align-items:end;">
+  <div>
+    <label class="form-label">Buscar</label><br>
+    <input type="text" name="q" value="{{ q }}" placeholder="RUT / Nombre / Usuario / Email" style="padding:6px 8px; min-width:280px;">
+  </div>
+
+  <div>
+    <label class="form-label">Rol</label><br>
+    <select name="rol">
+      <option value="">Todos</option>
+      {% for value,label in roles %}
+        <option value="{{ value }}" {% if value == rol %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div>
+    <label class="form-label">Estado</label><br>
+    <select name="estado">
+      <option value="">Todos</option>
+      <option value="act" {% if estado == "act" %}selected{% endif %}>Activo</option>
+      <option value="inact" {% if estado == "inact" %}selected{% endif %}>Inactivo</option>
+    </select>
+  </div>
+
+  <div style="display:flex; gap:8px;">
+    <button class="btn" type="submit">Buscar</button>
+    <a class="btn" href="{% url 'usuarios:usuario_create' %}">+ Nuevo</a>
+    <a class="btn" href="?q={{ q }}&rol={{ rol }}&estado={{ estado }}&export=1">Exportar Excel</a>
+  </div>
+</form>
+
+{% if items %}
+  <div style="overflow:auto;">
+    <table class="table table-striped" style="min-width:1000px;">
+      <thead>
+        <tr>
+          <th>RUT</th><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Email</th><th>Teléfono</th><th>Estado</th><th style="min-width:220px;">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in items %}
+          <tr>
+            <td>{{ u.rut }}</td>
+            <td>{{ u.first_name }} {{ u.last_name }}</td>
+            <td>{{ u.username }}</td>
+            <td>{{ u.get_tipo_usuario_display }}</td>
+            <td>{{ u.email }}</td>
+            <td>{{ u.telefono }}</td>
+            <td>{{ u.is_active|yesno:"Activo,Inactivo" }}</td>
+            <td>
+              <a class="btn" href="{% url 'usuarios:usuario_detail' u.id %}">Ver</a>
+              <a class="btn" href="{% url 'usuarios:usuario_edit' u.id %}">Editar</a>
+
+              <form method="post" action="{% url 'usuarios:usuario_toggle_active' u.id %}" style="display:inline;">
+                {% csrf_token %}
+                <button class="btn" type="submit">
+                  {% if u.is_active %}Desactivar{% else %}Activar{% endif %}
+                </button>
+              </form>
+
+              <form method="post" action="{% url 'usuarios:usuario_delete' u.id %}" style="display:inline;" onsubmit="return confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.');">
+                {% csrf_token %}
+                <button class="btn" type="submit" style="background:#d9534f; color:#fff;">Eliminar</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p>No hay usuarios para los filtros aplicados.</p>
+{% endif %}
+{% endblock %}

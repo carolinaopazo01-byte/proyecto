@@ -54,7 +54,7 @@ class Usuario(AbstractUser):
     # ATENCIÓN: pon aquí el NOMBRE CORRECTO del campo (no “tipo_usuario1”)
     tipo_usuario = models.CharField(max_length=5, choices=Tipo.choices, default=Tipo.ATLE)
     fecha_inscripcion = models.DateTimeField(auto_now_add=True)
-
+    fecha_nacimiento = models.DateField(null=True, blank=True)  # ← añade esto
     # Vamos a autenticar por RUT:
     USERNAME_FIELD = "rut"
     REQUIRED_FIELDS = ["username", "email"]  # para que admin pueda crear usuarios

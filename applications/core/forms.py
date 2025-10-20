@@ -1,12 +1,15 @@
 # applications/core/forms.py
 from django import forms
 from django.core.exceptions import ValidationError
+from django.forms import inlineformset_factory
+
 from datetime import date
-from .models import Sede, Estudiante, Curso, Planificacion, Deporte
+
+from .models import Sede, Estudiante, Curso, Planificacion, Deporte, CursoHorario
+
 from applications.usuarios.utils import normalizar_rut
 
 
-# --- Sede ---
 class SedeForm(forms.ModelForm):
     class Meta:
         model = Sede
@@ -17,12 +20,50 @@ class SedeForm(forms.ModelForm):
         }
 
 
-# --- Curso ---
 class CursoForm(forms.ModelForm):
     class Meta:
         model = Curso
-        fields = "__all__"
+        fields = [
+            # 1) Identificación
+            "nombre", "programa", "disciplina", "categoria", "sede",
+            # 2) Calendario
+            "fecha_inicio", "fecha_termino",
+            # 3) Profesorado
+            "profesor", "profesores_apoyo",
+            # 4) Cupos e inscripciones
+            "cupos", "cupos_espera", "permitir_inscripcion_rapida",
+            # 5) Visibilidad/Estado
+            "publicado", "estado",
+            # Compatibilidad (antiguos) – se mantienen pero no se muestran en el template
+            # "horario", "lista_espera",
+        ]
+        widgets = {
+            "fecha_inicio": forms.DateInput(attrs={"type": "date"}),
+            "fecha_termino": forms.DateInput(attrs={"type": "date"}),
+            "profesores_apoyo": forms.SelectMultiple(attrs={"size": 6}),
+        }
+        labels = {
+            "disciplina": "Disciplina",
+            "categoria": "Categoría (Sub-12, Adulto, Mixto)",
+            "sede": "Sede/Recinto",
+        }
 
+class CursoHorarioForm(forms.ModelForm):
+    class Meta:
+        model = CursoHorario
+        fields = ["dia", "hora_inicio", "hora_fin"]
+        widgets = {
+            "hora_inicio": forms.TimeInput(attrs={"type": "time"}),
+            "hora_fin": forms.TimeInput(attrs={"type": "time"}),
+        }
+
+CursoHorarioFormSet = inlineformset_factory(
+    parent_model=Curso,
+    model=CursoHorario,
+    form=CursoHorarioForm,
+    extra=1,
+    can_delete=True,
+)
 
 # ====== utilidades RUT (validación y formato) ======
 def _rut_calc_dv(numero: str) -> str:

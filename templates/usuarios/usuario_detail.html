@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Usuario{% endblock %}
+{% block header %}Usuario{% endblock %}
+{% block content %}
+<div class="card p-3">
+  <p><b>RUT:</b> {{ u.rut }}</p>
+  <p><b>Nombre:</b> {{ u.first_name }} {{ u.last_name }}</p>
+  <p><b>Usuario:</b> {{ u.username }}</p>
+  <p><b>Rol:</b> {{ u.get_tipo_usuario_display }}</p>
+  <p><b>Email:</b> {{ u.email }}</p>
+  <p><b>Teléfono:</b> {{ u.telefono }}</p>
+  <p><b>Estado:</b> {{ u.is_active|yesno:"Activo,Inactivo" }}</p>
+  <div class="mt-2">
+    <a class="btn" href="{% url 'usuarios:usuario_edit' u.id %}">Editar</a>
+    <a class="btn" href="{% url 'usuarios:usuarios_list' %}">Volver</a>
+  </div>
+</div>
+{% endblock %}
