@@ -1,0 +1,129 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <link rel="icon" href="{% static 'img/logo/mi_logo.jpg' %}">
+  <title>{% block title %}CPC - Dashboard{% endblock %}</title>
+
+  <!-- CSS global -->
+  <link href="{% static 'vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet" type="text/css">
+  <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet" type="text/css">
+  <link href="{% static 'css/ruang-admin.min.css' %}" rel="stylesheet">
+  <link href="{% static 'css/panel.css' %}" rel="stylesheet">
+
+  {% block extra_css %}{% endblock %}
+</head>
+
+<body id="page-top">
+<div id="wrapper">
+
+  <!-- Sidebar -->
+  <ul class="navbar-nav sidebar sidebar-light accordion" id="accordionSidebar">
+    <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{% url 'core:home' %}">
+      <div class="sidebar-brand-icon">
+        <img src="{% static 'img/logo/mi_logo.jpg' %}" alt="Logo" style="width:40px;height:40px;border-radius:50%;">
+      </div>
+      <div class="sidebar-brand-text mx-3">CPC Panel</div>
+    </a>
+
+    <hr class="sidebar-divider my-0">
+
+    <li class="nav-item">
+      <a class="nav-link" href="{% url 'core:home' %}">
+        <i class="fas fa-fw fa-home"></i>
+        <span>Inicio</span>
+      </a>
+    </li>
+
+    <hr class="sidebar-divider">
+    <div class="sidebar-heading">General</div>
+
+    <!-- Cambia estos url si aún no existen en tus urls.py -->
+    <li class="nav-item">
+      <a class="nav-link" href="#">
+        <i class="fas fa-newspaper"></i>
+        <span>Noticias</span>
+      </a>
+    </li>
+
+    <li class="nav-item">
+      <a class="nav-link" href="#">
+        <i class="fas fa-calendar-alt"></i>
+        <span>Eventos</span>
+      </a>
+    </li>
+
+    <li class="nav-item">
+      <a class="nav-link" href="#">
+        <i class="fas fa-user-circle"></i>
+        <span>Mi Perfil</span>
+      </a>
+    </li>
+
+    <li class="nav-item">
+      <a class="nav-link text-danger" href="{% url 'usuarios:logout' %}">
+        <i class="fas fa-sign-out-alt"></i>
+        <span>Cerrar sesión</span>
+      </a>
+    </li>
+
+    <hr class="sidebar-divider">
+    <div class="version text-center small">© {{ now|date:"Y" }} - CPC</div>
+  </ul>
+  <!-- /Sidebar -->
+
+  <div id="content-wrapper" class="d-flex flex-column">
+    <div id="content">
+
+      <!-- Topbar -->
+      <nav class="navbar navbar-expand navbar-light bg-navbar topbar mb-4 static-top shadow">
+        <button id="sidebarToggleTop" class="btn btn-link rounded-circle mr-3">
+          <i class="fa fa-bars"></i>
+        </button>
+
+        <ul class="navbar-nav ml-auto">
+          <li class="nav-item dropdown no-arrow">
+            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown">
+              <span class="mr-2 d-none d-lg-inline text-gray-600 small">
+                {{ request.user.get_full_name|default:request.user.username }}
+              </span>
+              <img class="img-profile rounded-circle" src="{% static 'img/logo/mi_logo.jpg' %}" style="width: 35px;">
+            </a>
+          </li>
+        </ul>
+      </nav>
+      <!-- /Topbar -->
+
+      <!-- Contenido dinámico -->
+      <div class="container-fluid" id="container-wrapper">
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="sticky-footer bg-white shadow-sm">
+      <div class="container my-auto text-center">
+        <span class="text-muted">Desarrollado por <b>Campeones Para Coquimbo</b></span>
+      </div>
+    </footer>
+    <!-- /Footer -->
+
+  </div>
+</div>
+
+<!-- Scroll to Top -->
+<a class="scroll-to-top rounded" href="#page-top"><i class="fas fa-angle-up"></i></a>
+
+<!-- JS global -->
+<script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
+<script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'vendor/jquery-easing/jquery.easing.min.js' %}"></script>
+<script src="{% static 'js/ruang-admin.min.js' %}"></script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

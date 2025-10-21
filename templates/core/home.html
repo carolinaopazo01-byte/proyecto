@@ -1,11 +1,12 @@
-{% extends "base.html" %}
-{% block title %}Inicio{% endblock %}
-{% block header %}Inicio{% endblock %}
-
+{% extends "base/public.html" %}
+{% block title %}Inicio — Campeones{% endblock %}
 {% block content %}
-  <p>
-    <strong>Campeones para Coquimbo</strong> es una iniciativa municipal para impulsar el deporte
-    formativo y de alto rendimiento en la comuna. Aquí podrás gestionar estudiantes, cursos,
-    asistencia, planificación y comunicados, además de acceder a la agenda del Equipo Multidisciplinario.
-  </p>
+  <div class="mb-3">
+    <a class="btn btn-light border" href="javascript:history.back()">← Atrás</a>
+    <a class="btn btn-light border" href="{% url 'core:home' %}">🏠 Inicio</a>
+  </div>
+  <div class="bg-white p-4 rounded shadow-sm">
+    <h2 class="text-primary mb-3">Inicio</h2>
+    <p><strong>Campeones para Coquimbo</strong> es una iniciativa municipal…</p>
+  </div>
 {% endblock %}
