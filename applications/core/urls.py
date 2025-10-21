@@ -39,10 +39,10 @@ urlpatterns = [
 
     # Planificaciones
     path("planificaciones/", views.planificaciones_list, name="planificaciones_list"),
-    path("planificaciones/nuevo/", views.planificacion_create, name="planificacion_create"),
-    path("planificaciones/<int:plan_id>/editar/", views.planificacion_edit, name="planificacion_edit"),
-    path("planificaciones/<int:plan_id>/eliminar/", views.planificacion_delete, name="planificacion_delete"),
     path("planificaciones/upload/", views.planificacion_upload, name="planificacion_upload"),
+    path("planificaciones/<int:plan_id>/", views.planificacion_detail, name="planificacion_detail"),
+    path("planificaciones/<int:plan_id>/download/", views.planificacion_download, name="planificacion_download"),
+    path("planificaciones/<int:plan_id>/historial/", views.planificacion_historial, name="planificacion_historial"),
 
     # Asistencia (stubs)
     path("asistencia/profesor/<int:curso_id>/", views.asistencia_profesor, name="asistencia_profesor"),

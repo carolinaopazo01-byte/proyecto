@@ -1,41 +1,101 @@
 {% extends "base.html" %}
 {% block title %}Planificación{% endblock %}
-{% block content %}
-<h2>Planificación</h2>
+{% block header %}Planificación{% endblock %}
 
-<div class="mb-3">
-  <a class="btn btn-primary" href="{% url 'core:planificacion_create' %}">+ Nueva planificación</a>
+{% block content %}
+<form method="get" class="card p-3 mb-3" style="display:grid; grid-template-columns: 160px 170px 200px 200px 200px 200px 1fr; gap:10px; align-items:end;">
+  <div>
+    <label class="form-label">Semana (día)</label>
+    <input type="date" name="semana" value="{{ semana }}">
+  </div>
+  <div>
+    <label class="form-label">Programa</label>
+    <select name="programa">
+      <option value="">Todos</option>
+      <option value="FORM" {% if programa == 'FORM' %}selected{% endif %}>Formativo</option>
+      <option value="ALTO" {% if programa == 'ALTO' %}selected{% endif %}>Alto Rendimiento</option>
+    </select>
+  </div>
+  <div>
+    <label class="form-label">Sede</label>
+    <select name="sede">
+      <option value="">Todas</option>
+      {% for s in sedes %}
+      <option value="{{ s.id }}" {% if s.id|stringformat:"s" == sede_id %}selected{% endif %}>{{ s.nombre }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="form-label">Disciplina</label>
+    <select name="disciplina">
+      <option value="">Todas</option>
+      {% for d in disciplinas %}
+      <option value="{{ d.id }}" {% if d.id|stringformat:"s" == dep_id %}selected{% endif %}>{{ d.nombre }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="form-label">Curso</label>
+    <select name="curso">
+      <option value="">Todos</option>
+      {% for c in cursos %}
+      <option value="{{ c.id }}" {% if c.id|stringformat:"s" == curso_id %}selected{% endif %}>{{ c.nombre }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="form-label">Profesor</label>
+    <select name="prof">
+      <option value="">Todos</option>
+      {% for p in profes %}
+      <option value="{{ p.id }}" {% if p.id|stringformat:"s" == prof_id %}selected{% endif %}>{{ p.get_full_name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div style="display:flex; gap:8px;">
+    <button class="btn" type="submit">Filtrar</button>
+    <a class="btn" href="{% url 'core:planificacion_upload' %}">+ Subir planificación</a>
+  </div>
+</form>
+
+<div class="grid mb-3" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap:10px;">
+  <div class="card p-3">
+    <div class="text-muted">Total de cursos (según filtros)</div>
+    <div class="h4">{{ total_cursos }}</div>
+  </div>
+  <div class="card p-3">
+    <div class="text-muted">Planificaciones subidas</div>
+    <div class="h4">{{ pct_subidas }}%</div>
+  </div>
 </div>
 
 <table class="table table-striped">
   <thead>
     <tr>
-      <th>Nombre</th>
-      <th>Nivel</th>
-      <th>Duración</th>
-      <th>Autor</th>
-      <th>Creado</th>
-      <th></th>
+      <th>Semana</th>
+      <th>Curso</th>
+      <th>Sede</th>
+      <th>Profesor</th>
+      <th>Fecha subida</th>
+      <th>Acciones</th>
     </tr>
   </thead>
   <tbody>
     {% for it in items %}
       <tr>
-        <td>{{ it.nombre }}</td>
-        <td>{{ it.get_nivel_dificultad_display }}</td>
-        <td>{{ it.duracion }}</td>
-        <td>{{ it.autor }}</td>
-        <td>{{ it.creado|date:"Y-m-d H:i" }}</td>
-        <td class="text-end">
-          <a class="btn btn-sm btn-outline-secondary" href="{% url 'core:planificacion_edit' it.id %}">Editar</a>
-          <form action="{% url 'core:planificacion_delete' it.id %}" method="post" style="display:inline;">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar planificación?');">Eliminar</button>
-          </form>
+        <td>{{ it.semana|date:"d/m/Y" }}</td>
+        <td>{{ it.curso.nombre }}</td>
+        <td>{{ it.curso.sede }}</td>
+        <td>{{ it.curso.profesor }}</td>
+        <td>{{ it.creado|date:"d/m/Y H:i" }}</td>
+        <td>
+          <a class="btn" href="{% url 'core:planificacion_detail' it.id %}">Ver</a>
+          {% if it.archivo %}<a class="btn" href="{% url 'core:planificacion_download' it.id %}">Descargar</a>{% endif %}
+          <a class="btn" href="{% url 'core:planificacion_historial' it.id %}">Ver historial</a>
         </td>
       </tr>
     {% empty %}
-      <tr><td colspan="6">Aún no hay planificaciones.</td></tr>
+      <tr><td colspan="6">No hay planificaciones para la semana / filtros seleccionados.</td></tr>
     {% endfor %}
   </tbody>
 </table>

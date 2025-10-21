@@ -228,23 +228,20 @@ class EstudianteForm(forms.ModelForm):
 
 
 # --- Planificación ---
-class PlanificacionForm(forms.ModelForm):
+
+class PlanificacionUploadForm(forms.ModelForm):
+    semana = forms.DateField(
+        widget=forms.DateInput(attrs={"type": "date"}),
+        label="Semana (elige cualquier día de la semana; se ajustará al lunes)"
+    )
+
     class Meta:
         model = Planificacion
-        fields = ["nombre", "contenido", "metodologia", "duracion", "nivel_dificultad"]
+        fields = ["curso", "semana", "archivo"]
+        labels = {"curso": "Curso", "archivo": "Archivo PDF/Doc/Zip"}
         widgets = {
-            "contenido": forms.Textarea(attrs={"rows": 4}),
-            "metodologia": forms.Textarea(attrs={"rows": 4}),
+            "curso": forms.Select(),
         }
-        labels = {
-            "nombre": "Nombre",
-            "contenido": "Contenido",
-            "metodologia": "Metodología",
-            "duracion": "Duración (HH:MM:SS)",
-            "nivel_dificultad": "Nivel de dificultad",
-        }
-
-
 # --- Deporte ---
 class DeporteForm(forms.ModelForm):
     class Meta:

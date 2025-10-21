@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Planificación{% endblock %}
+{% block header %}Planificación{% endblock %}
+
+{% block content %}
+<div class="card p-3">
+  <p><b>Curso:</b> {{ p.curso.nombre }} ({{ p.curso.disciplina }})</p>
+  <p><b>Sede:</b> {{ p.curso.sede }}</p>
+  <p><b>Profesor:</b> {{ p.curso.profesor }}</p>
+  <p><b>Semana:</b> {{ p.semana|date:"d/m/Y" }}</p>
+  <p><b>Subida por:</b> {{ p.autor }} — {{ p.creado|date:"d/m/Y H:i" }}</p>
+  <p><b>Archivo:</b> {% if p.archivo %}<a href="{% url 'core:planificacion_download' p.id %}">Descargar</a>{% else %}—{% endif %}</p>
+  <div class="mt-2">
+    <a class="btn" href="{% url 'core:planificacion_historial' p.id %}">Ver historial</a>
+    <a class="btn" href="{% url 'core:planificaciones_list' %}">Volver</a>
+  </div>
+</div>
+{% endblock %}

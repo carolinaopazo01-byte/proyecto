@@ -2,7 +2,7 @@
 from django.contrib import admin
 from .models import (
     Sede, Deporte, SedeDeporte, Evento,
-    Comunicado, Curso, Planificacion
+    Comunicado, Curso, Planificacion, PlanificacionVersion
 )
 
 @admin.register(Sede)
@@ -40,6 +40,32 @@ class CursoAdmin(admin.ModelAdmin):
 
 @admin.register(Planificacion)
 class PlanificacionAdmin(admin.ModelAdmin):
-    list_display = ("nombre", "nivel_dificultad", "duracion", "creado", "creado_por")
-    list_filter = ("nivel_dificultad",)
-    search_fields = ("nombre", "contenido", "metodologia")
+    list_display = ("curso", "semana", "tiene_archivo", "autor", "creado")
+    list_select_related = ("curso", "curso__sede", "curso__profesor", "curso__disciplina")
+    list_filter = (
+        "semana",
+        "curso__programa",      # Formativo / Alto Rendimiento
+        "curso__sede",
+        "curso__disciplina",
+    )
+    search_fields = (
+        "curso__nombre",
+        "curso__profesor__first_name",
+        "curso__profesor__last_name",
+        "curso__sede__nombre",
+    )
+    date_hierarchy = "semana"
+    ordering = ("-semana", "-creado")
+
+    def tiene_archivo(self, obj):
+        return bool(obj.archivo)
+    tiene_archivo.boolean = True
+    tiene_archivo.short_description = "Archivo"
+
+@admin.register(PlanificacionVersion)
+class PlanificacionVersionAdmin(admin.ModelAdmin):
+    list_display = ("planificacion", "creado", "autor")
+    list_select_related = ("planificacion", "planificacion__curso")
+    search_fields = ("planificacion__curso__nombre", )
+    date_hierarchy = "creado"
+    ordering = ("-creado",)

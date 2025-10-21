@@ -62,27 +62,37 @@ class Comunicado(models.Model):
         return self.titulo
 
 class Planificacion(models.Model):
-    NIVEL_CHOICES = [
-        ("baja", "Baja"),
-        ("media", "Media"),
-        ("alta", "Alta"),
-    ]
+    """
+    Planificación por curso y semana. Guarda el archivo 'vigente' y
+    quién lo subió. El campo 'semana' guarda la fecha del LUNES de esa semana.
+    """
+    curso = models.ForeignKey("core.Curso", on_delete=models.CASCADE, related_name="planificaciones")
+    semana = models.DateField(help_text="Fecha del lunes de la semana")
+    archivo = models.FileField(upload_to="planificaciones/%Y/%m/", null=True, blank=True)
+    autor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    creado = models.DateTimeField(auto_now_add=True)
 
-    nombre = models.CharField(max_length=150, blank=True, default="")
-    contenido = models.TextField(blank=True, default="")
-    metodologia = models.TextField(blank=True, default="")
-    duracion = models.DurationField(null=True, blank=True, default=datetime.timedelta())
-    nivel_dificultad = models.CharField(
-        max_length=10, choices=NIVEL_CHOICES, blank=True, default="media"
-    )
-
-    creado = models.DateTimeField(default=timezone.now)
-    creado_por = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL
-    )
+    class Meta:
+        unique_together = ("curso", "semana")  # 1 planificación vigente por curso/semana
+        ordering = ["-semana", "-creado"]
 
     def __str__(self):
-        return self.nombre or "(Sin nombre)"
+        return f"{self.curso} · semana {self.semana}"
+
+class PlanificacionVersion(models.Model):
+    """
+    Historial de versiones para una Planificación (cada vez que se sube un nuevo archivo).
+    """
+    planificacion = models.ForeignKey(Planificacion, on_delete=models.CASCADE, related_name="versiones")
+    archivo = models.FileField(upload_to="planificaciones/versiones/%Y/%m/")
+    creado = models.DateTimeField(auto_now_add=True)
+    autor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+
+    class Meta:
+        ordering = ["-creado"]
+
+    def __str__(self):
+        return f"Versión {self.id} de {self.planificacion}"
 
 class AsistenciaClase(models.Model):
     curso_id = models.IntegerField()  # placeholder hasta que Curso tenga su flujo completo

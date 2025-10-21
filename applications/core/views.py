@@ -1,12 +1,12 @@
 # applications/core/views.py
-from django.http import HttpResponse
+from django.http import HttpResponse, FileResponse, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_http_methods
-from django.db.models import Q
+from django.db.models import Q, Count
 
-from .models import Comunicado, Curso, Sede, Estudiante, Planificacion, Deporte
-from .forms import PlanificacionForm, DeporteForm  # EstudianteForm se importa perezoso en las vistas
-
+from .models import Comunicado, Curso, Sede, Estudiante, Planificacion, Deporte, PlanificacionVersion
+#from .forms import PlanificacionForm, DeporteForm, PlanificacionUploadForm
+from .forms import DeporteForm, PlanificacionUploadForm
 # Control de acceso por rol
 from applications.usuarios.utils import role_required
 from applications.usuarios.models import Usuario
@@ -15,6 +15,11 @@ from applications.core.models import Sede, Deporte
 
 from datetime import date, timedelta
 from django.utils import timezone
+
+
+def _monday(d: date) -> date:
+    return d - timedelta(days=d.weekday())
+
 
 # ------- Home (informativo) -------
 @require_http_methods(["GET"])
@@ -573,50 +578,136 @@ def reportes_exportar_todo(request):  # TODO
     return HttpResponse("Exportador general (xlsx/pdf) – por implementar")
 
 # ================= PLANIFICACIONES =================
-@role_required(Usuario.Tipo.PROF, Usuario.Tipo.COORD, Usuario.Tipo.ADMIN)
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF)
 @require_http_methods(["GET"])
 def planificaciones_list(request):
-    qs = Planificacion.objects.order_by("-creado")
-    return render(request, "core/planificaciones_list.html", {"items": qs})
+    """
+    Panel con filtros + KPIs + tabla.
+    """
+    # Filtros
+    try:
+        base = date.fromisoformat(request.GET.get("semana") or "")
+    except ValueError:
+        base = timezone.localdate()
+    lunes = _monday(base)
 
+    programa = (request.GET.get("programa") or "").strip()  # FORM | ALTO | ""
+    sede_id = request.GET.get("sede") or ""
+    dep_id = request.GET.get("disciplina") or ""
+    curso_id = request.GET.get("curso") or ""
+    prof_id = request.GET.get("prof") or ""
 
-@role_required(Usuario.Tipo.PROF, Usuario.Tipo.COORD, Usuario.Tipo.ADMIN)
+    # Cursos base (para KPI de total cursos)
+    cursos_qs = Curso.objects.select_related("sede", "profesor", "disciplina").all()
+    if programa:
+        cursos_qs = cursos_qs.filter(programa=programa)
+    if sede_id:
+        cursos_qs = cursos_qs.filter(sede_id=sede_id)
+    if dep_id:
+        cursos_qs = cursos_qs.filter(disciplina_id=dep_id)
+    if curso_id:
+        cursos_qs = cursos_qs.filter(id=curso_id)
+    if prof_id:
+        cursos_qs = cursos_qs.filter(profesor_id=prof_id)
+
+    total_cursos = cursos_qs.count()
+
+    # Planificaciones de esa semana y filtros
+    plans = (Planificacion.objects
+             .select_related("curso", "curso__sede", "curso__profesor", "curso__disciplina")
+             .filter(semana=lunes))
+
+    if programa:
+        plans = plans.filter(curso__programa=programa)
+    if sede_id:
+        plans = plans.filter(curso__sede_id=sede_id)
+    if dep_id:
+        plans = plans.filter(curso__disciplina_id=dep_id)
+    if curso_id:
+        plans = plans.filter(curso_id=curso_id)
+    if prof_id:
+        plans = plans.filter(curso__profesor_id=prof_id)
+
+    cursos_con_plan = plans.values("curso_id").distinct().count()
+    pct_subidas = round((cursos_con_plan / total_cursos) * 100, 1) if total_cursos else 0.0
+
+    ctx = {
+        "semana": base.isoformat(),
+        "lunes": lunes,
+        "total_cursos": total_cursos,
+        "pct_subidas": pct_subidas,
+        "items": plans.order_by("curso__sede__nombre", "curso__disciplina__nombre", "curso__nombre"),
+        "sedes": Sede.objects.order_by("nombre"),
+        "disciplinas": Deporte.objects.order_by("nombre"),
+        "cursos": cursos_qs.order_by("nombre"),
+        "profes": Usuario.objects.filter(tipo_usuario=Usuario.Tipo.PROF).order_by("last_name", "first_name"),
+        "programa": programa,
+        "sede_id": sede_id,
+        "dep_id": dep_id,
+        "curso_id": curso_id,
+        "prof_id": prof_id,
+    }
+    return render(request, "core/planificaciones_list.html", ctx)
+
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF)
 @require_http_methods(["GET", "POST"])
-def planificacion_create(request):
+def planificacion_upload(request):
+    """
+    Sube/actualiza la planificación de un curso en una semana.
+    Si ya existe, actualiza archivo y guarda versión en historial.
+    """
     if request.method == "POST":
-        form = PlanificacionForm(request.POST)
+        form = PlanificacionUploadForm(request.POST, request.FILES)
         if form.is_valid():
             obj = form.save(commit=False)
-            obj.autor = request.user if request.user.is_authenticated else None
-            obj.save()
-            return redirect("core:planificaciones_list")
+            # normalizar: guardar el LUNES de esa semana
+            obj.semana = _monday(obj.semana)
+            obj.autor = request.user
+            # ¿ya existe?
+            existente = Planificacion.objects.filter(curso=obj.curso, semana=obj.semana).first()
+            if existente:
+                # guardar versión actual si tenía archivo
+                if existente.archivo:
+                    PlanificacionVersion.objects.create(
+                        planificacion=existente,
+                        archivo=existente.archivo,
+                        autor=request.user,
+                    )
+                existente.archivo = obj.archivo
+                existente.autor = request.user
+                existente.save()
+                return redirect("core:planificaciones_list")
+            else:
+                obj.save()
+                return redirect("core:planificaciones_list")
     else:
-        form = PlanificacionForm()
-    return render(request, "core/planificacion_form.html", {"form": form, "is_edit": False})
+        # semana por defecto: hoy
+        form = PlanificacionUploadForm(initial={"semana": timezone.localdate()})
+    return render(request, "core/planificacion_form_upload.html", {"form": form})
 
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF)
+@require_http_methods(["GET"])
+def planificacion_detail(request, plan_id: int):
+    p = get_object_or_404(
+        Planificacion.objects.select_related("curso", "curso__sede", "curso__profesor", "curso__disciplina"),
+        pk=plan_id
+    )
+    return render(request, "core/planificacion_detail.html", {"p": p})
 
-@role_required(Usuario.Tipo.PROF, Usuario.Tipo.COORD, Usuario.Tipo.ADMIN)
-@require_http_methods(["GET", "POST"])
-def planificacion_edit(request, plan_id: int):
-    obj = get_object_or_404(Planificacion, pk=plan_id)
-    if request.method == "POST":
-        form = PlanificacionForm(request.POST, instance=obj)
-        if form.is_valid():
-            form.save()
-            return redirect("core:planificaciones_list")
-    else:
-        form = PlanificacionForm(instance=obj)
-    return render(request, "core/planificacion_form.html", {"form": form, "is_edit": True, "obj": obj})
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF)
+@require_http_methods(["GET"])
+def planificacion_download(request, plan_id: int):
+    p = get_object_or_404(Planificacion, pk=plan_id)
+    if not p.archivo:
+        raise Http404("No hay archivo para descargar.")
+    return FileResponse(p.archivo.open("rb"), as_attachment=True, filename=p.archivo.name.split("/")[-1])
 
-
-@role_required(Usuario.Tipo.PROF, Usuario.Tipo.COORD, Usuario.Tipo.ADMIN)
-@require_http_methods(["POST"])
-def planificacion_delete(request, plan_id: int):
-    obj = get_object_or_404(Planificacion, pk=plan_id)
-    obj.delete()
-    return redirect("core:planificaciones_list")
-
-
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF)
+@require_http_methods(["GET"])
+def planificacion_historial(request, plan_id: int):
+    p = get_object_or_404(Planificacion, pk=plan_id)
+    versiones = p.versiones.all()
+    return render(request, "core/planificacion_historial.html", {"p": p, "versiones": versiones})
 # ================= DEPORTES =================
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET"])
