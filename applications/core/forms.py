@@ -13,10 +13,18 @@ from applications.usuarios.utils import normalizar_rut
 class SedeForm(forms.ModelForm):
     class Meta:
         model = Sede
-        fields = ["nombre", "direccion", "descripcion", "capacidad"]
+        fields = ["nombre", "direccion", "comuna", "descripcion", "capacidad", "activa"]
         widgets = {
             "descripcion": forms.Textarea(attrs={"rows": 4}),
             "capacidad": forms.NumberInput(attrs={"min": 0}),
+        }
+        labels = {
+            "nombre": "Nombre",
+            "direccion": "Dirección",
+            "comuna": "Comuna",
+            "descripcion": "Descripción (opcional)",
+            "capacidad": "Capacidad (opcional)",
+            "activa": "Activo",
         }
 
 

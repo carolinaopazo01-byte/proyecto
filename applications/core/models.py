@@ -8,10 +8,12 @@ import datetime
 Usuario = settings.AUTH_USER_MODEL
 
 class Sede(models.Model):
-    nombre = models.CharField(max_length=150, unique=True)
-    direccion = models.CharField(max_length=200, blank=True)
+    nombre = models.CharField(max_length=150)
+    direccion = models.CharField(max_length=200)
+    comuna = models.CharField(max_length=80, blank=True, default="Coquimbo")
     descripcion = models.TextField(blank=True)
-    capacidad = models.PositiveIntegerField(default=0)
+    capacidad = models.PositiveIntegerField(null=True, blank=True)
+    activa = models.BooleanField(default=True)
 
     def __str__(self):
         return self.nombre

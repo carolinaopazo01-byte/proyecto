@@ -123,12 +123,20 @@ class AsistenciaAtleta(models.Model):
     presente = models.BooleanField(default=False)
     observaciones = models.CharField(max_length=200, blank=True)
 
+    # NUEVO:
+    registrada_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='asistencias_registradas'
+    )
+    registrada_en = models.DateTimeField(auto_now_add=True)
+
     class Meta:
         unique_together = ('clase', 'atleta')
 
     def __str__(self):
         return f"{self.atleta} - {self.clase} : {'Presente' if self.presente else 'Ausente'}"
-
 
 class AsistenciaProfesor(models.Model):
     profesor = models.ForeignKey('usuarios.Profesor', on_delete=models.CASCADE)
