@@ -1,42 +1,86 @@
 {% extends "base.html" %}
-{% block title %}Sedes{% endblock %}
-{% block header %}Sedes{% endblock %}
+{% block title %}Gestionar Sedes{% endblock %}
+{% block header %}Gestionar Sedes{% endblock %}
 
 {% block content %}
-  <p><a class="btn" href="{% url 'core:sede_create' %}">➕ Nueva sede</a></p>
 
-  {% if sedes %}
-  <table border="1" cellpadding="6" cellspacing="0">
-    <thead>
-      <tr>
-        <th>Nombre</th>
-        <th>Dirección</th>
-        <th>Capacidad</th>
-        <th>Descripción</th>
-        <th style="min-width:160px;">Acciones</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for s in sedes %}
-      <tr>
-        <td>{{ s.nombre }}</td>
-        <td>{{ s.direccion }}</td>
-        <td>{{ s.capacidad }}</td>
-        <td style="max-width:400px; white-space:pre-wrap;">{{ s.descripcion }}</td>
-        <td>
-          <a class="btn" href="{% url 'core:sede_edit' s.id %}">✏️ Editar</a>
-          <form method="post" action="{% url 'core:sede_delete' s.id %}" style="display:inline;">
-            {% csrf_token %}
-            <button class="btn" type="submit" onclick="return confirm('¿Eliminar esta sede?');" style="background:#d9534f; color:white;">
-              🗑️ Eliminar
-            </button>
-          </form>
-        </td>
-      </tr>
+<form method="get" class="card p-3 mb-3" style="display:grid; grid-template-columns: 1fr 180px 180px 220px 120px; gap:10px; align-items:end;">
+  <div>
+    <label class="form-label">Buscar</label>
+    <input type="text" name="q" value="{{ q }}" placeholder="Nombre o Comuna" style="width:100%; padding:6px 8px;">
+  </div>
+  <div>
+    <label class="form-label">Comuna</label>
+    <select name="comuna" style="width:100%;">
+      <option value="">Todas</option>
+      {% for c in comunas %}
+        <option value="{{ c }}" {% if c == comuna_sel %}selected{% endif %}>{{ c }}</option>
       {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-    <p>No hay sedes registradas.</p>
-  {% endif %}
+    </select>
+  </div>
+  <div>
+    <label class="form-label">Estado</label>
+    <select name="estado" style="width:100%;">
+      <option value="">Todos</option>
+      <option value="act" {% if estado_sel == "act" %}selected{% endif %}>Activo</option>
+      <option value="inact" {% if estado_sel == "inact" %}selected{% endif %}>Inactivo</option>
+    </select>
+  </div>
+  <div style="display:flex; gap:6px;">
+    <div>
+      <label class="form-label">Capacidad</label>
+      <select name="cap_cmp">
+        <option value="">--</option>
+        <option value="gt" {% if cap_cmp == "gt" %}selected{% endif %}>&ge;</option>
+        <option value="lt" {% if cap_cmp == "lt" %}selected{% endif %}>&le;</option>
+      </select>
+    </div>
+    <div style="align-self:end;">
+      <input type="number" name="cap_val" value="{{ cap_val }}" style="width:100px; padding:6px 8px;">
+    </div>
+  </div>
+  <div style="display:flex; gap:8px;">
+    <button class="btn" type="submit">Buscar</button>
+    <a class="btn" href="{% url 'core:sede_create' %}">+ Nueva sede</a>
+  </div>
+</form>
+
+{% if sedes %}
+  <div style="overflow:auto;">
+    <table class="table table-striped" style="min-width:900px;">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Dirección</th>
+          <th>Comuna</th>
+          <th>Capacidad</th>
+          <th>Estado</th>
+          <th style="min-width:220px;">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in sedes %}
+          <tr>
+            <td>{{ s.nombre }}</td>
+            <td>{{ s.direccion }}</td>
+            <td>{{ s.comuna }}</td>
+            <td>{% if s.capacidad %}{{ s.capacidad }}{% else %}—{% endif %}</td>
+            <td>{{ s.activa|yesno:"Activo,Inactivo" }}</td>
+            <td>
+              <a class="btn" href="{% url 'core:sede_detail' s.id %}">Ver</a>
+              <a class="btn" href="{% url 'core:sede_edit' s.id %}">Editar</a>
+              <form method="post" action="{% url 'core:sede_delete' s.id %}" style="display:inline;" onsubmit="return confirm('¿Eliminar esta sede?');">
+                {% csrf_token %}
+                <button class="btn" type="submit" style="background:#d9534f; color:#fff;">Eliminar</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p>No hay sedes para los filtros aplicados.</p>
+{% endif %}
+
 {% endblock %}

@@ -1,28 +1,77 @@
 # applications/core/forms.py
 from django import forms
 from django.core.exceptions import ValidationError
+from django.forms import inlineformset_factory
+
 from datetime import date
-from .models import Sede, Estudiante, Curso, Planificacion, Deporte
+
+from .models import Sede, Estudiante, Curso, Planificacion, Deporte, CursoHorario
+
 from applications.usuarios.utils import normalizar_rut
 
 
-# --- Sede ---
 class SedeForm(forms.ModelForm):
     class Meta:
         model = Sede
-        fields = ["nombre", "direccion", "descripcion", "capacidad"]
+        fields = ["nombre", "direccion", "comuna", "descripcion", "capacidad", "activa"]
         widgets = {
             "descripcion": forms.Textarea(attrs={"rows": 4}),
             "capacidad": forms.NumberInput(attrs={"min": 0}),
         }
+        labels = {
+            "nombre": "Nombre",
+            "direccion": "Dirección",
+            "comuna": "Comuna",
+            "descripcion": "Descripción (opcional)",
+            "capacidad": "Capacidad (opcional)",
+            "activa": "Activo",
+        }
 
 
-# --- Curso ---
 class CursoForm(forms.ModelForm):
     class Meta:
         model = Curso
-        fields = "__all__"
+        fields = [
+            # 1) Identificación
+            "nombre", "programa", "disciplina", "categoria", "sede",
+            # 2) Calendario
+            "fecha_inicio", "fecha_termino",
+            # 3) Profesorado
+            "profesor", "profesores_apoyo",
+            # 4) Cupos e inscripciones
+            "cupos", "cupos_espera", "permitir_inscripcion_rapida",
+            # 5) Visibilidad/Estado
+            "publicado", "estado",
+            # Compatibilidad (antiguos) – se mantienen pero no se muestran en el template
+            # "horario", "lista_espera",
+        ]
+        widgets = {
+            "fecha_inicio": forms.DateInput(attrs={"type": "date"}),
+            "fecha_termino": forms.DateInput(attrs={"type": "date"}),
+            "profesores_apoyo": forms.SelectMultiple(attrs={"size": 6}),
+        }
+        labels = {
+            "disciplina": "Disciplina",
+            "categoria": "Categoría (Sub-12, Adulto, Mixto)",
+            "sede": "Sede/Recinto",
+        }
 
+class CursoHorarioForm(forms.ModelForm):
+    class Meta:
+        model = CursoHorario
+        fields = ["dia", "hora_inicio", "hora_fin"]
+        widgets = {
+            "hora_inicio": forms.TimeInput(attrs={"type": "time"}),
+            "hora_fin": forms.TimeInput(attrs={"type": "time"}),
+        }
+
+CursoHorarioFormSet = inlineformset_factory(
+    parent_model=Curso,
+    model=CursoHorario,
+    form=CursoHorarioForm,
+    extra=1,
+    can_delete=True,
+)
 
 # ====== utilidades RUT (validación y formato) ======
 def _rut_calc_dv(numero: str) -> str:
@@ -179,23 +228,20 @@ class EstudianteForm(forms.ModelForm):
 
 
 # --- Planificación ---
-class PlanificacionForm(forms.ModelForm):
+
+class PlanificacionUploadForm(forms.ModelForm):
+    semana = forms.DateField(
+        widget=forms.DateInput(attrs={"type": "date"}),
+        label="Semana (elige cualquier día de la semana; se ajustará al lunes)"
+    )
+
     class Meta:
         model = Planificacion
-        fields = ["nombre", "contenido", "metodologia", "duracion", "nivel_dificultad"]
+        fields = ["curso", "semana", "archivo"]
+        labels = {"curso": "Curso", "archivo": "Archivo PDF/Doc/Zip"}
         widgets = {
-            "contenido": forms.Textarea(attrs={"rows": 4}),
-            "metodologia": forms.Textarea(attrs={"rows": 4}),
+            "curso": forms.Select(),
         }
-        labels = {
-            "nombre": "Nombre",
-            "contenido": "Contenido",
-            "metodologia": "Metodología",
-            "duracion": "Duración (HH:MM:SS)",
-            "nivel_dificultad": "Nivel de dificultad",
-        }
-
-
 # --- Deporte ---
 class DeporteForm(forms.ModelForm):
     class Meta:

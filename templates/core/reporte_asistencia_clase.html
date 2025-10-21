@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Asistencia por clase{% endblock %}
+{% block header %}Asistencia por clase{% endblock %}
+
+{% block content %}
+<form method="get" class="card p-3 mb-3" style="display:grid; grid-template-columns: 160px 200px 200px 1fr; gap:10px; align-items:end;">
+  <div>
+    <label class="form-label">Fecha</label>
+    <input type="date" name="fecha" value="{{ fecha }}">
+  </div>
+  <div>
+    <label class="form-label">Sede</label>
+    <select name="sede">
+      <option value="">Todas</option>
+      {% for s in sedes %}<option value="{{ s.id }}" {% if s.id|stringformat:"s" == request.GET.sede %}selected{% endif %}>{{ s.nombre }}</option>{% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="form-label">Disciplina</label>
+    <select name="disciplina">
+      <option value="">Todas</option>
+      {% for d in disciplinas %}<option value="{{ d.id }}" {% if d.id|stringformat:"s" == request.GET.disciplina %}selected{% endif %}>{{ d.nombre }}</option>{% endfor %}
+    </select>
+  </div>
+<div>
+  <label class="form-label">Marcada por</label>
+  <select name="marcador">
+    <option value="" {% if request.GET.marcador == "" %}selected{% endif %}>Todos</option>
+    <option value="prof" {% if request.GET.marcador == "prof" %}selected{% endif %}>Profesor</option>
+    <option value="alum" {% if request.GET.marcador == "alum" %}selected{% endif %}>Alumno</option>
+  </select>
+</div>
+  <div>
+    <label class="form-label">Clase</label>
+    <select name="clase">
+      <option value="">Seleccione…</option>
+      {% for c in clases %}
+        <option value="{{ c.id }}" {% if c.id == clase_id %}selected{% endif %}>
+          {{ c.fecha }} · {{ c.sede_deporte.sede }} · {{ c.sede_deporte.deporte }} · {{ c.profesor }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div style="grid-column:1/-1; display:flex; gap:8px; margin-top:6px;">
+    <button class="btn" type="submit">Ver</button>
+    {% if seleccionada %}
+      <button class="btn" onclick="window.print(); return false;">Imprimir lista</button>
+    {% endif %}
+  </div>
+</form>
+
+{% if seleccionada %}
+  <h5>Clase: {{ seleccionada.fecha }} · {{ seleccionada.sede_deporte.sede }} · {{ seleccionada.sede_deporte.deporte }} · {{ seleccionada.profesor }}</h5>
+  <table class="table table-striped">
+    <thead>
+      <tr><th>RUT</th><th>Nombre</th><th>Estado</th><th>Observación</th></tr>
+    </thead>
+    <tbody>
+      {% for r in registros %}
+        <tr>
+          <td>{{ r.atleta.rut }}</td>
+          <td>{{ r.atleta.usuario.get_full_name }}</td>
+          <td>{% if r.presente %}P{% else %}A{% endif %}</td>
+          <td>{{ r.observaciones }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4">Sin registros de asistencia.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+{% endblock %}

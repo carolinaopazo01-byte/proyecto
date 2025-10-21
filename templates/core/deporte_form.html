@@ -1,25 +1,33 @@
 {% extends "base.html" %}
+{% block title %}{% if is_edit %}Editar deporte{% else %}Nuevo deporte{% endif %}{% endblock %}
+{% block header %}{% if is_edit %}Editar deporte{% else %}Nuevo deporte{% endif %}{% endblock %}
+
 {% block content %}
-<h2>Deportes</h2>
-<a class="btn btn-primary mb-3" href="{% url 'core:deporte_create' %}">Nuevo deporte</a>
-<table class="table table-striped">
-  <thead><tr><th>Nombre</th><th>Categoría</th><th></th></tr></thead>
-  <tbody>
-  {% for d in items %}
-    <tr>
-      <td>{{ d.nombre }}</td>
-      <td>{{ d.categoria }}</td>
-      <td class="text-end">
-        <a class="btn btn-sm btn-secondary" href="{% url 'core:deporte_edit' d.id %}">Editar</a>
-        <form action="{% url 'core:deporte_delete' d.id %}" method="post" style="display:inline;">
-          {% csrf_token %}
-          <button class="btn btn-sm btn-danger" onclick="return confirm('¿Eliminar?');">Eliminar</button>
-        </form>
-      </td>
-    </tr>
-  {% empty %}
-    <tr><td colspan="3">No hay deportes cargados.</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="card p-3 mb-3">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Nombre</label>
+        {{ form.nombre }}
+        {% for e in form.nombre.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Categoría</label>
+        {{ form.categoria }}
+        {% for e in form.categoria.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-12">
+        <label class="form-label">Equipamiento</label>
+        {{ form.equipamiento }}
+        {% for e in form.equipamiento.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <button class="btn btn-primary" type="submit">{% if is_edit %}Guardar cambios{% else %}Guardar{% endif %}</button>
+    <a class="btn btn-secondary" href="{% url 'core:deportes_list' %}">Cancelar</a>
+  </div>
+</form>
 {% endblock %}

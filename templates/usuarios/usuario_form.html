@@ -1,20 +1,62 @@
 {% extends "base.html" %}
-{% block content %}
-<h2>{{ is_edit|yesno:"Editar usuario,Nuevo usuario" }}</h2>
+{% block title %}{% if is_edit %}Editar usuario{% else %}Nuevo usuario{% endif %}{% endblock %}
+{% block header %}{% if is_edit %}Editar usuario{% else %}Nuevo usuario{% endif %}{% endblock %}
 
+{% block content %}
 <form method="post" novalidate>
   {% csrf_token %}
-  {{ form.non_field_errors }}
-  <div class="grid">
-    {% for field in form %}
-      <div class="mb-2">
-        <label>{{ field.label }}</label>
-        {{ field }}
-        <div class="text-danger">{{ field.errors }}</div>
+
+  <fieldset class="card p-3 mb-3">
+    <legend class="h5">Datos personales</legend>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">RUT</label>
+        {{ form.rut }}
+        {% for e in form.rut.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
       </div>
-    {% endfor %}
+      <div class="col-md-4">
+        <label class="form-label">Nombres</label>
+        {{ form.first_name }}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Apellidos</label>
+        {{ form.last_name }}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Email</label>
+        {{ form.email }}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Teléfono</label>
+        {{ form.telefono }}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Fecha de nacimiento</label>
+        {{ form.fecha_nacimiento }}
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset class="card p-3 mb-3">
+    <legend class="h5">Rol y estado</legend>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Rol</label>
+        {{ form.tipo_usuario }}
+      </div>
+      <div class="col-md-3 d-flex align-items-center gap-2">
+        {{ form.is_active }} <label class="form-check-label">Activo</label>
+      </div>
+    </div>
+    <p class="text-muted mt-2" style="font-size:0.9rem;">
+      Permisos automáticos por rol: Administrador = staff + superusuario; Coordinador = staff; otros = sin staff.
+      {% if not is_edit %}<br>La contraseña inicial se generará como <strong>DDMMAAAA</strong> con la fecha de nacimiento.{% endif %}
+    </p>
+  </fieldset>
+
+  <div class="d-flex gap-2">
+    <button class="btn btn-primary" type="submit">Guardar</button>
+    <a class="btn btn-secondary" href="{% url 'usuarios:usuarios_list' %}">Cancelar</a>
   </div>
-  <button class="btn btn-primary">Guardar</button>
-  <a class="btn btn-secondary" href="{% url 'usuarios:equipo_list' %}">Cancelar</a>
 </form>
 {% endblock %}

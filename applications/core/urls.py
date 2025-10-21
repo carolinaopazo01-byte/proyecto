@@ -27,6 +27,7 @@ urlpatterns = [
     # Sedes
     path("sedes/", views.sedes_list, name="sedes_list"),
     path("sedes/nuevo/", views.sede_create, name="sede_create"),
+    path("sedes/<int:sede_id>/", views.sede_detail, name="sede_detail"),
     path("sedes/<int:sede_id>/editar/", views.sede_edit, name="sede_edit"),
     path("sedes/<int:sede_id>/eliminar/", views.sede_delete, name="sede_delete"),
 
@@ -38,10 +39,10 @@ urlpatterns = [
 
     # Planificaciones
     path("planificaciones/", views.planificaciones_list, name="planificaciones_list"),
-    path("planificaciones/nuevo/", views.planificacion_create, name="planificacion_create"),
-    path("planificaciones/<int:plan_id>/editar/", views.planificacion_edit, name="planificacion_edit"),
-    path("planificaciones/<int:plan_id>/eliminar/", views.planificacion_delete, name="planificacion_delete"),
     path("planificaciones/upload/", views.planificacion_upload, name="planificacion_upload"),
+    path("planificaciones/<int:plan_id>/", views.planificacion_detail, name="planificacion_detail"),
+    path("planificaciones/<int:plan_id>/download/", views.planificacion_download, name="planificacion_download"),
+    path("planificaciones/<int:plan_id>/historial/", views.planificacion_historial, name="planificacion_historial"),
 
     # Asistencia (stubs)
     path("asistencia/profesor/<int:curso_id>/", views.asistencia_profesor, name="asistencia_profesor"),
@@ -50,13 +51,27 @@ urlpatterns = [
     # Ficha estudiante (stub)
     path("ficha-estudiante/<int:estudiante_id>/", views.ficha_estudiante, name="ficha_estudiante"),
 
-    # Reportes
+    # --- REPORTES ---
     path("reportes/", views.reportes_home, name="reportes_home"),
+
+    # 📆 Semanal de inasistencias
     path("reportes/inasistencias/", views.reporte_inasistencias, name="reporte_inasistencias"),
-    path("reportes/asistencia-clase/<int:clase_id>/", views.reporte_asistencia_por_clase, name="reporte_asistencia_por_clase"),
+    path("reportes/inasistencias/detalle/<int:clase_id>/", views.reporte_inasistencias_detalle,
+         name="reporte_inasistencias_detalle"),
+    path("reportes/inasistencias/export.csv", views.reporte_inasistencias_export_csv,
+         name="reporte_inasistencias_export"),
+
+    # 🧑‍🏫 Asistencia por clase (selector)
+    path("reportes/asistencia-clase/", views.reporte_asistencia_por_clase, name="reporte_asistencia_por_clase"),
+
+    # Placeholders (pantallas en blanco listas para implementar)
+    path("reportes/asistencia-curso/", views.reporte_asistencia_por_curso, name="reporte_asistencia_por_curso"),
+    path("reportes/asistencia-sede/", views.reporte_asistencia_por_sede, name="reporte_asistencia_por_sede"),
+    path("reportes/llegadas-tarde/", views.reporte_llegadas_tarde, name="reporte_llegadas_tarde"),
+    path("reportes/exportar-todo/", views.reportes_exportar_todo, name="reportes_exportar_todo"),
 
     # Deportes
-    path("deportes/catalogo/", views.deportes_list, name="deportes_list"),
+    path("deportes/", views.deportes_list, name="deportes_list"),
     path("deportes/nuevo/", views.deporte_create, name="deporte_create"),
     path("deportes/<int:deporte_id>/editar/", views.deporte_edit, name="deporte_edit"),
     path("deportes/<int:deporte_id>/eliminar/", views.deporte_delete, name="deporte_delete"),

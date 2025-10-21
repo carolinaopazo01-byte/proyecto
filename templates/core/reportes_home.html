@@ -1,23 +1,14 @@
 {% extends "base.html" %}
-{% block content %}
-<h1>Reportes</h1>
+{% block title %}Reportes{% endblock %}
+{% block header %}Reportes{% endblock %}
 
-<ul>
-  <li>
-    <a href="{% url 'core:reporte_inasistencias' %}">
-      Reporte semanal de inasistencias
-    </a>
-  </li>
-  <li>
-    <!-- ejemplo: pide un ID de clase al vuelo -->
-    <form method="get" action="{% url 'core:reporte_asistencia_por_clase' 0 %}" onsubmit="
-      const id = document.getElementById('clase_id').value || '0';
-      this.action = this.action.replace('/0/', '/' + id + '/');
-    ">
-      <label>Reporte de asistencia por clase (ID):</label>
-      <input id="clase_id" type="number" min="1" placeholder="Ej: 12">
-      <button type="submit">Ver</button>
-    </form>
-  </li>
-</ul>
+{% block content %}
+<div class="grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:14px;">
+  <a class="card p-3 btn" href="{% url 'core:reporte_inasistencias' %}">📆 Reporte semanal de inasistencias</a>
+  <a class="card p-3 btn" href="{% url 'core:reporte_asistencia_por_clase' %}">🧑‍🏫 Asistencia por clase</a>
+  <a class="card p-3 btn" href="{% url 'core:reporte_asistencia_por_curso' %}">🏃 Asistencia por curso (rango)</a>
+  <a class="card p-3 btn" href="{% url 'core:reporte_asistencia_por_sede' %}">🏫 Asistencia por sede (rango)</a>
+  <a class="card p-3 btn" href="{% url 'core:reporte_llegadas_tarde' %}">⏱️ Llegadas tarde</a>
+  <a class="card p-3 btn" href="{% url 'core:reportes_exportar_todo' %}">⬇️ Exportar todo (Excel/PDF)</a>
+</div>
 {% endblock %}

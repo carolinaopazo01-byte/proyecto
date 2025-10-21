@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Detalle de inasistencias{% endblock %}
+{% block header %}Detalle de inasistencias{% endblock %}
+
+{% block content %}
+<p class="text-muted">
+  {{ clase.sede_deporte.sede }} · {{ clase.sede_deporte.deporte }} · {{ clase.fecha }} · {{ clase.profesor }}
+  <br>Semana: {{ lunes|date:"d/m" }} – {{ domingo|date:"d/m/Y" }}
+</p>
+
+<div class="d-flex gap-2 mb-2" style="justify-content:flex-end;">
+  <a class="btn" onclick="window.print()">Imprimir / PDF</a>
+</div>
+
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>RUT</th><th>Nombre</th><th>Faltas semana</th><th>Faltas últimas 4 clases</th><th>Teléfono apoderado</th><th>Notificar</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for x in filas %}
+      <tr>
+        <td>{{ x.rut }}</td>
+        <td>{{ x.nombre }}</td>
+        <td>{{ x.faltas_semana }}</td>
+        <td>{{ x.faltas_ult4 }}</td>
+        <td>{{ x.tel_apod }}</td>
+        <td><input type="checkbox"></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6">Sin datos.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
