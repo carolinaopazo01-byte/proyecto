@@ -28,6 +28,13 @@
 {% elif request.user.tipo_usuario == "ATLE" %}
   <a class="btn" href="{% url 'atleta:agenda_disponible' %}">Agenda</a>
   <a class="btn" href="{% url 'core:comunicados_list' %}">Comunicados</a>
+  {% elif request.user.tipo_usuario == "PMUL" %}
+  <a class="btn" href="{% url 'pmul:agenda' %}">Mi Agenda</a>
+  <a class="btn" href="{% url 'pmul:pacientes_list' %}">Pacientes</a>
+  <a class="btn" href="{% url 'pmul:fichas_list' %}">Fichas clínicas</a>
+  <a class="btn" href="{% url 'pmul:reportes' %}">Reportes</a>
+  <a class="btn" href="{% url 'core:comunicados_list' %}">Comunicados</a>
+
 {% endif %}
 
 </div>

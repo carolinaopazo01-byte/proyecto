@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block header %}{{ titulo }}{% endblock %}
+{% block content %}
+<form method="post" enctype="multipart/form-data" class="card p-3" style="max-width:820px;">
+  {% csrf_token %}
+
+  <div class="mb-2">
+    <label class="form-label">Atleta</label>
+    {{ form.paciente }}
+  </div>
+  <div class="mb-2">
+    <label class="form-label">Motivo de atención</label>
+    {{ form.motivo }}
+  </div>
+  <div class="mb-2">
+    <label class="form-label">Observaciones</label>
+    {{ form.observaciones }}
+  </div>
+  <div class="mb-2">
+    <label class="form-label">Diagnóstico / Indicaciones</label>
+    {{ form.diagnostico }}
+  </div>
+  <div class="mb-2">
+    <label class="form-label">Estado</label>
+    {{ form.estado }}
+  </div>
+
+  <div class="mb-2">
+    <label class="form-label">Adjuntar archivo(s)</label>
+    <input type="file" name="adjuntos" multiple>
+  </div>
+
+  <fieldset class="card p-2 mb-2">
+    <legend class="h6">Publicación (visibilidad)</legend>
+    <label><input type="checkbox" name="publicar_profesor" {% if form.instance.publicar_profesor %}checked{% endif %}> Profesor/Entrenador</label><br>
+    <label><input type="checkbox" name="publicar_coordinador" {% if form.instance.publicar_coordinador %}checked{% endif %}> Coordinador</label><br>
+    <label><input type="checkbox" name="publicar_admin" {% if form.instance.publicar_admin %}checked{% endif %}> Administrador</label>
+  </fieldset>
+
+  <div class="d-flex gap-2">
+    <button class="btn" type="submit">Guardar</button>
+    <a class="btn" href="{% url 'pmul:fichas_list' %}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

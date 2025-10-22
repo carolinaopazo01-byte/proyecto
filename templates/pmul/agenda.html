@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Mi Agenda{% endblock %}
+{% block header %}Mi Agenda{% endblock %}
+{% block content %}
+
+<form method="get" class="card p-3 mb-2" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">
+  <div><label class="form-label">Desde</label><input type="date" name="desde" value="{{ f_desde }}"></div>
+  <div><label class="form-label">Hasta</label><input type="date" name="hasta" value="{{ f_hasta }}"></div>
+  <div>
+    <label class="form-label">Piso</label>
+    <select name="piso">
+      <option value="">Todos</option>
+      <option value="1" {% if f_piso == "1" %}selected{% endif %}>1° piso</option>
+      <option value="2" {% if f_piso == "2" %}selected{% endif %}>2° piso</option>
+    </select>
+  </div>
+  <div>
+    <label class="form-label">Estado</label>
+    <select name="estado">
+      <option value="">Todos</option>
+      <option value="PEND" {% if f_estado == "PEND" %}selected{% endif %}>Programada</option>
+      <option value="REAL" {% if f_estado == "REAL" %}selected{% endif %}>Atendida</option>
+      <option value="REPROG" {% if f_estado == "REPROG" %}selected{% endif %}>Reprogramada</option>
+      <option value="CANC" {% if f_estado == "CANC" %}selected{% endif %}>Cancelada</option>
+    </select>
+  </div>
+  <button class="btn">Filtrar</button>
+  <a class="btn" href="{% url 'pmul:cita_new' %}">➕ Nueva cita</a>
+</form>
+
+<table class="table table-striped">
+  <thead><tr><th>Fecha</th><th>Hora</th><th>Atleta</th><th>Piso</th><th>Estado</th><th>Acción</th></tr></thead>
+  <tbody>
+    {% for c in items %}
+      <tr>
+        <td>{{ c.inicio|date:"d/m/Y" }}</td>
+        <td>{{ c.inicio|date:"H:i" }}</td>
+        <td>{{ c.paciente.nombres }} {{ c.paciente.apellidos }}</td>
+        <td>{% if c.piso == 1 %}1° Piso{% else %}2° Piso{% endif %}</td>
+        <td>{{ c.get_estado_display }}</td>
+        <td>
+          <a class="btn" href="{% url 'pmul:cita_edit' c.id %}">✏️ Editar</a>
+          <a class="btn" href="{% url 'pmul:cita_reprogramar' c.id %}">🔁 Reprogramar</a>
+          <a class="btn" href="{% url 'pmul:cita_cancel' c.id %}">❌ Cancelar</a>
+          <a class="btn" href="{% url 'pmul:ficha_new' %}?paciente={{ c.paciente.id }}">🩺 Ficha</a>
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6">No hay citas con los filtros actuales.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
