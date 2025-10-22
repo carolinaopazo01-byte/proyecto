@@ -13,9 +13,12 @@
   .input { width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; }
   .pw-wrap { position:relative; }
   .toggle { position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:12px; color:#003366; }
-  .actions { display:flex; justify-content:center; margin-top:16px; }
+  .actions { display:flex; flex-direction:column; align-items:center; gap:10px; margin-top:20px; }
   .btn-primary { padding:10px 16px; border:none; border-radius:8px; background:#003366; color:#fff; cursor:pointer; }
-  .error { color:#b00020; font-size:13px; margin-top:6px; }
+  .btn-primary:hover { background:#002244; }
+  .error { color:#b00020; font-size:13px; margin-top:6px; text-align:center; }
+  a.link { color:#003366; font-size:14px; text-decoration:none; }
+  a.link:hover { text-decoration:underline; }
 </style>
 
 <div class="overlay">
@@ -45,6 +48,7 @@
 
       <div class="actions">
         <button class="btn-primary" type="submit">Continuar</button>
+        <a href="{% url 'usuarios:password_reset' %}" class="link">¿Olvidaste tu contraseña?</a>
       </div>
     </form>
   </div>
@@ -55,8 +59,13 @@
   function togglePw() {
     const pw = document.getElementById('password');
     const btn = event.currentTarget;
-    if (pw.type === 'password') { pw.type = 'text'; btn.textContent = 'ocultar'; }
-    else { pw.type = 'password'; btn.textContent = 'ver'; }
+    if (pw.type === 'password') {
+      pw.type = 'text';
+      btn.textContent = 'ocultar';
+    } else {
+      pw.type = 'password';
+      btn.textContent = 'ver';
+    }
   }
 
   // Formatear RUT automáticamente

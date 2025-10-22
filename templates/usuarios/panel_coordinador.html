@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Panel Coordinador{% endblock %}
+{% block header %}Panel Coordinador{% endblock %}
+
+{% block content %}
+  <p>Hola, <strong>{{ rut }}</strong>.</p>
+
+  <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:10px;">
+    <a class="btn" href="{% url 'core:cursos_list' %}">Supervisar Cursos</a>
+    <a class="btn" href="{% url 'core:estudiantes_list' %}">Gestionar Estudiantes</a>
+    <a class="btn" href="{% url 'core:planificacion_upload' %}">Planificación</a>
+    <a class="btn" href="{% url 'core:reportes_home' %}">Reportes</a>
+    <a class="btn" href="{% url 'core:sedes_list' %}">Gestionar Sedes</a>
+    <a class="btn" href="{% url 'core:deportes_list' %}">Gestionar Deportes</a>
+    <a class="btn" href="{% url 'core:comunicados_list' %}">Comunicados</a>
+  </div>
+
+  <div style="margin-top:18px;">
+    <a class="btn" href="{% url 'usuarios:logout' %}">Salir</a>
+  </div>
+{% endblock %}

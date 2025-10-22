@@ -1,15 +1,21 @@
 # applications/usuarios/views.py
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.db.models import Q
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_protect
 
 from .models import Usuario
 from .utils import normalizar_rut
 from .forms import UsuarioCreateForm, UsuarioUpdateForm
 from applications.usuarios.utils import role_required
 
+def normaliza_rut(r):
+    if not r:
+        return ""
+    return r.replace(".", "").replace("-", "").strip().upper()
 
 def _redirigir_por_tipo(user: Usuario):
     """Enruta al panel según el tipo de usuario."""
@@ -26,26 +32,53 @@ def _redirigir_por_tipo(user: Usuario):
         return redirect("usuarios:panel_prof_multidisciplinario")
     return redirect("usuarios:panel_atleta")
 
+# Si tu modelo de usuario tiene el campo tipo_usuario, se usa para decidir el panel
+@login_required
+def panel_view(request):
+    """
+    Muestra el panel según el tipo de usuario:
+    - ADMIN  → panel_admin.html
+    - COORD  → panel_coordinador.html (sin gestión de usuarios)
+    - Otros  → panel.html (panel genérico)
+    """
+    user = request.user
+    rut = user.username
+    tipo = getattr(user, "tipo_usuario", "").upper()
 
-@require_http_methods(["GET", "POST"])
+    context = {"rut": rut, "user": user}
+
+    if tipo == "ADMIN":
+        return render(request, "usuarios/panel_admin.html", context)
+
+    elif tipo == "COORD":
+        return render(request, "usuarios/panel_coordinador.html", context)
+
+    else:
+        return render(request, "usuarios/panel.html", context)
+
+@csrf_protect
 def login_rut(request):
     """
-    Autenticación por RUT + password.
-    Guardamos username como RUT sin puntos ni guion, así que aquí
-    normalizamos de la misma forma antes de llamar a authenticate().
+    Login por RUT + password.
+    Requiere que el 'username' en la BD sea el RUT normalizado (sin puntos, con guion o sin él).
     """
     if request.method == "POST":
-        rut_ingresado = request.POST.get("rut") or ""
-        rut_norm = normalizar_rut(rut_ingresado)           # ej: 12345678-9
-        username = rut_norm.replace(".", "").replace("-", "")  # ej: 123456789
-        password = request.POST.get("password") or ""
+        rut = normaliza_rut(request.POST.get("rut", ""))
+        password = request.POST.get("password", "")
+
+        # Puedes mapear rut->username aquí si tu username guarda el RUT sin guión:
+        username = rut  # ajusta si tu BD guarda otro formato
+
         user = authenticate(request, username=username, password=password)
         if user:
             login(request, user)
-            return _redirigir_por_tipo(user)
-        return render(request, "usuarios/login.html", {"error": "RUT o contraseña incorrectos"})
-    return render(request, "usuarios/login.html")
+            # redirige al panel unificado
+            return redirect("usuarios:panel")
+        else:
+            return render(request, "usuarios/login.html", {"error": "RUT o contraseña inválidos."})
 
+    # GET: mostrar el form (esto hace que Django setee la cookie CSRF)
+    return render(request, "usuarios/login.html")
 
 def logout_view(request):
     logout(request)
