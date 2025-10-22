@@ -1,0 +1,60 @@
+/* ---------- Login page styles ---------- */
+.login-page {
+  min-height: calc(100vh - 120px);
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 100%);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 480px;
+  border: 0;
+  border-radius: 1rem;
+  box-shadow: 0 10px 30px rgba(31, 41, 55, .12);
+  overflow: hidden;
+}
+
+.login-card .card-header {
+  background: linear-gradient(135deg, #5b67f1 0%, #7c3aed 100%);
+  padding: 1.25rem 1rem;
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+}
+
+.login-brand img,
+.login-logo {
+  height: 80px;
+  width: auto;
+  display: block;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+
+.login-brand span {
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: .3px;
+}
+
+.btn-primary {
+  border-radius: .75rem;
+  transition: transform .06s ease, box-shadow .2s ease;
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(59, 130, 246, .25);
+}
+
+.login-mini-footer {
+  text-align: center;
+  color: #64748b;
+  font-size: .85rem;
+  margin-top: 0.75rem;
+}
