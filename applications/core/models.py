@@ -13,7 +13,7 @@ class Sede(models.Model):
     comuna = models.CharField(max_length=80, blank=True, default="Coquimbo")
     descripcion = models.TextField(blank=True)
     capacidad = models.PositiveIntegerField(null=True, blank=True)
-    activa = models.BooleanField(default=True)
+    activa = models.BooleanField(default=True)   # ← asegúrate que esté
 
     def __str__(self):
         return self.nombre
