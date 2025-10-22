@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Panel Apoderado{% endblock %}
+{% block header %}Apoderado{% endblock %}
+{% block content %}
+<div class="card p-3 mb-3">
+  <div>Bienvenido(a), <b>{{ apoderado.first_name|default:apoderado.username }}</b>.</div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:12px;">
+  <div class="card p-3">
+    <div class="text-muted">% asistencia semana</div>
+    <div class="h4">{{ asistencia_pct|default:"—" }}{% if asistencia_pct is not None %}%{% endif %}</div>
+  </div>
+  <div class="card p-3">
+    <div class="text-muted">Próxima clase</div>
+    {% if proxima_clase %}
+      <div>{{ proxima_clase.fecha|date:"d/m" }} · {{ proxima_clase.hora|time:"H:i" }}</div>
+    {% else %}
+      <div class="text-muted">Sin información</div>
+    {% endif %}
+  </div>
+  <div class="card p-3">
+    <div class="text-muted">Próximas citas (PMUL)</div>
+    <div class="h4">{{ citas }}</div>
+  </div>
+</div>
+
+<div class="mb-3" style="display:flex;gap:10px;flex-wrap:wrap;">
+  <a class="btn" href="{% url 'apoderado:asistencia' %}">Mi Atleta / Asistencia</a>
+  <a class="btn" href="{% url 'apoderado:planificacion' %}">Planificación (semana)</a>
+  <a class="btn" href="{% url 'apoderado:comunicados' %}">Comunicados</a>
+  <a class="btn" href="{% url 'apoderado:evaluaciones' %}">Evaluaciones médicas</a>
+  <a class="btn" href="{% url 'apoderado:protocolos' %}">Protocolos y documentos</a>
+</div>
+
+{% if hijos and hijos|length > 1 %}
+  <div class="text-muted">Tiene {{ hijos|length }} atletas asociados.</div>
+{% endif %}
+{% endblock %}

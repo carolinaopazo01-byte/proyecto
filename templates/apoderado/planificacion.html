@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Planificación de la semana{% endblock %}
+{% block header %}Planificación de la semana{% endblock %}
+{% block content %}
+{% if hijo %}
+  <div class="mb-2 text-muted">Atleta: <b>{{ hijo.nombres }} {{ hijo.apellidos }}</b></div>
+{% endif %}
+<table class="table table-striped">
+  <thead><tr><th>Curso</th><th>Semana</th><th>Archivo</th></tr></thead>
+  <tbody>
+    {% for p in items %}
+      <tr>
+        <td>{{ p.curso.nombre|default:"—" }}</td>
+        <td>{{ p.semana|date:"d/m/Y" }}</td>
+        <td>
+          {% if p.archivo %}
+            <a class="btn" href="{{ p.archivo.url }}">Descargar</a>
+          {% else %}
+            <span class="text-muted">Sin archivo</span>
+          {% endif %}
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="3">No hay planificaciones para esta semana.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

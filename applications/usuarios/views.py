@@ -37,12 +37,12 @@ def role_home_url(user):
     if t == "PROF":
         return reverse("usuarios:panel_profesor")
     if t == "APOD":
-        return reverse("usuarios:panel_apoderado")
+        return reverse("apoderado:dashboard")   # 👈 ESTA ES LA LÍNEA NUEVA
     if is_pmul(user):
-        return reverse("pmul:panel")  # 👈 cambio (lleva al panel PMUL)
+        return reverse("pmul:panel")
     if t == "ATLE":
         return reverse("usuarios:panel_atleta")
-    return reverse("usuarios:panel")  # genérico
+    return reverse("usuarios:panel")
 
 # ====== “Inicio” unificado (redirige por rol) ======
 @login_required

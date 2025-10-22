@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     'applications.atleta',     # esta sí con AppConfig
     'applications.evaluaciones',
     "applications.pmul.apps.PmulConfig",  # forma recomendada
+    "applications.apoderado.apps.ApoderadoConfig",
 ]
 
 MIDDLEWARE = [

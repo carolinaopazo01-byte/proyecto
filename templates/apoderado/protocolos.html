@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Protocolos y documentos{% endblock %}
+{% block header %}Protocolos y documentos{% endblock %}
+{% block content %}
+<table class="table table-striped">
+  <thead><tr><th>Documento</th><th>Descarga</th></tr></thead>
+  <tbody>
+    {% for d in items %}
+      <tr>
+        <td>{{ d.nombre|default:d.titulo|default:"Documento" }}</td>
+        <td>
+          {% if d.archivo %}<a class="btn" href="{{ d.archivo.url }}">Descargar</a>
+          {% else %}<span class="text-muted">No disponible</span>{% endif %}
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="2">No existen documentos publicados.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

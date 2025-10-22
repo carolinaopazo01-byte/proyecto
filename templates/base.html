@@ -65,30 +65,58 @@
   <body>
     <header>
       <h1>Campeones para Coquimbo</h1>
-<nav>
-  <a href="{% url 'core:home' %}">🏠 Inicio</a>
 
-  {% if request.user.is_authenticated %}
-    <span style="margin-left:12px;">Hola, {{ request.user.username }}</span>
-    <a href="{% url 'usuarios:logout' %}">Salir</a>
-  {% else %}
-    <a href="{% url 'usuarios:login_rut' %}">🔐 Iniciar sesión</a>
-  {% endif %}
+      <nav>
+        {# Inicio: si está logueado, manda al panel por rol; si no, a la home pública #}
+        {% if request.user.is_authenticated %}
+          <a href="{% url 'usuarios:panel' %}">🏠 Inicio</a>
+        {% else %}
+          <a href="{% url 'core:home' %}">🏠 Inicio</a>
+        {% endif %}
 
-  <!-- Informativas -->
-  <a href="{% url 'core:comunicados_list' %}">Comunicados</a>
-  <a href="{% url 'core:quienes' %}">Conócenos</a>
-  <a href="{% url 'core:procesos' %}">Procesos de inscripción</a>
-  <a href="{% url 'core:deportes' %}">Deportes y recintos</a>
-  <a href="{% url 'core:equipo' %}">Equipo Multidisciplinario</a>
-</nav>
+        {% if request.user.is_authenticated %}
+          <span style="margin-left:12px;">Hola, {{ request.user.username }}</span>
 
+          {# Enlaces por rol #}
+          {% with t=request.user.tipo_usuario|default_if_none:''|upper %}
+            {% if t == 'APOD' %}
+              <a href="{% url 'apoderado:dashboard' %}">Mi Panel (Apoderado)</a>
+            {% endif %}
+            {% if t in 'PMUL,EMUL,MULTI,PROF_MULTIDISCIPLINARIO,PROFESIONAL_MULTIDISCIPLINARIO,PROFESIONAL,EQUIPO_MULTIDISCIPLINARIO' %}
+              <a href="{% url 'pmul:panel' %}">Equipo Multidisciplinario</a>
+            {% endif %}
+            {% if t == 'ADMIN' %}
+              <a href="{% url 'usuarios:panel_admin' %}">Admin</a>
+            {% endif %}
+            {% if t == 'COORD' %}
+              <a href="{% url 'usuarios:panel_coordinador' %}">Panel Coordinador</a>
+            {% endif %}
+            {% if t == 'PROF' %}
+              <a href="{% url 'usuarios:panel_profesor' %}">Panel Profesor</a>
+            {% endif %}
+          {% endwith %}
 
+          <a href="{% url 'usuarios:logout' %}">Salir</a>
+        {% else %}
+          <a href="{% url 'usuarios:login_rut' %}">🔐 Iniciar sesión</a>
+        {% endif %}
+
+        {# Informativas públicas #}
+        <a href="{% url 'core:comunicados_list' %}">Comunicados</a>
+        <a href="{% url 'core:quienes' %}">Conócenos</a>
+        <a href="{% url 'core:procesos' %}">Procesos de inscripción</a>
+        <a href="{% url 'core:deportes' %}">Deportes y recintos</a>
+        <a href="{% url 'core:equipo' %}">Equipo Multidisciplinario</a>
+      </nav>
     </header>
 
     <div class="bar">
       <a class="btn" href="javascript:history.back()">← Atrás</a>
-      <a class="btn" href="{% url 'core:home' %}">🏠 Inicio</a>
+      {% if request.user.is_authenticated %}
+        <a class="btn" href="{% url 'usuarios:panel' %}">🏠 Inicio</a>
+      {% else %}
+        <a class="btn" href="{% url 'core:home' %}">🏠 Inicio</a>
+      {% endif %}
       {% if next_url %}
         <a class="btn" href="{{ next_url }}">Siguiente →</a>
       {% endif %}
@@ -98,19 +126,17 @@
       <h2>{% block header %}{% endblock %}</h2>
       {% block content %}{% endblock %}
     </main>
-  <footer style="margin-top:24px; color:#555; font-size:14px;">
-  <hr style="border:none;border-top:1px solid #eee;margin:16px 0;">
-  <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between;">
-    <div>
-      <strong>Redes sociales:</strong>
-      Facebook: <em>Campeones para Coquimbo</em> ·
-      Instagram: <em>@CampeonesParaCoquimbo</em>
-    </div>
-    <div>
-      Municipalidad de Coquimbo
-    </div>
-  </div>
-</footer>
 
+    <footer style="margin-top:24px; color:#555; font-size:14px;">
+      <hr style="border:none;border-top:1px solid #eee;margin:16px 0;">
+      <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between;">
+        <div>
+          <strong>Redes sociales:</strong>
+          Facebook: <em>Campeones para Coquimbo</em> ·
+          Instagram: <em>@CampeonesParaCoquimbo</em>
+        </div>
+        <div>Municipalidad de Coquimbo</div>
+      </div>
+    </footer>
   </body>
 </html>

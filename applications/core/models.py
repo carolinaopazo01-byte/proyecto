@@ -207,11 +207,11 @@ class Estudiante(models.Model):
     apellidos = models.CharField(max_length=120)
     fecha_nacimiento = models.DateField(null=True, blank=True)
     email = models.EmailField(blank=True, null=True)
-    telefono = models.CharField(max_length=30, blank=True, null=True)
+    telefono  = models.CharField(max_length=20,  blank=True, null=True)  # si la usas
     curso = models.ForeignKey('core.Curso', on_delete=models.SET_NULL, blank=True, null=True)
     activo = models.BooleanField(default=True)
-    direccion = models.CharField(max_length=200, blank=True, default="")
-    comuna = models.CharField(max_length=80, blank=True, default="")
+    direccion = models.CharField(max_length=150, blank=True, null=True)
+    comuna    = models.CharField(max_length=80,  blank=True, null=True)  # si la usas
     edad = models.PositiveSmallIntegerField(null=True, blank=True, editable=False)
     apoderado_nombre = models.CharField(max_length=200, blank=True, default="")
     apoderado_telefono = models.CharField(max_length=30, blank=True, default="")

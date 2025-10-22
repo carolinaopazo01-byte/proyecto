@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Asistencia{% endblock %}
+{% block header %}Asistencia{% endblock %}
+{% block content %}
+<form method="get" class="card p-3 mb-2" style="display:flex;gap:10px;align-items:end;">
+  {% if hijos %}
+    <div>
+      <label class="form-label">Mi atleta</label>
+      <select name="hijo">
+        {% for h in hijos %}
+          <option value="{{ h.id }}" {% if h == hijo %}selected{% endif %}>{{ h.nombres }} {{ h.apellidos }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button class="btn">Ver</button>
+  {% endif %}
+</form>
+
+<table class="table table-striped">
+  <thead><tr><th>Fecha</th><th>Asistencia</th></tr></thead>
+  <tbody>
+    {% for a in items %}
+      <tr>
+        <td>{{ a.fecha|date:"d/m/Y" }}</td>
+        <td>{% if a.presente %}Asistió{% else %}Ausente{% endif %}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="2">No hay registros.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
