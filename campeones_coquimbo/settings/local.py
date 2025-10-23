@@ -17,6 +17,10 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 DEBUG = True
 
 
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+LOGIN_URL = "/usuarios/login/"
+LOGIN_REDIRECT_URL = "/usuarios/panel/"
+
 AUTH_USER_MODEL = "usuarios.Usuario"
 AUTHENTICATION_BACKENDS = [
     "applications.usuarios.auth_backends.RutBackend",
