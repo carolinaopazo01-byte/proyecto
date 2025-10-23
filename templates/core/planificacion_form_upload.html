@@ -1,26 +1,57 @@
 {% extends "base.html" %}
 {% block title %}Subir Planificación{% endblock %}
 {% block header %}Subir Planificación{% endblock %}
-
 {% block content %}
-<form method="post" enctype="multipart/form-data" class="card p-3" style="max-width:720px;">
+
+{% if messages %}
+  {% for m in messages %}
+    <div class="alert {% if m.tags %}alert-{{ m.tags }}{% endif %}">{{ m }}</div>
+  {% endfor %}
+{% endif %}
+
+<form method="post" enctype="multipart/form-data">
   {% csrf_token %}
-  <div class="mb-2">
+
+  {% if form.non_field_errors %}
+    <div class="text-danger small">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  <div class="mb-3">
     <label class="form-label">Curso</label>
     {{ form.curso }}
+    <small class="text-muted d-block">
+      {% if request.user.tipo_usuario == 'PROF' %}Verás solo tus cursos.{% else %} {% endif %}
+    </small>
+    <div class="text-danger small">{{ form.curso.errors }}</div>
   </div>
-  <div class="mb-2">
+
+  <div class="mb-3">
     <label class="form-label">Semana</label>
     {{ form.semana }}
-    <div class="text-muted">Se normaliza al <b>lunes</b> de esa semana.</div>
+    <div class="form-text">Se normaliza al <b>lunes</b> de esa semana.</div>
+    <div class="text-danger small">{{ form.semana.errors }}</div>
   </div>
+
   <div class="mb-3">
     <label class="form-label">Archivo</label>
     {{ form.archivo }}
+    <div class="form-text">PDF / DOC / DOCX / XLS / XLSX, máx. 10 MB. (opcional)</div>
+    <div class="text-danger small">{{ form.archivo.errors }}</div>
   </div>
-  <div class="d-flex gap-2">
-    <button class="btn btn-primary" type="submit">Guardar</button>
-    <a class="btn btn-secondary" href="{% url 'core:planificaciones_list' %}">Cancelar</a>
+
+  <div class="mb-3">
+    <label class="form-label">Comentarios</label>
+    {{ form.comentarios }}
+    <div class="text-danger small">{{ form.comentarios.errors }}</div>
   </div>
+
+  <div class="mb-3 form-check">
+    {{ form.publica }}
+    <label class="form-check-label" for="{{ form.publica.id_for_label }}">Publica (visible a todos en el curso y apoderados)</label>
+    <div class="text-danger small">{{ form.publica.errors }}</div>
+  </div>
+
+  <button class="btn btn-primary" type="submit">Guardar / Subir</button>
+  <a class="btn btn-secondary" href="{% url 'core:planificaciones_list' %}">Cancelar</a>
 </form>
 {% endblock %}

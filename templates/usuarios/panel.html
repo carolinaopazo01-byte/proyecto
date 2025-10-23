@@ -8,15 +8,15 @@
   {% if request.user.tipo_usuario == "ADMIN" %}
   <a class="btn" href="{% url 'core:cursos_list' %}">Cursos</a>
   <a class="btn" href="{% url 'core:estudiantes_list' %}">Estudiantes</a>
-  <a class="btn" href="{% url 'core:planificacion_upload' %}">Planificación</a>
+  <a href="{% url 'core:planificaciones_list' %}">Planificación</a>
   <a class="btn" href="{% url 'core:reporte_inasistencias' %}">Reportes</a>
 {% elif request.user.tipo_usuario == "COORD" %}
   <a class="btn" href="{% url 'core:cursos_list' %}">Supervisar Cursos</a>
-  <a class="btn" href="{% url 'core:planificacion_upload' %}">Planificación</a>
+  <a href="{% url 'core:planificaciones_list' %}">Planificación</a>
   <a class="btn" href="{% url 'core:reporte_inasistencias' %}">Reportes</a>
 {% elif request.user.tipo_usuario == "PROF" %}
   <a class="btn" href="{% url 'core:asistencia_profesor' curso_id=1 %}">Tomar asistencia</a>
-  <a class="btn" href="{% url 'core:planificacion_upload' %}">Subir planificación</a>
+  <a href="{% url 'core:planificaciones_list' %}">Planificación</a>
   <a class="btn" href="{% url 'core:comunicados_list' %}">Comunicados</a>
 {% elif request.user.tipo_usuario == "PMUL" %}
   <a class="btn" href="{% url 'atleta:agenda_disponible' %}">Mi Agenda</a>

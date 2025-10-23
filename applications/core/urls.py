@@ -1,6 +1,11 @@
 from django.urls import path
 from . import views
-
+from .views import (
+    planificaciones_list,
+    planificacion_upload,
+    planificacion_detail,      # opcional
+    planificacion_download,    # opcional
+)
 app_name = "core"
 
 urlpatterns = [
@@ -38,12 +43,15 @@ urlpatterns = [
     path("comunicados/<int:comunicado_id>/eliminar/", views.comunicado_delete, name="comunicado_delete"),
 
     # Planificaciones
-    path("planificaciones/", views.planificaciones_list, name="planificaciones_list"),
-    path("planificaciones/upload/", views.planificacion_upload, name="planificacion_upload"),
-    path("planificaciones/<int:plan_id>/", views.planificacion_detail, name="planificacion_detail"),
-    path("planificaciones/<int:plan_id>/download/", views.planificacion_download, name="planificacion_download"),
-    path("planificaciones/<int:plan_id>/historial/", views.planificacion_historial, name="planificacion_historial"),
-
+    #path("planificaciones/upload/", views.planificacion_upload, name="planificacion_upload"),
+    #path("planificaciones/", views.planificaciones_list, name="planificaciones_list"),
+    #path("planificaciones/<int:plan_id>/", views.planificacion_detail, name="planificacion_detail"),
+    #path("planificaciones/<int:plan_id>/download/", views.planificacion_download, name="planificacion_download"),
+    #path("planificaciones/<int:plan_id>/historial/", views.planificacion_historial, name="planificacion_historial"),
+    path("planificaciones/", planificaciones_list, name="planificaciones_list"),
+    path("planificaciones/upload/", planificacion_upload, name="planificacion_upload"),
+    path("planificaciones/<int:plan_id>/", planificacion_detail, name="planificacion_detail"),  # opcional
+    path("planificaciones/<int:plan_id>/download/", planificacion_download, name="planificacion_download"),  # opcional
     # Asistencia (stubs)
     path("asistencia/profesor/<int:curso_id>/", views.asistencia_profesor, name="asistencia_profesor"),
     path("asistencia/estudiantes/<int:curso_id>/", views.asistencia_estudiantes, name="asistencia_estudiantes"),

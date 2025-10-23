@@ -4,6 +4,7 @@ from django.http import HttpResponse, FileResponse, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_http_methods
 from django.db.models import Q, Count
+from django.contrib import messages
 
 from .models import Comunicado, Curso, Sede, Estudiante, Planificacion, Deporte, PlanificacionVersion
 #from .forms import PlanificacionForm, DeporteForm, PlanificacionUploadForm
@@ -14,13 +15,17 @@ from applications.usuarios.models import Usuario
 from applications.atleta.models import Clase, AsistenciaAtleta
 from applications.core.models import Sede, Deporte
 
-from datetime import date, timedelta
+from datetime import timedelta, date
 from django.utils import timezone
-
 
 def _monday(d: date) -> date:
     return d - timedelta(days=d.weekday())
 
+def save(self, *args, **kwargs):
+    if self.semana:
+        self.semana = _to_monday(self.semana)     # normaliza
+        self.set_semana_iso()
+    super().save(*args, **kwargs)
 
 # ------- Home (informativo) -------
 @require_http_methods(["GET"])
@@ -85,7 +90,12 @@ def estudiante_delete(request, estudiante_id: int):
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET"])
 def cursos_list(request):
-    cursos = Curso.objects.select_related("sede", "profesor").all()
+    cursos = (
+        Curso.objects
+        .select_related("sede", "profesor", "disciplina")
+        .prefetch_related("horarios")
+        .all()
+    )
     return render(request, "core/cursos_list.html", {"cursos": cursos})
 
 
@@ -312,13 +322,49 @@ def profesor_create(request):
 
 
 # -------- STUBS QUE PUEDEN FALTAR EN URLs --------
-@role_required(Usuario.Tipo.PROF, Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF)
 @require_http_methods(["GET", "POST"])
 def planificacion_upload(request):
     if request.method == "POST":
-        return HttpResponse("CORE / Planificación - SUBIR (POST) -> OK")
-    return HttpResponse("CORE / Planificación - SUBIR (GET) -> formulario simple")
+        form = PlanificacionUploadForm(request.POST, request.FILES, user=request.user)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.autor = request.user               # quién sube
+            # ¿existe ya para (curso, semana)?
+            existente = Planificacion.objects.filter(
+                curso=obj.curso, semana=obj.semana
+            ).first()
+            if existente:
+                # versionado si había archivo anterior
+                if existente.archivo:
+                    PlanificacionVersion.objects.create(
+                        planificacion=existente,
+                        archivo=existente.archivo,
+                        autor=request.user,
+                    )
+                existente.archivo = obj.archivo or existente.archivo
+                existente.comentarios = obj.comentarios
+                existente.publica = obj.publica
+                existente.autor = request.user
+                existente.save()
+                messages.warning(
+                    request,
+                    f"Se creó versión {existente.versiones.count()+1} para esa semana."
+                )
+            else:
+                obj.save()
+                messages.success(
+                    request,
+                    f"Planificación de la semana {obj.semana:%d-%m-%Y} publicada."
+                )
+            return redirect("core:planificaciones_list")
+        else:
+            # Muestra errores en la misma página
+            messages.error(request, "Revisa los errores del formulario.")
+    else:
+        form = PlanificacionUploadForm(user=request.user)
 
+    return render(request, "core/planificacion_form_upload.html", {"form": form})
 
 @role_required(Usuario.Tipo.PROF, Usuario.Tipo.COORD, Usuario.Tipo.ADMIN)
 @require_http_methods(["GET", "POST"])
