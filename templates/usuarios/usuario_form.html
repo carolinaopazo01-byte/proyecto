@@ -6,57 +6,120 @@
 <form method="post" novalidate>
   {% csrf_token %}
 
+  <!-- =================== DATOS PERSONALES =================== -->
   <fieldset class="card p-3 mb-3">
     <legend class="h5">Datos personales</legend>
     <div class="row g-3">
       <div class="col-md-4">
         <label class="form-label">RUT</label>
         {{ form.rut }}
-        {% for e in form.rut.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+        {% for e in form.rut.errors %}
+          <div class="text-danger">{{ e }}</div>
+        {% endfor %}
       </div>
       <div class="col-md-4">
         <label class="form-label">Nombres</label>
         {{ form.first_name }}
+        {% for e in form.first_name.errors %}
+          <div class="text-danger">{{ e }}</div>
+        {% endfor %}
       </div>
       <div class="col-md-4">
         <label class="form-label">Apellidos</label>
         {{ form.last_name }}
+        {% for e in form.last_name.errors %}
+          <div class="text-danger">{{ e }}</div>
+        {% endfor %}
       </div>
+
       <div class="col-md-6">
         <label class="form-label">Email</label>
         {{ form.email }}
+        {% for e in form.email.errors %}
+          <div class="text-danger">{{ e }}</div>
+        {% endfor %}
       </div>
+
       <div class="col-md-3">
         <label class="form-label">Teléfono</label>
         {{ form.telefono }}
+        {% for e in form.telefono.errors %}
+          <div class="text-danger">{{ e }}</div>
+        {% endfor %}
       </div>
+
       <div class="col-md-3">
         <label class="form-label">Fecha de nacimiento</label>
         {{ form.fecha_nacimiento }}
+        {% for e in form.fecha_nacimiento.errors %}
+          <div class="text-danger">{{ e }}</div>
+        {% endfor %}
       </div>
     </div>
   </fieldset>
 
+  <!-- =================== ROL Y ESTADO =================== -->
   <fieldset class="card p-3 mb-3">
     <legend class="h5">Rol y estado</legend>
     <div class="row g-3">
       <div class="col-md-6">
         <label class="form-label">Rol</label>
         {{ form.tipo_usuario }}
+        {% for e in form.tipo_usuario.errors %}
+          <div class="text-danger">{{ e }}</div>
+        {% endfor %}
       </div>
+
+      <!-- Campo visible solo si el rol es PMUL -->
+      <div class="col-md-6" id="equipo-rol-row"
+           style="{% if form.instance and form.instance.tipo_usuario != 'PMUL' %}display:none{% endif %}">
+        <label class="form-label">Sub-rol (Equipo Multidisciplinario)</label>
+        {{ form.equipo_rol }}
+        {% for e in form.equipo_rol.errors %}
+          <div class="text-danger">{{ e }}</div>
+        {% endfor %}
+        <div class="form-text"></div>
+      </div>
+
       <div class="col-md-3 d-flex align-items-center gap-2">
         {{ form.is_active }} <label class="form-check-label">Activo</label>
       </div>
     </div>
+
     <p class="text-muted mt-2" style="font-size:0.9rem;">
       Permisos automáticos por rol: Administrador = staff + superusuario; Coordinador = staff; otros = sin staff.
-      {% if not is_edit %}<br>La contraseña inicial se generará como <strong>DDMMAAAA</strong> con la fecha de nacimiento.{% endif %}
+      {% if not is_edit %}
+        <br>La contraseña inicial se generará como <strong>DDMMAAAA</strong> con la fecha de nacimiento.
+      {% endif %}
     </p>
   </fieldset>
 
+  <!-- =================== BOTONES =================== -->
   <div class="d-flex gap-2">
     <button class="btn btn-primary" type="submit">Guardar</button>
     <a class="btn btn-secondary" href="{% url 'usuarios:usuarios_list' %}">Cancelar</a>
   </div>
 </form>
+
+<!-- =================== SCRIPT =================== -->
+<script>
+(function () {
+  const rolSel = document.getElementById('id_tipo_usuario');
+  const subRow = document.getElementById('equipo-rol-row');
+  const subSel = document.getElementById('id_equipo_rol');
+
+  function toggleSubRol() {
+    if (!rolSel || !subRow) return;
+    if (rolSel.value === 'PMUL') {
+      subRow.style.display = '';
+    } else {
+      subRow.style.display = 'none';
+      if (subSel) subSel.value = '';
+    }
+  }
+
+  rolSel && rolSel.addEventListener('change', toggleSubRol);
+  toggleSubRol();
+})();
+</script>
 {% endblock %}

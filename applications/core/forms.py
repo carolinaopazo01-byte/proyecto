@@ -224,6 +224,7 @@ class EstudianteForm(forms.ModelForm):
             # 2) Tutor (si es menor de edad)
             "apoderado_nombre",
             "apoderado_telefono",
+            "apoderado_rut",
             # 3) Información deportiva (toda opcional)
             "pertenece_organizacion",
             "club_nombre",
@@ -282,24 +283,37 @@ class EstudianteForm(forms.ModelForm):
 
         return rut_norm  # guardaremos normalizado
 
+    def clean_apoderado_rut(self):
+        rut = (self.cleaned_data.get("apoderado_rut") or "").strip()
+        if not rut:
+            return ""  # opcional para mayores
+        rut_norm = _rut_normaliza(rut)
+        try:
+            base, dv = rut_norm.split("-")
+        except ValueError:
+            raise ValidationError("RUT de apoderado inválido.")
+        if not base.isdigit() or _rut_calc_dv(base) != dv:
+            raise ValidationError("RUT de apoderado inválido.")
+        return rut_norm
+
     # ---------- Reglas de negocio ----------
     def clean(self):
         cleaned = super().clean()
-
-        # Edad para exigir apoderado si es menor
         fnac = cleaned.get("fecha_nacimiento")
-        edad = None
         if fnac:
+            from datetime import date
             hoy = date.today()
-            edad = hoy.year - fnac.year - (
-                (hoy.month, hoy.day) < (fnac.month, fnac.day)
-            )
+            edad = hoy.year - fnac.year - ((hoy.month, hoy.day) < (fnac.month, fnac.day))
+        else:
+            edad = None
 
         if edad is not None and edad < 18:
             if not (cleaned.get("apoderado_nombre") or "").strip():
                 self.add_error("apoderado_nombre", "Obligatorio para menores de edad.")
             if not (cleaned.get("apoderado_telefono") or "").strip():
                 self.add_error("apoderado_telefono", "Obligatorio para menores de edad.")
+            if not (cleaned.get("apoderado_rut") or "").strip():
+                self.add_error("apoderado_rut", "Obligatorio para menores de edad.")
 
         # Punto 3: totalmente opcional. Si NO marcaron el check,
         # sólo validamos coherencia si escribieron algo.

@@ -248,6 +248,7 @@ class Estudiante(models.Model):
 
     apoderado_nombre = models.CharField(max_length=200, blank=True, default="")
     apoderado_telefono = models.CharField(max_length=30, blank=True, default="")
+    apoderado_rut = models.CharField(max_length=12, blank=True, default="")  # 👈 NUEVO
 
     pertenece_organizacion = models.BooleanField(default=False)
     club_nombre = models.CharField(max_length=120, blank=True, default="")

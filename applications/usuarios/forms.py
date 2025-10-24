@@ -1,3 +1,4 @@
+#applications/usuarios/forms.py
 from django import forms
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -38,20 +39,40 @@ def formatear_rut(ch: str) -> str:
         partes.insert(0, base)
     return ".".join(partes) + "-" + dv
 
+
 class UsuarioCreateForm(forms.ModelForm):
-    fecha_nacimiento = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}), required=True, label="Fecha de nacimiento")
+    fecha_nacimiento = forms.DateField(
+        widget=forms.DateInput(attrs={"type": "date"}),
+        required=True,
+        label="Fecha de nacimiento"
+    )
     is_active = forms.BooleanField(initial=True, required=False, label="Activo")
 
     class Meta:
         model = Usuario
-        fields = ["rut", "first_name", "last_name", "email", "telefono", "fecha_nacimiento", "tipo_usuario",
-                  "is_active"]
+        fields = [
+            "rut", "first_name", "last_name", "email", "telefono",
+            "fecha_nacimiento", "tipo_usuario", "equipo_rol",  # 👈 AÑADIDO
+            "is_active",
+        ]
+        widgets = {"fecha_nacimiento": forms.DateInput(attrs={"type": "date"})}
         labels = {
             "first_name": "Nombres",
             "last_name": "Apellidos",
             "telefono": "Teléfono (ej: 9 99999999)",
             "tipo_usuario": "Rol",
+            "equipo_rol": "Sub-rol (Equipo Multidisciplinario)",
         }
+
+    def clean(self):
+        cleaned = super().clean()
+        rol = cleaned.get("tipo_usuario")
+        subrol = cleaned.get("equipo_rol")
+        if rol == Usuario.Tipo.PMUL and not subrol:
+            self.add_error("equipo_rol", "Selecciona el sub-rol del Equipo Multidisciplinario.")
+        if rol != Usuario.Tipo.PMUL:
+            cleaned["equipo_rol"] = None
+        return cleaned
 
     def clean_rut(self):
         rut = self.cleaned_data.get("rut", "")
@@ -64,14 +85,12 @@ class UsuarioCreateForm(forms.ModelForm):
             raise ValidationError("RUT inválido.")
         if _rut_calc_dv(base) != dv.upper():
             raise ValidationError("Dígito verificador incorrecto.")
-        # unicidad sin formato
         if Usuario.objects.filter(rut__iexact=formatear_rut(base + dv)).exists():
             raise ValidationError("Ya existe un usuario con ese RUT.")
         return formatear_rut(base + dv)
 
     def save(self, commit=True):
         data = self.cleaned_data
-        # username desde el RUT sin puntos ni guion
         username = normalizar_rut(data["rut"]).replace(".", "").replace("-", "")
         user = Usuario(
             username=username,
@@ -81,9 +100,9 @@ class UsuarioCreateForm(forms.ModelForm):
             email=data["email"],
             telefono=data.get("telefono") or "",
             tipo_usuario=data["tipo_usuario"],
+            equipo_rol=data.get("equipo_rol"),  # 👈 guarda sub-rol
             is_active=data.get("is_active", True),
         )
-        # permisos por rol (no editables aquí)
         if user.tipo_usuario == Usuario.Tipo.ADMIN:
             user.is_staff = True
             user.is_superuser = True
@@ -94,7 +113,6 @@ class UsuarioCreateForm(forms.ModelForm):
             user.is_staff = False
             user.is_superuser = False
 
-        # contraseña DDMMAAAA con fecha de nacimiento
         fn = data["fecha_nacimiento"]
         pwd = f"{fn.day:02d}{fn.month:02d}{fn.year:04d}"
         user.set_password(pwd)
@@ -103,25 +121,42 @@ class UsuarioCreateForm(forms.ModelForm):
             user.save()
         return user
 
+
 class UsuarioUpdateForm(forms.ModelForm):
-    fecha_nacimiento = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}), required=False, label="Fecha de nacimiento")
+    fecha_nacimiento = forms.DateField(
+        widget=forms.DateInput(attrs={"type": "date"}),
+        required=False,
+        label="Fecha de nacimiento"
+    )
 
     class Meta:
         model = Usuario
-        fields = ["rut", "first_name", "last_name", "email", "telefono", "tipo_usuario", "is_active", "fecha_nacimiento"]
-        widgets = {
-            "rut": forms.TextInput(attrs={"readonly": "readonly"}),
-        }
+        fields = [
+            "rut", "first_name", "last_name", "email", "telefono",
+            "tipo_usuario", "equipo_rol",  # 👈 AÑADIDO
+            "is_active", "fecha_nacimiento",
+        ]
+        widgets = {"rut": forms.TextInput(attrs={"readonly": "readonly"})}
         labels = {
             "first_name": "Nombres",
             "last_name": "Apellidos",
             "tipo_usuario": "Rol",
+            "equipo_rol": "Sub-rol (Equipo Multidisciplinario)",
             "is_active": "Activo",
         }
 
+    def clean(self):
+        cleaned = super().clean()
+        rol = cleaned.get("tipo_usuario")
+        subrol = cleaned.get("equipo_rol")
+        if rol == Usuario.Tipo.PMUL and not subrol:
+            self.add_error("equipo_rol", "Selecciona el sub-rol del Equipo Multidisciplinario.")
+        if rol != Usuario.Tipo.PMUL:
+            cleaned["equipo_rol"] = None
+        return cleaned
+
     def save(self, commit=True):
         user = super().save(commit=False)
-        # ajustar staff/superuser según rol
         if user.tipo_usuario == Usuario.Tipo.ADMIN:
             user.is_staff = True
             user.is_superuser = True
@@ -131,31 +166,6 @@ class UsuarioUpdateForm(forms.ModelForm):
         else:
             user.is_staff = False
             user.is_superuser = False
-        if commit:
-            user.save()
-        return user
-
-class UsuarioEditForm(forms.ModelForm):
-    class Meta:
-        model = Usuario
-        fields = [
-            "rut", "username", "first_name", "last_name", "email",
-            "telefono", "tipo_usuario", "is_staff", "is_superuser",
-        ]
-
-    def clean_rut(self):
-        rut = normalizar_rut(self.cleaned_data.get("rut") or "")
-        if not rut or "-" not in rut:
-            raise forms.ValidationError("RUT inválido.")
-        qs = Usuario.objects.exclude(pk=self.instance.pk)
-        if qs.filter(rut__iexact=rut).exists():
-            raise forms.ValidationError("Ya existe un usuario con ese RUT.")
-        return rut
-
-    def save(self, commit=True):
-        user = super().save(commit=False)
-        # 👇 También aquí guardamos el formato con puntos
-        user.rut = formatear_rut(self.cleaned_data["rut"])
         if commit:
             user.save()
         return user
