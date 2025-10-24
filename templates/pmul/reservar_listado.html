@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block header %}Reservar hora{% endblock %}
+{% block content %}
+<form class="mb-3">
+  <label>Especialidad:</label>
+  <select name="subrol" onchange="this.form.submit()">
+    <option value="">Todos</option>
+    <option value="KINE" {% if request.GET.subrol == "KINE" %}selected{% endif %}>Kinesiología</option>
+    <option value="PSIC" {% if request.GET.subrol == "PSIC" %}selected{% endif %}>Psicología</option>
+    <option value="NUTR" {% if request.GET.subrol == "NUTR" %}selected{% endif %}>Nutrición</option>
+    <option value="TENS" {% if request.GET.subrol == "TENS" %}selected{% endif %}>TENS</option>
+  </select>
+</form>
+
+<table class="table">
+  <thead><tr><th>Profesional</th><th>Inicio</th><th>Fin</th><th>Piso</th><th></th></tr></thead>
+  <tbody>
+  {% for s in slots %}
+    <tr>
+      <td>{{ s.profesional.first_name }} {{ s.profesional.last_name }} ({{ s.profesional.get_equipo_rol_display }})</td>
+      <td>{{ s.inicio|date:"d/m H:i" }}</td>
+      <td>{{ s.fin|date:"H:i" }}</td>
+      <td>{{ s.piso }}</td>
+      <td><a class="btn btn-sm btn-primary" href="{% url 'pmul:reservar_confirmar' s.id %}">Reservar</a></td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="5" class="text-muted">No hay cupos disponibles.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

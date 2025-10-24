@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ form.instance.pk|yesno:"Editar franja,Nueva franja" }}{% endblock %}
+{% block header %}{{ form.instance.pk|yesno:"Editar franja,Nueva franja" }}{% endblock %}
+
+{% block content %}
+<form method="post" novalidate>
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger">
+      {% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="card p-3 mb-3">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Inicio</label>
+        {{ form.inicio }}
+        {% for e in form.inicio.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Fin</label>
+        {{ form.fin }}
+        {% for e in form.fin.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Piso</label>
+        {{ form.piso }}
+        {% for e in form.piso.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-12">
+        <label class="form-label">Notas (opcional)</label>
+        {{ form.notas }}
+        {% for e in form.notas.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <button class="btn btn-primary" type="submit">Guardar</button>
+    <a class="btn btn-secondary" href="{% url 'pmul:slots_list' %}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

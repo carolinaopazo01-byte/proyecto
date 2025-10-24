@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block header %}Mis franjas publicadas{% endblock %}
+{% block content %}
+<a class="btn btn-primary" href="{% url 'pmul:slot_nuevo' %}">+ Nueva franja</a>
+<a class="btn btn-outline-primary" href="{% url 'pmul:slot_bulk' %}">+ Recurrencia semanal</a>
+<table class="table mt-3">
+  <thead><tr><th>Inicio</th><th>Fin</th><th>Piso</th><th>Estado</th><th></th></tr></thead>
+  <tbody>
+  {% for s in slots %}
+    <tr>
+      <td>{{ s.inicio|date:"d/m H:i" }}</td>
+      <td>{{ s.fin|date:"H:i" }}</td>
+      <td>{{ s.piso }}</td>
+      <td>{{ s.get_estado_display }}</td>
+      <td>
+        {% if s.estado == "LIBRE" %}
+          <a class="btn btn-sm btn-outline-danger" href="{% url 'pmul:slot_cancelar' s.id %}">Cancelar</a>
+        {% endif %}
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="5" class="text-muted">Sin franjas publicadas.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

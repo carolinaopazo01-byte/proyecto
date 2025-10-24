@@ -1,6 +1,10 @@
+# applications/pmul/models.py
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from django.db.models import Q
+from django.core.exceptions import ValidationError
+
 from applications.core.models import Estudiante
 
 Usuario = settings.AUTH_USER_MODEL
@@ -69,7 +73,55 @@ class Cita(models.Model):
     class Meta:
         ordering = ["inicio"]
 
+    def __str__(self):
+        return f"{self.paciente} · {self.inicio:%d/%m %H:%M}"
+
+    # ----------------------------
+    # Validaciones adicionales
+    # ----------------------------
+    def clean(self):
+        super().clean()
+
+        # Validar rango de tiempo
+        if self.fin and self.fin <= self.inicio:
+            raise ValidationError({"fin": "La hora de término debe ser posterior al inicio."})
+
+        # No permitir citas en el pasado
+        if self.inicio and self.inicio < timezone.now():
+            raise ValidationError({"inicio": "No puedes agendar en el pasado."})
+
+        # Filtrar solo citas activas (no canceladas)
+        activos = ~Q(estado="CANC")
+
+        # 1) El atleta NO puede tener más de una cita el mismo día (activa)
+        if self.paciente_id and self.inicio:
+            qs = Cita.objects.filter(
+                paciente_id=self.paciente_id,
+                inicio__date=self.inicio.date(),
+            ).filter(activos)
+            if self.pk:
+                qs = qs.exclude(pk=self.pk)
+            if qs.exists():
+                raise ValidationError({"inicio": "El deportista ya tiene una cita ese día."})
+
+        # 2) Evitar solapamiento para el MISMO profesional (citas activas)
+        if self.profesional_id and self.inicio and self.fin:
+            qs = Cita.objects.filter(
+                profesional_id=self.profesional_id
+            ).filter(activos).filter(
+                inicio__lt=self.fin,
+                fin__gt=self.inicio,
+            )
+            if self.pk:
+                qs = qs.exclude(pk=self.pk)
+            if qs.exists():
+                raise ValidationError("Se solapa con otra cita del profesional en ese horario.")
+
+    # ----------------------------
+    # Guardado con asignación automática
+    # ----------------------------
     def save(self, *args, **kwargs):
+        # Autocompletar especialidad/piso según perfil del profesional
         try:
             esp = self.profesional.perfil_pmul.especialidad
         except Exception:
@@ -77,9 +129,6 @@ class Cita(models.Model):
         self.especialidad = esp
         self.piso = piso_por_especialidad(esp)
         super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.paciente} · {self.inicio:%d/%m %H:%M}"
 
 
 # ----------------------------
@@ -127,3 +176,69 @@ class FichaAdjunto(models.Model):
 
     def __str__(self):
         return self.nombre or self.archivo.name
+
+
+# ----------------------------
+# Modelo de disponibilidad
+# ----------------------------
+class Disponibilidad(models.Model):
+    """
+    Franja disponible publicada por el profesional PMUL.
+    - Cuando alguien reserva, se crea una Cita y el slot pasa a 'RESERVADA'.
+    - Se bloquean solapamientos entre disponibilidades del mismo profesional.
+    """
+    class Estado(models.TextChoices):
+        LIBRE     = "LIBRE", "Libre para reservar"
+        RESERVADA = "RESERV", "Reservada"
+        CANCELADA = "CANC", "Cancelada"
+
+    profesional = models.ForeignKey(
+        Usuario,
+        on_delete=models.CASCADE,
+        related_name="disponibilidades",
+        limit_choices_to={"tipo_usuario": "PMUL"},
+    )
+    inicio = models.DateTimeField()
+    fin    = models.DateTimeField()
+    piso   = models.CharField(max_length=20, blank=True, default="")
+    estado = models.CharField(max_length=6, choices=Estado.choices, default=Estado.LIBRE)
+    notas  = models.CharField(max_length=200, blank=True, default="")
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["inicio"]
+        # Esto ya existía en tu esquema inicial; no añadimos nuevos constraints para evitar migraciones.
+        constraints = [
+            models.UniqueConstraint(fields=["profesional", "inicio"], name="uniq_prof_slot_inicio"),
+        ]
+        indexes = [
+            models.Index(fields=["profesional", "inicio"]),
+        ]
+
+    def __str__(self):
+        return f"{self.profesional} · {self.inicio:%d/%m %H:%M}-{self.fin:%H:%M} ({self.get_estado_display()})"
+
+    def clean(self):
+        # Rango válido
+        if self.fin <= self.inicio:
+            raise ValidationError({"fin": "La hora de término debe ser posterior al inicio."})
+        # No publicar en el pasado
+        if self.inicio < timezone.now():
+            raise ValidationError({"inicio": "No publiques disponibilidad en el pasado."})
+
+        # Sin solapes con otras disponibilidades del mismo profesional (LIBRE/RESERVADA)
+        if self.profesional_id and self.inicio and self.fin:
+            qs = Disponibilidad.objects.filter(
+                profesional_id=self.profesional_id,
+                estado__in=[self.Estado.LIBRE, self.Estado.RESERVADA],
+                inicio__lt=self.fin,
+                fin__gt=self.inicio,
+            )
+            if self.pk:
+                qs = qs.exclude(pk=self.pk)
+            if qs.exists():
+                raise ValidationError("Ya tienes otra franja publicada que se solapa con este horario.")
+
+    @property
+    def duracion_min(self):
+        return int((self.fin - self.inicio).total_seconds() // 60)

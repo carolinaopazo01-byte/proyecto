@@ -1,9 +1,21 @@
 from django.urls import path
 from . import views
+from . import views_disponibilidad as d
+
 
 app_name = "pmul"
 
 urlpatterns = [
+    # Slots del profesional
+    path("slots/", d.mis_slots, name="slots_list"),
+    path("slots/nuevo/", d.slot_nuevo, name="slot_nuevo"),
+    path("slots/recurrencia/", d.slot_bulk, name="slot_bulk"),
+    path("slots/<int:slot_id>/cancelar/", d.slot_cancelar, name="slot_cancelar"),
+
+    # Reserva por apoderado/atleta
+    path("reservar/", d.reservar_listado, name="reservar_listado"),
+    path("reservar/<int:slot_id>/", d.reservar_confirmar, name="reservar_confirmar"),
+
     path("", views.panel, name="panel"),
 
     # Agenda
