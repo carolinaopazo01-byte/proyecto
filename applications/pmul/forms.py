@@ -86,11 +86,38 @@ class SlotForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        if cleaned.get("inicio") and cleaned.get("fin"):
-            if cleaned["fin"] <= cleaned["inicio"]:
+        ini = cleaned.get("inicio")
+        fin = cleaned.get("fin")
+        if ini and fin:
+            if fin <= ini:
                 self.add_error("fin", "Debe ser posterior al inicio.")
-            if cleaned["inicio"] < timezone.now():
+            if ini < timezone.now():
                 self.add_error("inicio", "No puedes publicar en el pasado.")
+
+            # Evitar solapes con OTRAS franjas del mismo profesional
+            if self.instance.pk:
+                qs_slots = Disponibilidad.objects.exclude(pk=self.instance.pk)
+            else:
+                qs_slots = Disponibilidad.objects.all()
+            if ini and fin and self.initial.get("profesional"):
+                prof = self.initial["profesional"]
+            else:
+                prof = getattr(self.instance, "profesional", None) or getattr(self, "user", None) or None
+            if prof:
+                choque = qs_slots.filter(
+                    profesional=prof,
+                    inicio__lt=fin, fin__gt=ini,
+                ).exists()
+                if choque:
+                    self.add_error(None, "Se solapa con otra franja publicada.")
+
+                # (opcional) Evitar solapes con citas existentes del profesional
+                if Cita.objects.filter(
+                        profesional=prof,
+                        inicio__lt=fin, fin__gt=ini,
+                ).exclude(estado="CANC").exists():
+                    self.add_error(None, "Se solapa con una cita ya agendada.")
+
         return cleaned
 
 
