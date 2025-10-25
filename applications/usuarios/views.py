@@ -69,7 +69,7 @@ def panel_view(request):
     elif tipo == "APOD":
         return render(request, "usuarios/panel_apoderado.html", context)
     elif tipo == "ATLE":
-        return render(request, "usuarios/panel_atleta.html", context)
+        return render(request, "atleta/panel.html", context)
     else:
         return render(request, "usuarios/panel.html", context)
 
@@ -125,7 +125,7 @@ def panel_prof_multidisciplinario(request):
 
 @role_required(Usuario.Tipo.ATLE)
 def panel_atleta(request):
-    return render(request, "usuarios/panel_atleta.html")
+    return render(request, "atleta/panel.html")
 
 
 # ========== Listado + filtros + export ==========

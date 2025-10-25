@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block header %}Panel del atleta{% endblock %}
+{% block content %}
+  <p>Hola, {{ request.user.get_full_name|default:request.user.username }}.</p>
+
+  <div class="d-flex gap-2 flex-wrap mt-3">
+    <a class="btn btn-primary" href="{% url 'core:comunicados_list' %}">📢 Ver comunicados</a>
+    <a class="btn btn-outline-primary" href="{% url 'pmul:reservar_listado' %}">💬 Agendar con equipo multidisciplinario</a>
+    <a class="btn btn-outline-secondary" href="{% url 'core:planificaciones_list' %}">📅 Mis horarios</a>
+  </div>
+{% endblock %}

@@ -15,8 +15,11 @@ INSTALLED_APPS = [
     'django_filters',
 
     # Tus apps (¡sin duplicados!)
-    'applications.usuarios',                     # usa el paquete simple
-    'applications.core',
+    'applications.usuarios',
+    # usa el paquete simple
+    "applications.core.apps.CoreConfig",
+    # usa el paquete simple
+    #'applications.core',
     'applications.atleta',     # esta sí con AppConfig
     'applications.evaluaciones',
     #"applications.pmul.apps.PmulConfig",  # forma recomendada

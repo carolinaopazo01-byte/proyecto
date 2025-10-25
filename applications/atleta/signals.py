@@ -5,16 +5,26 @@ from applications.core.models import Comunicado
 
 @receiver(post_save, sender=AsistenciaAtleta)
 def update_faltas(sender, instance, **kwargs):
-    atleta = instance.atleta
+    at = instance.atleta
+    if not at:
+        return
+
     if instance.presente:
-        if atleta.faltas_consecutivas != 0:
-            atleta.faltas_consecutivas = 0
-            atleta.save(update_fields=['faltas_consecutivas'])
-    else:
-        atleta.faltas_consecutivas += 1
-        atleta.save(update_fields=['faltas_consecutivas'])
-        if atleta.faltas_consecutivas >= 3:
-            Comunicado.objects.create(
-                titulo=f"Alerta inasistencias: {atleta}",
-                contenido=f"{atleta} acumula {atleta.faltas_consecutivas} faltas consecutivas."
-            )
+        # presente => reinicia
+        if at.faltas_consecutivas != 0:
+            at.faltas_consecutivas = 0
+            at.save(update_fields=["faltas_consecutivas"])
+        return
+
+    # ausente
+    if instance.justificada:
+        # justificada => NO suma
+        return
+
+    at.faltas_consecutivas += 1
+    at.save(update_fields=["faltas_consecutivas"])
+    if at.faltas_consecutivas >= 3:
+        Comunicado.objects.create(
+            titulo=f"Alerta inasistencias: {at}",
+            cuerpo=f"{at} acumula {at.faltas_consecutivas} faltas consecutivas."
+        )

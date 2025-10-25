@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+<div class="container my-4">
+  <div class="d-flex align-items-center mb-3">
+    <a href="{% url 'core:home' %}" class="btn btn-light me-2">← Atrás</a>
+    <h3 class="m-0">Panel del profesor / entrenador</h3>
+  </div>
+
+  <div class="alert alert-light border">
+    Hola, {{ request.user.get_full_name|default:request.user.username }}.
+  </div>
+
+  <!-- Acciones rápidas -->
+  <div class="d-flex flex-wrap gap-2 mb-4">
+    <!-- Tomar asistencia (selector por clase) -->
+    <a class="btn btn-outline-primary"
+       href="{% url 'core:reporte_asistencia_por_clase' %}">
+      📝 Tomar asistencia
+    </a>
+
+    <!-- Planificaciones (lista + KPI) -->
+    <a class="btn btn-outline-secondary"
+       href="{% url 'core:planificaciones_list' %}">
+      📅 Planificaciones de mis cursos
+    </a>
+
+    <!-- Comunicados -->
+    <a class="btn btn-outline-danger"
+       href="{% url 'core:comunicados_list' %}">
+      📣 Comunicados
+    </a>
+
+    <!-- Agenda Equipo Multidisciplinario (PMUL) -->
+    <a class="btn btn-outline-success"
+       href="/pmul/agenda/">
+      💬 Agenda con Equipo Multidisciplinario
+    </a>
+  </div>
+
+  <div class="row g-4">
+    <!-- Mis cursos -->
+    <div class="col-md-6 col-xl-3">
+      <div class="p-4 bg-white rounded-3 shadow-sm h-100">
+        <div class="fs-2 mb-2">📘</div>
+        <h4 class="mb-2">Mis cursos</h4>
+        <p class="text-muted mb-3">Revisa disciplinas, sede y horarios.</p>
+        <!-- Si tienes una vista propia de “mis cursos” cámbiala aquí -->
+        <a class="btn btn-sm btn-primary" href="{% url 'core:planificaciones_list' %}">Ver</a>
+      </div>
+    </div>
+
+    <!-- Mi asistencia (atajo al selector) -->
+    <div class="col-md-6 col-xl-3">
+      <div class="p-4 bg-white rounded-3 shadow-sm h-100">
+        <div class="fs-2 mb-2">✅</div>
+        <h4 class="mb-2">Mi asistencia</h4>
+        <p class="text-muted mb-3">Toma y revisa asistencia por clase.</p>
+        <a class="btn btn-sm btn-primary" href="{% url 'core:reporte_asistencia_por_clase' %}">Ir al selector</a>
+      </div>
+    </div>
+
+    <!-- Planificación -->
+    <div class="col-md-6 col-xl-3">
+      <div class="p-4 bg-white rounded-3 shadow-sm h-100">
+        <div class="fs-2 mb-2">🗓️</div>
+        <h4 class="mb-2">Planificación</h4>
+        <p class="text-muted mb-3">Sube/consulta tu planificación semanal.</p>
+        <a class="btn btn-sm btn-primary" href="{% url 'core:planificaciones_list' %}">Abrir</a>
+      </div>
+    </div>
+
+    <!-- Comunicados -->
+    <div class="col-md-6 col-xl-3">
+      <div class="p-4 bg-white rounded-3 shadow-sm h-100">
+        <div class="fs-2 mb-2">📣</div>
+        <h4 class="mb-2">Comunicados</h4>
+        <p class="text-muted mb-3">Publica y revisa anuncios.</p>
+        <a class="btn btn-sm btn-primary" href="{% url 'core:comunicados_list' %}">Ver comunicados</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bloques inferiores (mock): próximas clases y últimos comunicados -->
+  <div class="row g-4 mt-2">
+    <div class="col-lg-6">
+      <div class="p-4 bg-white rounded-3 shadow-sm h-100">
+        <h5 class="mb-3">Próximas clases</h5>
+        <ul class="mb-0">
+          <li><strong>Ejemplo:</strong> Básquetbol Sub-15 — Lun 18:00 · Cancha 1</li>
+          <li><strong>Ejemplo:</strong> Vóleibol Mixto — Mié 19:00 · Gimnasio 2º piso</li>
+        </ul>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="p-4 bg-white rounded-3 shadow-sm h-100">
+        <h5 class="mb-3">Últimos comunicados</h5>
+        <ul class="mb-0">
+          <li>[Básquetbol] Cambio horario miércoles</li>
+          <li>[Vóleibol] Traer implementación personal</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
