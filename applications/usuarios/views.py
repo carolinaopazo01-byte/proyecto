@@ -1,5 +1,6 @@
 # applications/usuarios/views.py
-from django.contrib.auth import authenticate, login, logout
+from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
@@ -11,7 +12,12 @@ from django.urls import reverse  # 👈 cambio
 from .models import Usuario
 from .utils import normalizar_rut
 from .forms import UsuarioCreateForm, UsuarioUpdateForm
-from applications.usuarios.utils import role_required
+
+from applications.usuarios.utils import role_required, rut_equivalente
+
+from datetime import date
+
+User = get_user_model()
 
 def normaliza_rut(r):
     if not r:
@@ -75,24 +81,36 @@ def panel_view(request):
 
 @csrf_protect
 def login_rut(request):
-    """
-    Login por RUT + password.
-    Requiere que el 'username' en la BD sea el RUT normalizado.
-    """
     if request.method == "POST":
-        rut = normaliza_rut(request.POST.get("rut", ""))
-        password = request.POST.get("password", "")
-        username = rut
+        rut_in = (request.POST.get("rut") or "").strip()
+        pwd    = (request.POST.get("password") or "")
 
-        user = authenticate(request, username=username, password=password)
-        if user:
-            login(request, user)
-            # 👇 cambio: respeta ?next= y si no, envía al home por rol
-            next_url = request.GET.get("next")
-            return redirect(next_url or role_home_url(user))
-        else:
-            return render(request, "usuarios/login.html", {"error": "RUT o contraseña inválidos."})
+        U = get_user_model()
+        user_match = None
 
+        try:
+            user_match = U.objects.get(rut=rut_in, is_active=True)
+        except U.DoesNotExist:
+            eq = rut_equivalente(rut_in)
+            for u in U.objects.filter(is_active=True).only("id", "rut", "tipo_usuario"):
+                if rut_equivalente(u.rut) == eq:
+                    user_match = u
+                    break
+
+        if user_match:
+            # ⚠️ Nueva parte: bloqueo por edad
+            if user_match.tipo_usuario == "ATLE" and user_match.fecha_nacimiento:
+                edad = (date.today() - user_match.fecha_nacimiento).days // 365
+                if edad < 18:
+                    messages.error(request, "Solo los atletas mayores de edad pueden acceder al sistema.")
+                    return render(request, "usuarios/login.html")
+
+            user = authenticate(request, username=user_match.rut, password=pwd)
+            if user is not None:
+                login(request, user)
+                return redirect("usuarios:panel")
+
+        messages.error(request, "RUT o clave incorrectos.")
     return render(request, "usuarios/login.html")
 
 def logout_view(request):

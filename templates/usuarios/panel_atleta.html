@@ -1,0 +1,20 @@
+{# templates/usuarios/panel_atleta.html #}
+{% extends "base.html" %}
+{% block title %}Panel Atleta{% endblock %}
+{% block header %}Panel del Atleta{% endblock %}
+
+{% block content %}
+  <p>Hola, <strong>{{ request.user.username }}</strong>.</p>
+
+  <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:12px;">
+<a class="btn" href="{% url 'pmul:reservar_listado' %}?semana={% now 'Y-m-d' %}">
+  🗓️ Tomar hora (Equipo Multidisciplinario)
+</a>
+    <a class="btn" href="{% url 'core:comunicados_list' %}">Comunicados</a>
+    {# agrega más accesos cuando tengas vistas para cursos/asistencia del alumno #}
+  </div>
+
+  <p style="margin-top:20px;">
+    <a class="btn" href="{% url 'usuarios:logout' %}">Salir</a>
+  </p>
+{% endblock %}

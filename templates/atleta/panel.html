@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Panel Atleta{% endblock %}
+{% block header %}Bienvenido, {{ request.user.first_name }}{% endblock %}
+{% block content %}
+  <p>Desde aquí puedes acceder a tus secciones:</p>
+  <a class="btn" href="{% url 'atleta:agenda_disponible' %}">🗓️ Mi Agenda</a>
+  <a class="btn" href="{% url 'core:comunicados_list' %}">📢 Comunicados</a>
+{% endblock %}

@@ -60,6 +60,22 @@
         border-radius: 10px;
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
       }
+      /* --- Estilos para los mensajes --- */
+      ul.messages {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 16px 0;
+      }
+      ul.messages li {
+        border-radius: 6px;
+        padding: 10px 14px;
+        margin-bottom: 8px;
+        font-weight: 500;
+      }
+      ul.messages li.error { background: #ffe3e3; color: #b00020; border: 1px solid #f5c2c2; }
+      ul.messages li.success { background: #e6ffed; color: #0a661a; border: 1px solid #b7f0bf; }
+      ul.messages li.warning { background: #fff6e3; color: #9c6b00; border: 1px solid #ffeb99; }
+      ul.messages li.info { background: #e3f0ff; color: #004085; border: 1px solid #b8daff; }
     </style>
   </head>
   <body>
@@ -67,7 +83,6 @@
       <h1>Campeones para Coquimbo</h1>
 
       <nav>
-        {# Inicio: si está logueado, manda al panel por rol; si no, a la home pública #}
         {% if request.user.is_authenticated %}
           <a href="{% url 'usuarios:panel' %}">🏠 Inicio</a>
         {% else %}
@@ -77,7 +92,6 @@
         {% if request.user.is_authenticated %}
           <span style="margin-left:12px;">Hola, {{ request.user.username }}</span>
 
-          {# Enlaces por rol #}
           {% with t=request.user.tipo_usuario|default_if_none:''|upper %}
             {% if t == 'APOD' %}
               <a href="{% url 'apoderado:dashboard' %}">Mi Panel (Apoderado)</a>
@@ -94,6 +108,9 @@
             {% if t == 'PROF' %}
               <a href="{% url 'usuarios:panel_profesor' %}">Panel Profesor</a>
             {% endif %}
+            {% if t == 'ATLE' %}
+              <a href="{% url 'usuarios:panel_atleta' %}">Mi Panel (Atleta)</a>
+            {% endif %}
           {% endwith %}
 
           <a href="{% url 'usuarios:logout' %}">Salir</a>
@@ -101,7 +118,6 @@
           <a href="{% url 'usuarios:login_rut' %}">🔐 Iniciar sesión</a>
         {% endif %}
 
-        {# Informativas públicas #}
         <a href="{% url 'core:comunicados_list' %}">Comunicados</a>
         <a href="{% url 'core:quienes' %}">Conócenos</a>
         <a href="{% url 'core:procesos' %}">Procesos de inscripción</a>
@@ -124,6 +140,16 @@
 
     <main>
       <h2>{% block header %}{% endblock %}</h2>
+
+      {# --- Bloque de mensajes --- #}
+      {% if messages %}
+        <ul class="messages">
+          {% for m in messages %}
+            <li class="{{ m.tags }}">{{ m }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
       {% block content %}{% endblock %}
     </main>
 
