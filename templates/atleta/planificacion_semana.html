@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block header %}Planificación semanal{% endblock %}
+{% block content %}
+<form method="get" class="mb-2" style="display:flex;gap:10px;align-items:end;">
+  <div><label>Semana:</label> <input type="date" name="semana" value="{{ semana }}"></div>
+  <button class="btn">Filtrar</button>
+  <a class="btn" href="?semana={{ semana_anterior }}">« Semana anterior</a>
+  <a class="btn" href="?semana={{ semana_siguiente }}">Semana siguiente »</a>
+</form>
+
+<p class="text-muted">Del <strong>{{ desde|date:"d/m" }}</strong> al <strong>{{ hasta|date:"d/m" }}</strong>.</p>
+
+<table border="1" cellpadding="6" cellspacing="0">
+  <thead><tr><th>Curso</th><th>Sede</th><th>Disciplina</th><th>Archivo</th><th>Comentarios</th></tr></thead>
+  <tbody>
+    {% for p in items %}
+      <tr>
+        <td>{{ p.curso.nombre }}</td>
+        <td>{{ p.curso.sede.nombre }}</td>
+        <td>{{ p.curso.disciplina.nombre }}</td>
+        <td>{% if p.archivo %}<a href="{{ p.archivo.url }}" class="btn">Descargar</a>{% else %}-{% endif %}</td>
+        <td>{{ p.comentarios|default:"-" }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5">No hay planificaciones publicadas esta semana.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

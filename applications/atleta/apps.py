@@ -1,8 +1,8 @@
 from django.apps import AppConfig
 
 class AtletaConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'applications.atleta'
+    name = "applications.atleta"
+    verbose_name = "Atleta"
 
     def ready(self):
-        from . import signals  # activa las señales
+        from . import signals  # noqa

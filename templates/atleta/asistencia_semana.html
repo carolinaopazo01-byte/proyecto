@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block header %}Asistencia (semana){% endblock %}
+{% block content %}
+
+<form method="get" class="mb-2" style="display:flex;gap:10px;align-items:end;">
+  <div><label>Semana:</label> <input type="date" name="semana" value="{{ semana }}"></div>
+  <button class="btn">Filtrar</button>
+  <a class="btn" href="?semana={{ semana_anterior }}">« Semana anterior</a>
+  <a class="btn" href="?semana={{ semana_siguiente }}">Semana siguiente »</a>
+</form>
+
+<p class="text-muted">Del <strong>{{ desde|date:"d/m" }}</strong> al <strong>{{ hasta|date:"d/m" }}</strong>.</p>
+
+<div class="bar">
+  <span class="btn">📉 Inasistencias históricas: <strong>{{ kpi_total_inasist }}</strong></span>
+  <span class="btn">🚩 Inasistencias semana: <strong>{{ kpi_semana_inasist }}</strong></span>
+  <span class="btn">📈 % asistencia del mes: <strong>{{ kpi_pct_mes }}%</strong></span>
+</div>
+
+<table border="1" cellpadding="6" cellspacing="0">
+  <thead>
+    <tr>
+      <th>Fecha</th><th>Inicio</th><th>Fin</th><th>Profesor</th><th>Asistencia</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for a in items %}
+      <tr>
+        <td>{{ a.clase.fecha|date:"d/m" }}</td>
+        <td>{{ a.clase.hora_inicio }}</td>
+        <td>{{ a.clase.hora_fin }}</td>
+        <td>{{ a.clase.profesor.get_full_name|default:a.clase.profesor.username }}</td>
+        <td>{{ a.presente|yesno:"Presente,Ausente" }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5">No hay registros esta semana.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

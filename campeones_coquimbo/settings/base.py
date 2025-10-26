@@ -14,27 +14,25 @@ INSTALLED_APPS = [
     # Terceros
     'django_filters',
 
-    # Tus apps (¡sin duplicados!)
-    'applications.usuarios',                     # usa el paquete simple
+    # Apps propias (sin duplicados)
+    'applications.usuarios',
     'applications.core',
-    'applications.atleta',     # esta sí con AppConfig
+    'applications.apoderado.apps.ApoderadoConfig',
     'applications.evaluaciones',
-    #"applications.pmul.apps.PmulConfig",  # forma recomendada
-    "applications.apoderado.apps.ApoderadoConfig",
-    "applications.pmul",
+    'applications.pmul.apps.PmulConfig',       # ← dejamos SOLO esta para pmul
+    'applications.atleta.apps.AtletaConfig',
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",   # <-- DEBE estar
+    "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
 ]
+
 CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_SECURE = False
 

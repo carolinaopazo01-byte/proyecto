@@ -2,6 +2,16 @@
 {% block header %}Reservar hora{% endblock %}
 {% block content %}
 
+{# --- BLOQUE DE PRÓXIMA CITA --- #}
+{% if proxima_cita %}
+  <div style="background:#eef8ff;border:1px solid #bfe0ff;
+              padding:12px;border-radius:8px;margin-bottom:16px;">
+    <strong>Tu próxima cita:</strong>
+    {{ proxima_cita.inicio|date:"D d/m H:i" }} – {{ proxima_cita.fin|date:"H:i" }}
+    con {{ proxima_cita.profesional.get_full_name|default:proxima_cita.profesional.username }}
+  </div>
+{% endif %}
+
 <form method="get" class="mb-3" style="display:flex;gap:10px;align-items:end;">
   <div>
     <label>Semana:</label>
@@ -28,20 +38,36 @@
 
 <table class="table">
   <thead>
-    <tr><th>Profesional</th><th>Inicio</th><th>Fin</th><th>Piso</th><th></th></tr>
+    <tr>
+      <th>Profesional</th>
+      <th>Inicio</th>
+      <th>Fin</th>
+      <th>Piso</th>
+      <th></th>
+    </tr>
   </thead>
   <tbody>
-  {% for s in slots %}
-    <tr>
-      <td>{{ s.profesional.first_name }} {{ s.profesional.last_name }} ({{ s.profesional.perfil_pmul.get_especialidad_display }})</td>
-      <td>{{ s.inicio|date:"d/m H:i" }}</td>
-      <td>{{ s.fin|date:"H:i" }}</td>
-      <td>{{ s.piso }}</td>
-      <td><a class="btn btn-sm btn-primary" href="{% url 'pmul:reservar_confirmar' s.id %}">Reservar</a></td>
-    </tr>
-  {% empty %}
-    <tr><td colspan="5" class="text-muted">No hay cupos disponibles.</td></tr>
-  {% endfor %}
+    {% for s in slots %}
+      <tr>
+        <td>
+          {{ s.profesional.first_name }} {{ s.profesional.last_name }}
+          ({{ s.profesional.perfil_pmul.get_especialidad_display }})
+        </td>
+        <td>{{ s.inicio|date:"d/m H:i" }}</td>
+        <td>{{ s.fin|date:"H:i" }}</td>
+        <td>{{ s.piso }}</td>
+        <td>
+          <a class="btn btn-sm btn-primary"
+             href="{% url 'pmul:reservar_confirmar' s.id %}">
+             Reservar
+          </a>
+        </td>
+      </tr>
+    {% empty %}
+      <tr>
+        <td colspan="5" class="text-muted">No hay cupos disponibles.</td>
+      </tr>
+    {% endfor %}
   </tbody>
 </table>
 {% endblock %}
