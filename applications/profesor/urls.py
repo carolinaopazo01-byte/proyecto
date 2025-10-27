@@ -14,7 +14,7 @@ urlpatterns = [
     path("comunicados/", vp.comunicados, name="comunicados_prof"),
     path("perfil/", vp.mi_perfil, name="perfil_profesor"),
 
-    # rutas nuevas del módulo profesor (QR + historial)
+
     path("mi-asistencia/", views.mi_asistencia_qr, name="mi_asistencia_qr"),
     path("mi-asistencia/historial/", views.mi_historial_asistencia, name="mi_historial_asistencia"),
     path("sedes/qr/", views.sedes_qr_list, name="sedes_qr_list"),

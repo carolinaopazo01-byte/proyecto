@@ -9,11 +9,15 @@ Usuario = settings.AUTH_USER_MODEL
 
 class Sede(models.Model):
     nombre = models.CharField(max_length=150)
-    direccion = models.CharField(max_length=200)
+    direccion = models.CharField(max_length=250, blank=True)
     comuna = models.CharField(max_length=80, blank=True, default="Coquimbo")
     descripcion = models.TextField(blank=True)
     capacidad = models.PositiveIntegerField(null=True, blank=True)
     activa = models.BooleanField(default=True)
+    latitud = models.FloatField(null=True, blank=True)
+    longitud = models.FloatField(null=True, blank=True)
+    # opcional, radio para validar cercanía:
+    radio_metros = models.PositiveIntegerField(default=150)  # 150 m por defecto
 
     def __str__(self):
         return self.nombre

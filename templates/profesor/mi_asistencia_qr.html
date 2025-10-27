@@ -1,10 +1,117 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %}Marcar mi asistencia (QR){% endblock %}
+{% block header %}📷 Marcar mi asistencia (QR){% endblock %}
 
-</body>
-</html>
+{% block content %}
+<div class="card p-3" style="max-width:720px">
+  {% if mensaje %}
+    <div class="alert {% if ok %}success{% else %}error{% endif %}" style="margin-bottom:12px">
+      {{ mensaje }}
+    </div>
+  {% endif %}
+
+  <p class="muted" style="margin-top:0">
+    Escanea el QR pegado en la entrada de la sede o pega manualmente el texto (formato <code>SEDE:&lt;id&gt;</code>).
+  </p>
+
+  <form method="post" id="asistencia-form" class="row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    {% csrf_token %}
+    <input type="hidden" name="action" id="action-field" value="">
+    <input type="hidden" name="geo_lat" id="geo_lat">
+    <input type="hidden" name="geo_lng" id="geo_lng">
+
+    <input type="text" class="input" name="qr_text" id="qr_text" placeholder="SEDE:1" style="flex:1;min-width:220px">
+
+    <button type="submit" class="btn"
+            onclick="document.getElementById('action-field').value='entrada'">🟢 Marcar entrada</button>
+    <button type="submit" class="btn"
+            onclick="document.getElementById('action-field').value='salida'">🔴 Marcar salida</button>
+  </form>
+
+  <div class="mt-2" style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn" id="scan-btn" type="button">📷 Escanear Código QR</button>
+    <button class="btn" id="geo-in"  type="button">📍 Marcar entrada (sin QR)</button>
+    <button class="btn" id="geo-out" type="button">📍 Marcar salida (sin QR)</button>
+  </div>
+
+  <div id="preview-container" style="display:none;margin-top:12px">
+    <div id="qr-region" style="width:100%;max-width:640px;border-radius:8px;border:1px solid #ccc;"></div>
+    <p class="muted">Apunta la cámara al código QR de la sede.</p>
+  </div>
+
+  <hr>
+
+  <div>
+    <p style="margin:4px 0"><b>Última entrada:</b>
+      {% if ultima_entrada %}
+        {{ ultima_entrada.fecha|date:"d-m-Y" }} — {{ ultima_entrada.hora|time:"H:i" }} ({{ ultima_entrada.sede.nombre }})
+      {% else %}—{% endif %}
+    </p>
+    <p style="margin:4px 0"><b>Última salida:</b>
+      {% if ultima_salida %}
+        {{ ultima_salida.fecha|date:"d-m-Y" }} — {{ ultima_salida.hora|time:"H:i" }} ({{ ultima_salida.sede.nombre }})
+      {% else %}—{% endif %}
+    </p>
+  </div>
+
+  <div class="mt-2">
+    <a class="btn" href="{% url 'profesor:mi_historial_asistencia' %}">📊 Ver historial</a>
+  </div>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+<script>
+document.getElementById("scan-btn").addEventListener("click", function() {
+  const preview = document.getElementById("preview-container");
+  const qrInput = document.getElementById("qr_text");
+  preview.style.display = "block";
+
+  const html5QrCode = new Html5Qrcode("qr-region");
+  Html5Qrcode.getCameras().then(devices => {
+    if (devices && devices.length) {
+      const cameraId = devices[0].id;
+      html5QrCode.start(
+        cameraId,
+        { fps: 10, qrbox: 250 },
+        qrMessage => {
+          qrInput.value = qrMessage;
+          html5QrCode.stop().then(() => html5QrCode.clear());
+          preview.style.display = "none";
+          alert("QR leído: " + qrMessage);
+        },
+        _ => {}
+      ).catch(err => {
+        console.error("Error al iniciar cámara", err);
+        alert("No se pudo iniciar la cámara.");
+      });
+    } else {
+      alert("No se detectó cámara.");
+    }
+  }).catch(_ => {
+    alert("No se detectó cámara o permiso denegado.");
+  });
+});
+
+function pedirGeoYEnviar(action){
+  if (!navigator.geolocation) {
+    alert("Tu navegador no soporta geolocalización.");
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      document.getElementById("geo_lat").value = pos.coords.latitude;
+      document.getElementById("geo_lng").value = pos.coords.longitude;
+      document.getElementById("action-field").value = action;
+      document.getElementById("qr_text").value = ""; // limpiar QR si quedó algo
+      document.getElementById("asistencia-form").submit();
+    },
+    err => {
+      alert("No se pudo obtener la ubicación: " + err.message);
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+document.getElementById("geo-in").addEventListener("click", ()=>pedirGeoYEnviar("entrada"));
+document.getElementById("geo-out").addEventListener("click", ()=>pedirGeoYEnviar("salida"));
+</script>
+{% endblock %}
