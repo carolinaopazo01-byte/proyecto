@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     'applications.core',
     'applications.atleta',
     'applications.evaluaciones',
+    'applications.pmul.apps.PmulConfig',
 ]
 
 MIDDLEWARE = [
