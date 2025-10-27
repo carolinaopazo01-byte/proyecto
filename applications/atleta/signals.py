@@ -1,55 +1,63 @@
+# applications/atleta/signals.py
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import AsistenciaAtleta
+from django.contrib.auth import get_user_model
 
-from applications.core.models import Comunicado, Estudiante
-from applications.atleta.models import Atleta, Inscripcion
-from applications.usuarios.utils import normalizar_rut, formatear_rut
+from .models import AsistenciaAtleta
+from applications.core.models import Comunicado
+
+
+def _find_author(curso):
+    """
+    Devuelve un autor válido:
+    1) el profesor del curso (si existe),
+    2) un superusuario,
+    3) cualquier usuario existente.
+    """
+    if curso is not None:
+        prof = getattr(curso, "profesor", None)
+        if prof:
+            return prof
+
+    User = get_user_model()
+    su = User.objects.filter(is_superuser=True).first()
+    if su:
+        return su
+
+    return User.objects.order_by("id").first()
+
 
 @receiver(post_save, sender=AsistenciaAtleta)
-def update_faltas(sender, instance, **kwargs):
-    atleta = instance.atleta
-    if instance.presente:
-        if atleta.faltas_consecutivas != 0:
-            atleta.faltas_consecutivas = 0
-            atleta.save(update_fields=['faltas_consecutivas'])
-    else:
-        atleta.faltas_consecutivas += 1
-        atleta.save(update_fields=['faltas_consecutivas'])
-        if atleta.faltas_consecutivas >= 3:
-            Comunicado.objects.create(
-                titulo=f"Alerta inasistencias: {atleta}",
-                contenido=f"{atleta} acumula {atleta.faltas_consecutivas} faltas consecutivas."
-            )
-
-@receiver(post_save, sender=Estudiante)
-def sync_inscripcion_desde_estudiante(sender, instance: Estudiante, **kwargs):
+def update_faltas(sender, instance: AsistenciaAtleta, **kwargs):
     """
-    Cada vez que se guarda un Estudiante:
-    - Busca el Atleta con el mismo RUT (con y sin puntos).
-    - Si el Estudiante tiene curso, crea/actualiza la Inscripcion.
-    - Si Estudiante está inactivo, marca la inscripción INACTIVA.
+    Cuenta faltas consecutivas del atleta. Si llega a 3, emite un Comunicado.
+    SOLO usa campos que existen en tu modelo (titulo, cuerpo, autor).
     """
-    if not instance.rut:
-        return
-
-    rut_norm = normalizar_rut(instance.rut)
-    atleta = Atleta.objects.filter(rut__in=[rut_norm, formatear_rut(rut_norm)]).first()
+    atleta = getattr(instance, "atleta", None)
     if not atleta:
         return
 
-    curso = getattr(instance, "curso", None)
-    if not curso:
+    # Resetear / incrementar contador
+    if instance.presente or instance.justificado:
+        if getattr(atleta, "faltas_consecutivas", 0) != 0:
+            atleta.faltas_consecutivas = 0
+            atleta.save(update_fields=["faltas_consecutivas"])
         return
 
-    ins, created = Inscripcion.objects.get_or_create(
-        atleta=atleta,
-        curso=curso,
-        defaults={"estado": "ACTIVA"},
-    )
-    # Si la ficha de estudiante tiene flag "activo", úsalo para estado; si no, siempre ACTIVA
-    activo = getattr(instance, "activo", True)
-    nuevo_estado = "ACTIVA" if activo else "INACTIVA"
-    if ins.estado != nuevo_estado:
-        ins.estado = nuevo_estado
-        ins.save(update_fields=["estado"])
+    atleta.faltas_consecutivas = (getattr(atleta, "faltas_consecutivas", 0) or 0) + 1
+    atleta.save(update_fields=["faltas_consecutivas"])
+
+    # Umbral
+    if atleta.faltas_consecutivas < 3:
+        return
+
+    curso = getattr(getattr(instance, "clase", None), "curso", None)
+    autor = _find_author(curso)
+    if not autor:
+        # No hay nadie a quien asignar como autor -> salimos para evitar IntegrityError
+        return
+
+    titulo = f"Alerta de inasistencias: {atleta}"
+    cuerpo = f"{atleta} acumula {atleta.faltas_consecutivas} faltas consecutivas."
+
+    Comunicado.objects.create(titulo=titulo, cuerpo=cuerpo, autor=autor)

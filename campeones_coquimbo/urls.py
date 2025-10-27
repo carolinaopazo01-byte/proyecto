@@ -11,6 +11,7 @@ urlpatterns = [
     path("evaluaciones/", include("applications.evaluaciones.urls", namespace="evaluaciones")),
     path("pmul/", include("applications.pmul.urls", namespace="pmul")),
     path("apoderado/", include("applications.apoderado.urls", namespace="apoderado")),
+    path("profesor/", include("applications.profesor.urls", namespace="profesor")),
 ]
 
 if settings.DEBUG:

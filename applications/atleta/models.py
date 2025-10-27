@@ -16,7 +16,8 @@ class Atleta(models.Model):
     usuario = models.OneToOneField(
         Usuario,
         on_delete=models.CASCADE,
-        limit_choices_to={'tipo_usuario': 'ATLE'}
+        limit_choices_to={'tipo_usuario': 'ATLE'},
+        null=True, blank=True
     )
 
     # Identificación del/la atleta
@@ -102,30 +103,39 @@ class Inscripcion(models.Model):
 
 
 class Clase(models.Model):
-    # Hacemos null=True/blank=True para migrar sin prompt; luego puedes quitarlo cuando completes datos
     curso = models.ForeignKey("core.Curso", on_delete=models.CASCADE, related_name="clases", null=True, blank=True)
-    profesor = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    profesor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     fecha = models.DateField()
     hora_inicio = models.TimeField()
     hora_fin = models.TimeField()
     tema = models.CharField(max_length=100)
     descripcion = models.TextField(blank=True, null=True)
 
+    # NUEVO: control de sesión de clase
+    ESTADO = (
+        ("PEND", "Pendiente"),
+        ("ENCU", "En curso"),
+        ("CERR", "Cerrada"),
+    )
+    estado = models.CharField(max_length=4, choices=ESTADO, default="PEND")
+    inicio_real = models.DateTimeField(null=True, blank=True)
+    fin_real = models.DateTimeField(null=True, blank=True)
+
     def __str__(self):
-        # Evita fallar si curso está NULL temporalmente
         curso_txt = str(self.curso) if self.curso else "—"
         return f"{curso_txt} - {self.tema} ({self.fecha})"
 
+
 class AsistenciaAtleta(models.Model):
     clase = models.ForeignKey(Clase, on_delete=models.CASCADE, related_name='asistencias')
-    atleta = models.ForeignKey(Atleta, on_delete=models.CASCADE, related_name='asistencias', null=True, blank=True)
+    atleta = models.ForeignKey("atleta.Atleta", on_delete=models.CASCADE,
+                               related_name='asistencias', null=True, blank=True)  # <-- TEMPORAL
     presente = models.BooleanField(default=False)
+    justificado = models.BooleanField(default=False)
     observaciones = models.CharField(max_length=200, blank=True)
     registrada_por = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True, blank=True,
-        related_name='asistencias_registradas'
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='asistencias_registradas'
     )
     registrada_en = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
@@ -133,10 +143,9 @@ class AsistenciaAtleta(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["clase", "atleta"], name="uniq_asistencia_atleta_por_clase")
         ]
-
     def __str__(self):
-        return f"{self.atleta} - {self.clase} : {'Presente' if self.presente else 'Ausente'}"
-
+        estado = "Presente" if self.presente else ("Justificado" if self.justificado else "Ausente")
+        return f"{self.atleta} - {self.clase} : {estado}"
 
 class AsistenciaProfesor(models.Model):
     profesor = models.ForeignKey('usuarios.Profesor', on_delete=models.CASCADE)

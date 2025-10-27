@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block header %}🔐 Mi perfil{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+  <div>
+    <h3>Datos personales</h3>
+    <p><strong>Nombre:</strong> {{ profesor.get_full_name|default:profesor.username }}</p>
+    <p><strong>Correo:</strong> {{ profesor.email|default:"—" }}</p>
+    <p><strong>Teléfono:</strong> {{ profesor.telefono|default:"—" }}</p>
+    <p><strong>Sede base:</strong> {{ profesor.sede_base|default:"—" }}</p>
+  </div>
+  <div>
+    <h3>Acciones</h3>
+    <a class="btn" href="{% url 'atleta:cambiar_password' %}">Cambiar contraseña</a>
+  </div>
+</div>
+
+<h3 style="margin-top:20px;">Histórico de cursos impartidos</h3>
+<ul>
+  {% for c in profesor.curso_set.all %}
+    <li>{{ c.nombre }} — {{ c.disciplina }} ({{ c.sede }})</li>
+  {% empty %}
+    <li>Sin cursos registrados.</li>
+  {% endfor %}
+</ul>
+{% endblock %}
