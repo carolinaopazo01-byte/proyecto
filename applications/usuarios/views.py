@@ -53,31 +53,22 @@ def role_home_url(user):
 # ====== “Inicio” unificado (redirige por rol) ======
 @login_required
 def panel_view(request):
-    """
-    Muestra/redirige al panel según el tipo de usuario.
-    """
-    user = request.user
+    rol = (getattr(request.user, "tipo_usuario", "") or "").upper()
 
-    # 👇 cambio: si es PMUL, ir directo a su panel
-    if is_pmul(user):
-        return redirect("pmul:panel")
+    if rol == "PROF":
+        return redirect("usuarios:panel_profesor")
+    if rol == "ATLE":
+        return redirect("usuarios:panel_atleta")
+    if rol == "ADMIN":
+        return redirect("usuarios:panel_admin")
+    if rol == "COORD":
+        return redirect("usuarios:panel_coordinador")
+    if rol in {"PMUL","EMUL","MULTI","PROF_MULTIDISCIPLINARIO",
+               "PROFESIONAL_MULTIDISCIPLINARIO","PROFESIONAL","EQUIPO_MULTIDISCIPLINARIO"}:
+        return redirect("pmul:panel")  # o la ruta de tu panel PMUL
 
-    rut = user.username
-    tipo = getattr(user, "tipo_usuario", "").upper()
-    context = {"rut": rut, "user": user}
-
-    if tipo == "ADMIN":
-        return render(request, "usuarios/panel_admin.html", context)
-    elif tipo == "COORD":
-        return render(request, "usuarios/panel_coordinador.html", context)
-    elif tipo == "PROF":
-        return render(request, "usuarios/panel_profesor.html", context)
-    elif tipo == "APOD":
-        return render(request, "usuarios/panel_apoderado.html", context)
-    elif tipo == "ATLE":
-        return render(request, "usuarios/panel_atleta.html", context)
-    else:
-        return render(request, "usuarios/panel.html", context)
+    # Fallback genérico si no hay rol reconocido
+    return render(request, "usuarios/panel_generico.html")
 
 @csrf_protect
 def login_rut(request):

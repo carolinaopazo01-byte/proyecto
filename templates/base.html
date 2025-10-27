@@ -83,6 +83,7 @@
       <h1>Campeones para Coquimbo</h1>
 
       <nav>
+        {# Inicio: si está logueado, manda al panel por rol; si no, a la home pública #}
         {% if request.user.is_authenticated %}
           <a href="{% url 'usuarios:panel' %}">🏠 Inicio</a>
         {% else %}
@@ -92,22 +93,30 @@
         {% if request.user.is_authenticated %}
           <span style="margin-left:12px;">Hola, {{ request.user.username }}</span>
 
+          {# --- Enlaces por rol --- #}
           {% with t=request.user.tipo_usuario|default_if_none:''|upper %}
             {% if t == 'APOD' %}
               <a href="{% url 'apoderado:dashboard' %}">Mi Panel (Apoderado)</a>
             {% endif %}
-            {% if t in 'PMUL,EMUL,MULTI,PROF_MULTIDISCIPLINARIO,PROFESIONAL_MULTIDISCIPLINARIO,PROFESIONAL,EQUIPO_MULTIDISCIPLINARIO' %}
-              <a href="{% url 'pmul:panel' %}">Equipo Multidisciplinario</a>
+
+            {# Equipo Multidisciplinario (PMUL y variantes) #}
+            {% if t == 'PMUL' or t == 'EMUL' or t == 'MULTI' or t == 'PROF_MULTIDISCIPLINARIO' or t == 'PROFESIONAL_MULTIDISCIPLINARIO' or t == 'PROFESIONAL' or t == 'EQUIPO_MULTIDISCIPLINARIO' %}
+              {# si tienes una vista de panel para PMUL, cámbiala aquí; por ahora apunto al listado de slots #}
+              <a href="{% url 'pmul:slots_list' %}">Equipo Multidisciplinario</a>
             {% endif %}
+
             {% if t == 'ADMIN' %}
               <a href="{% url 'usuarios:panel_admin' %}">Admin</a>
             {% endif %}
+
             {% if t == 'COORD' %}
               <a href="{% url 'usuarios:panel_coordinador' %}">Panel Coordinador</a>
             {% endif %}
-            {% if t == 'PROF' %}
-              <a href="{% url 'usuarios:panel_profesor' %}">Panel Profesor</a>
+
+           {% if t == 'PROF' %}
+             <a href="{% url 'usuarios:panel_profesor' %}">Panel Profesor</a>
             {% endif %}
+
             {% if t == 'ATLE' %}
               <a href="{% url 'usuarios:panel_atleta' %}">Mi Panel (Atleta)</a>
             {% endif %}
@@ -118,6 +127,7 @@
           <a href="{% url 'usuarios:login_rut' %}">🔐 Iniciar sesión</a>
         {% endif %}
 
+        {# Informativas públicas #}
         <a href="{% url 'core:comunicados_list' %}">Comunicados</a>
         <a href="{% url 'core:quienes' %}">Conócenos</a>
         <a href="{% url 'core:procesos' %}">Procesos de inscripción</a>

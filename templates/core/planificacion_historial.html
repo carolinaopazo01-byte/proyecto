@@ -1,24 +1,43 @@
 {% extends "base.html" %}
-{% block title %}Historial de Planificación{% endblock %}
-{% block header %}Historial de Planificación{% endblock %}
+{% block title %}Historial de planificación{% endblock %}
+{% block header %}Historial de planificación{% endblock %}
 
 {% block content %}
-<div class="card p-3 mb-3">
-  <p><b>Curso:</b> {{ p.curso.nombre }} — <b>Semana:</b> {{ p.semana|date:"d/m/Y" }}</p>
-</div>
-
-<table class="table table-striped">
-  <thead><tr><th>Fecha</th><th>Autor</th><th>Descargar</th></tr></thead>
-  <tbody>
-    {% for v in versiones %}
+<div class="card p-3">
+  <p><b>Curso:</b> {{ p.curso.nombre }} ({{ p.curso.disciplina }})</p>
+  <p><b>Semana:</b> {{ p.semana|date:"d/m/Y" }}</p>
+  <hr>
+  <table class="table">
+    <thead>
       <tr>
-        <td>{{ v.creado|date:"d/m/Y H:i" }}</td>
-        <td>{{ v.autor }}</td>
-        <td><a class="btn" href="{{ v.archivo.url }}">Descargar</a></td>
+        <th>#</th>
+        <th>Fecha</th>
+        <th>Autor</th>
+        <th>Archivo</th>
+        <th>Comentarios</th>
       </tr>
-    {% empty %}
-      <tr><td colspan="3">No hay versiones anteriores.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+    </thead>
+    <tbody>
+      {% for v in versiones %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ v.creado|date:"d/m/Y H:i" }}</td>
+        <td>{{ v.autor|default:"—" }}</td>
+        <td>
+          {% if v.archivo %}
+            <a href="{{ v.archivo.url }}">Descargar</a>
+          {% else %}—{% endif %}
+        </td>
+        <td style="white-space:pre-wrap">{{ v.comentarios|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5">Aún no hay versiones.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="mt-2">
+    <a class="btn" href="{% url 'core:planificacion_detail' p.id %}">Volver</a>
+  </div>
+</div>
 {% endblock %}

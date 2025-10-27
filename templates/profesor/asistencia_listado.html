@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block header %}📅 Asistencia — seleccionar curso{% endblock %}
+{% block content %}
+<p>Elige un curso para registrar asistencia hoy.</p>
+<ul>
+  {% for c in cursos %}
+    <li style="margin:6px 0;">
+      <a class="btn" href="{% url 'profesor:asistencia_tomar' c.id %}">{{ c.nombre }}</a>
+      <small style="color:#666;">(Inscritos: {{ c.inscripciones.count }})</small>
+    </li>
+  {% empty %}
+    <li>No tienes cursos asignados.</li>
+  {% endfor %}
+</ul>
+{% endblock %}

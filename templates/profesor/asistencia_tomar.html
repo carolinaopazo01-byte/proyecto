@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block header %}
+Asistencia — {{ curso.nombre }} ({{ clase.fecha|date:"d/m/Y" }})
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+  <ul class="messages">
+    {% for m in messages %}
+      <li class="message {{ m.tags }}">{{ m }}</li>
+    {% endfor %}
+  </ul>
+{% endif %}
+
+<div class="card" style="padding:12px;margin-bottom:12px;">
+  <p style="margin-top:0;">
+    Estado:
+    <strong>
+      {% if clase.estado == "PEND" %}Pendiente{% elif clase.estado == "ENCU" %}En curso{% else %}Cerrada{% endif %}
+    </strong>
+    {% if clase.inicio_real %} · Inicio real: {{ clase.inicio_real|date:"H:i" }}{% endif %}
+    {% if clase.fin_real %} · Fin real: {{ clase.fin_real|date:"H:i" }}{% endif %}
+  </p>
+
+  <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+    <form method="post" style="display:inline;">
+      {% csrf_token %}
+      <input type="hidden" name="accion" value="entrada">
+      <button class="btn">✅ Registrar entrada</button>
+    </form>
+
+    <form method="post" style="display:inline;">
+      {% csrf_token %}
+      <input type="hidden" name="accion" value="salida">
+      <button class="btn">⏹️ Registrar salida</button>
+    </form>
+  </div>
+
+<div style="margin-top:10px; font-weight:600;">
+  Resumen guardado:
+  <span>{{ resumen.P }} presentes</span> ·
+  <span>{{ resumen.A }} ausentes</span> ·
+  <span>{{ resumen.J }} justificados</span>
+  <span style="color:#666;">(de {{ resumen.total }})</span>
+</div>
+
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="accion" value="guardar">
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Alumno</th>
+          <th>Presente</th>
+          <th>Ausente</th>
+          <th>Justificado</th>
+          <th>Observaciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {# IMPORTANTE: iteramos 'rows', que viene preparado desde la vista #}
+        {% for row in rows %}
+          {% with ins=row.ins a=row.ins.atleta u=a.usuario %}
+          <tr>
+            <td>
+            {% if a.usuario %}
+  {{ a.usuario.first_name }} {{ a.usuario.last_name }}
+{% elif a.nombres or a.apellidos %}
+  {{ a.nombres }} {{ a.apellidos }}
+{% else %}
+  {{ a.rut }}
+{% endif %}
+            </td>
+
+            <td><input type="radio" name="estado_{{ ins.pk }}" value="P" {% if row.code == "P" %}checked{% endif %}></td>
+            <td><input type="radio" name="estado_{{ ins.pk }}" value="A" {% if row.code == "A" %}checked{% endif %}></td>
+            <td><input type="radio" name="estado_{{ ins.pk }}" value="J" {% if row.code == "J" %}checked{% endif %}></td>
+            <td><input type="text" name="obs_{{ ins.pk }}" value="{{ row.obs }}" style="width:100%"></td>
+          </tr>
+          {% endwith %}
+        {% empty %}
+          <tr><td colspan="5">No hay alumnos inscritos.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <button class="btn">💾 Guardar asistencia alumnos</button>
+  </form>
+</div>
+
+{% endblock %}

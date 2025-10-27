@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block header %}Planificaciones{% endblock %}
+
+{% block content %}
+
+{# Mensajes flash #}
+{% if messages %}
+  <ul class="messages">
+    {% for m in messages %}
+      <li class="message {{ m.tags }}">{{ m }}</li>
+    {% endfor %}
+  </ul>
+{% endif %}
+
+<div class="card" style="padding:14px; margin-bottom:16px;">
+  <form method="get" class="form-inline" style="margin-bottom:12px;">
+    <label>Curso</label>
+    <select name="curso">
+      <option value="">Todos</option>
+      {% for c in cursos_qs %}
+        <option value="{{ c.id }}" {% if curso_f|stringformat:"s" == c.id|stringformat:"s" %}selected{% endif %}>
+          {{ c.nombre }}{% if c.disciplina %} - {{ c.disciplina.nombre }}{% endif %}
+        </option>
+      {% endfor %}
+    </select>
+    <button class="btn" type="submit">Filtrar</button>
+  </form>
+</div>
+
+<div class="card" style="padding:14px; margin-bottom:16px;">
+  <h3>Subir nueva planificación</h3>
+
+  {# MUESTRA ERRORES DEL FORM #}
+  {% if form.errors %}
+    <div class="alert alert-danger">
+      <strong>Corrige los errores:</strong>
+      <ul>
+        {% for field in form %}
+          {% for e in field.errors %}
+            <li><b>{{ field.label }}:</b> {{ e }}</li>
+          {% endfor %}
+        {% endfor %}
+        {% for e in form.non_field_errors %}
+          <li>{{ e }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:720px;">
+      <div>
+        <label>Curso</label>
+        {{ form.curso }}
+      </div>
+      <div>
+        <label>Semana</label>
+        {{ form.semana }}
+      </div>
+      <div style="grid-column:1 / -1;">
+        <label>Archivo (PDF/DOC) — opcional</label>
+        {{ form.archivo }}
+      </div>
+      <div style="grid-column:1 / -1;">
+        <label>Comentarios (opcional)</label>
+        {{ form.comentarios }}
+      </div>
+      <div>
+        <label>¿Pública?</label>
+        {{ form.publica }}
+      </div>
+    </div>
+
+    <div style="margin-top:12px;">
+      <button class="btn" type="submit">📎 Subir planificación</button>
+    </div>
+  </form>
+</div>
+
+<div class="card" style="padding:14px;">
+  <h3>Planificaciones subidas</h3>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Curso</th>
+        <th>Semana / Fecha</th>
+        <th>Archivo</th>
+        <th>Comentarios</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in planificaciones %}
+        <tr>
+          <td>{{ p.curso }}</td>
+          <td>{{ p.semana|date:"d/m/Y" }}</td>
+          <td>
+            {% if p.archivo %}
+              <a href="{{ p.archivo.url }}" download>Descargar</a>
+            {% else %}
+              (sin archivo)
+            {% endif %}
+          </td>
+          <td>{{ p.comentarios|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4">No hay planificaciones.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

@@ -10,6 +10,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_extensions',
 
     # Terceros
     'django_filters',
@@ -20,7 +21,8 @@ INSTALLED_APPS = [
     'applications.apoderado.apps.ApoderadoConfig',
     'applications.evaluaciones',
     'applications.pmul.apps.PmulConfig',       # ← dejamos SOLO esta para pmul
-    'applications.atleta.apps.AtletaConfig',
+    "applications.atleta.apps.AtletaConfig",
+    "applications.profesor",
 ]
 
 MIDDLEWARE = [

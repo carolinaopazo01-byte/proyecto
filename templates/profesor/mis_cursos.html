@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block header %}Mis cursos{% endblock %}
+
+{% block content %}
+<table class="table">
+  <thead>
+    <tr>
+      <th>Curso</th><th>Disciplina</th><th>Categoría</th>
+      <th>Sede</th><th>Días / Horarios</th><th>Alumnos</th><th>Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for c in cursos %}
+    <tr>
+      <td>{{ c.nombre }}</td>
+      <td>{{ c.disciplina.nombre }}</td>
+      <td>{{ c.categoria|default:"—" }}</td>
+      <td>{{ c.sede.nombre }}</td>
+      <td>{{ c.horarios_str }}</td>
+      <td>{{ c.alumnos_count }}</td>
+      <td>
+        <a class="btn" href="{% url 'usuarios:asistencia_tomar' c.id %}">Tomar asistencia</a>
+        <a class="btn" href="{% url 'usuarios:planificaciones_prof' %}?curso={{ c.id }}">Planificación</a>
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="7">No tienes cursos asignados.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block header %}Comunicados del profesor{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+  <ul class="messages">
+    {% for m in messages %}
+      <li class="message {{ m.tags }}">{{ m }}</li>
+    {% endfor %}
+  </ul>
+{% endif %}
+
+<div class="card" style="padding:12px;margin-bottom:16px;">
+  <h3 style="margin-top:0;">Publicar comunicado</h3>
+  <form method="post">
+    {% csrf_token %}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:900px;">
+      <div>
+        <label>Curso</label>
+        {{ form.curso }}
+      </div>
+      <div>
+        <label>Público</label>
+        {{ form.publico }}
+      </div>
+      <div style="grid-column:1 / -1;">
+        <label>Título</label>
+        {{ form.titulo }}
+      </div>
+      <div style="grid-column:1 / -1;">
+        <label>Cuerpo</label>
+        {{ form.cuerpo }}
+      </div>
+    </div>
+    <div style="margin-top:12px;">
+      <button class="btn">📝 Publicar</button>
+    </div>
+  </form>
+</div>
+
+<div class="card" style="padding:12px;">
+  <h3 style="margin-top:0;">Comunicados dirigidos a tus cursos</h3>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Curso</th>
+        <th>Título</th>
+        <th>Resumen</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in comunicados %}
+        <tr>
+          <td>{{ c.creado|date:"d/m/Y H:i" }}</td>
+          <td>{{ c.curso }}</td>
+          <td>{{ c.titulo }}</td>
+          <td>{{ c.cuerpo|truncatechars:80 }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4">No hay comunicados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
