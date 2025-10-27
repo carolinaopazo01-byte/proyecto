@@ -7,6 +7,8 @@ from django.forms import inlineformset_factory
 from django.utils import timezone
 from django.db import models  # <-- necesario para models.Q
 from django.db.models import Q
+from .models import Sede
+
 #from .models import Planificacion, Curso
 
 from .models import (
@@ -122,23 +124,20 @@ def _rut_igual(a: str, b: str) -> bool:
 # =========================================================
 #                            SEDES
 # =========================================================
+
 class SedeForm(forms.ModelForm):
     class Meta:
         model = Sede
-        fields = ["nombre", "direccion", "comuna", "descripcion", "capacidad", "activa"]
+        fields = ["nombre", "comuna", "direccion",
+                  "latitud", "longitud", "radio_metros",
+                  "capacidad", "activa", "descripcion"]
         widgets = {
-            "descripcion": forms.Textarea(attrs={"rows": 4}),
-            "capacidad": forms.NumberInput(attrs={"min": 0}),
+            "latitud": forms.HiddenInput(),
+            "longitud": forms.HiddenInput(),
         }
         labels = {
-            "nombre": "Nombre",
-            "direccion": "Dirección",
-            "comuna": "Comuna",
-            "descripcion": "Descripción (opcional)",
-            "capacidad": "Capacidad (opcional)",
-            "activa": "Activo",
+            "radio_metros": "Radio de validación (m)",
         }
-
 
 # =========================================================
 #                           CURSOS

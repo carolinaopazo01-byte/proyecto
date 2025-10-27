@@ -9,6 +9,10 @@
   <p><b>Capacidad:</b> {% if sede.capacidad %}{{ sede.capacidad }}{% else %}—{% endif %}</p>
   <p><b>Estado:</b> {{ sede.activa|yesno:"Activo,Inactivo" }}</p>
   <p><b>Descripción:</b><br>{{ sede.descripcion|default:"—" }}</p>
+<p><b>Latitud:</b> {{ sede.latitud|default:"—" }}</p>
+<p><b>Longitud:</b> {{ sede.longitud|default:"—" }}</p>
+<p><b>Radio:</b> {{ sede.radio_metros }} m</p>
+
   <div class="mt-2">
     <a class="btn" href="{% url 'core:sede_edit' sede.id %}">Editar</a>
     <a class="btn" href="{% url 'core:sedes_list' %}">Volver</a>

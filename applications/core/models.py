@@ -8,20 +8,20 @@ Usuario = settings.AUTH_USER_MODEL
 
 
 class Sede(models.Model):
-    nombre = models.CharField(max_length=150)
-    direccion = models.CharField(max_length=250, blank=True)
-    comuna = models.CharField(max_length=80, blank=True, default="Coquimbo")
-    descripcion = models.TextField(blank=True)
-    capacidad = models.PositiveIntegerField(null=True, blank=True)
-    activa = models.BooleanField(default=True)
+    nombre = models.CharField(max_length=200)
+    comuna = models.CharField(max_length=120, blank=True)
+    direccion = models.CharField(max_length=240, blank=True)
+
     latitud = models.FloatField(null=True, blank=True)
     longitud = models.FloatField(null=True, blank=True)
-    # opcional, radio para validar cercanía:
-    radio_metros = models.PositiveIntegerField(default=150)  # 150 m por defecto
+    radio_metros = models.PositiveIntegerField(default=150)  # radio de validación
+
+    capacidad = models.PositiveIntegerField(default=0, blank=True)
+    activa = models.BooleanField(default=True)
+    descripcion = models.TextField(blank=True)
 
     def __str__(self):
         return self.nombre
-
 
 class Deporte(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
