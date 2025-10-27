@@ -1,14 +1,119 @@
-{% extends "base.html" %}
+{% extends "base/plantilla.html" %}
+
 {% block title %}Reportes{% endblock %}
-{% block header %}Reportes{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root{
+    --border:#e5e7eb;
+    --text:#111827;
+    --muted:#6b7280;
+    --tile-bg:#ffffff;
+    --icon-bg:#f3f4f6;
+  }
+
+  .page-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:.75rem; }
+  .page-head-left { display:flex; align-items:center; gap:10px; }
+
+  .reports-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap:14px;
+  }
+
+  /* Tarjeta sin “marcas” (sin subrayado ni cambios de borde/outline/hover) */
+  .report-card{
+    display:flex; align-items:flex-start; gap:12px;
+    background:var(--tile-bg);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:16px;
+    color:var(--text);
+    text-decoration:none !important;
+    -webkit-tap-highlight-color: transparent; /* iOS/Android */
+    outline: none;
+    transition:none;              /* sin animaciones para evitar “marcas” */
+  }
+  .report-card * { text-decoration:none !important; }
+
+  /* Sin cambios visuales en hover/focus/active */
+  .report-card:hover,
+  .report-card:focus,
+  .report-card:active,
+  .report-card:focus-visible{
+    text-decoration:none !important;
+    outline:none !important;
+    box-shadow:none !important;
+    transform:none !important;
+    border-color:var(--border) !important; /* mantiene el mismo color */
+  }
+
+  .report-icon{
+    flex:0 0 40px; height:40px; width:40px; border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--icon-bg); color:#4b5563; font-size:18px;
+  }
+
+  .report-text{ display:flex; flex-direction:column; gap:4px; }
+  .report-title{ font-weight:700; font-size:.98rem; margin:0; }
+  .report-desc{ margin:0; color:var(--muted); font-size:.88rem; line-height:1.35; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:14px;">
-  <a class="card p-3 btn" href="{% url 'core:reporte_inasistencias' %}">📆 Reporte semanal de inasistencias</a>
-  <a class="card p-3 btn" href="{% url 'core:reporte_asistencia_por_clase' %}">🧑‍🏫 Asistencia por clase</a>
-  <a class="card p-3 btn" href="{% url 'core:reporte_asistencia_por_curso' %}">🏃 Asistencia por curso (rango)</a>
-  <a class="card p-3 btn" href="{% url 'core:reporte_asistencia_por_sede' %}">🏫 Asistencia por sede (rango)</a>
-  <a class="card p-3 btn" href="{% url 'core:reporte_llegadas_tarde' %}">⏱️ Llegadas tarde</a>
-  <a class="card p-3 btn" href="{% url 'core:reportes_exportar_todo' %}">⬇️ Exportar todo (Excel/PDF)</a>
-</div>
+  <div class="page-head">
+    <div class="page-head-left">
+      <h4 class="mb-0">Reportes</h4>
+    </div>
+  </div>
+
+  <div class="reports-grid">
+    <a class="report-card" href="{% url 'core:reporte_inasistencias' %}">
+      <div class="report-icon"><i class="fas fa-calendar-week"></i></div>
+      <div class="report-text">
+        <h6 class="report-title">Reporte semanal de inasistencias</h6>
+        <p class="report-desc">Resumen de ausencias por semana.</p>
+      </div>
+    </a>
+
+    <a class="report-card" href="{% url 'core:reporte_asistencia_por_clase' %}">
+      <div class="report-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+      <div class="report-text">
+        <h6 class="report-title">Asistencia por clase</h6>
+        <p class="report-desc">Detalle de asistencia por sesión.</p>
+      </div>
+    </a>
+
+    <a class="report-card" href="{% url 'core:reporte_asistencia_por_curso' %}">
+      <div class="report-icon"><i class="fas fa-clipboard-list"></i></div>
+      <div class="report-text">
+        <h6 class="report-title">Asistencia por curso (rango)</h6>
+        <p class="report-desc">Comparativa de asistencia en un periodo.</p>
+      </div>
+    </a>
+
+    <a class="report-card" href="{% url 'core:reporte_asistencia_por_sede' %}">
+      <div class="report-icon"><i class="fas fa-building"></i></div>
+      <div class="report-text">
+        <h6 class="report-title">Asistencia por sede (rango)</h6>
+        <p class="report-desc">Consolidado por sede entre fechas.</p>
+      </div>
+    </a>
+
+    <a class="report-card" href="{% url 'core:reporte_llegadas_tarde' %}">
+      <div class="report-icon"><i class="fas fa-clock"></i></div>
+      <div class="report-text">
+        <h6 class="report-title">Atrasos</h6>
+        <p class="report-desc">Listado y conteo de atrasos.</p>
+      </div>
+    </a>
+
+    <a class="report-card" href="{% url 'core:reportes_exportar_todo' %}">
+      <div class="report-icon"><i class="fas fa-file-export"></i></div>
+      <div class="report-text">
+        <h6 class="report-title">Exportar todo (Excel/PDF)</h6>
+        <p class="report-desc">Descarga de reportes consolidados.</p>
+      </div>
+    </a>
+  </div>
 {% endblock %}

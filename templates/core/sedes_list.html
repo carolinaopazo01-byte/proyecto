@@ -1,86 +1,153 @@
-{% extends "base.html" %}
+{% extends "base/plantilla.html" %}
+
 {% block title %}Gestionar Sedes{% endblock %}
-{% block header %}Gestionar Sedes{% endblock %}
+
+{% block extra_css %}
+<style>
+  .page-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:.75rem; }
+  .page-head-left { display:flex; align-items:center; gap:10px; }
+
+  /* ===== Filtros alineados a la franja celeste ===== */
+  .filters-card .card-body{
+    padding-top:.75rem;
+    padding-bottom:.75rem;
+    padding-left: var(--cpc-gutter-x, 16px);
+    padding-right: var(--cpc-gutter-x, 16px);
+  }
+
+  /* Grid de filtros (compacto y responsive) */
+  .filters-grid{
+    display:grid;
+    grid-template-columns: 1fr 180px 180px 220px 120px;
+    gap:10px; align-items:end;
+  }
+  @media (max-width: 1200px){
+    .filters-grid{ grid-template-columns: repeat(2, minmax(220px,1fr)); }
+  }
+  @media (max-width: 576px){
+    .filters-grid{ grid-template-columns: 1fr; }
+  }
+
+  .filters-grid .form-control,
+  .filters-grid select,
+  .filters-grid input[type="text"],
+  .filters-grid input[type="number"]{
+    height:2.35rem; font-size:.92rem;
+  }
+  .form-label{ font-weight:600; font-size:.9rem; margin-bottom:.2rem; }
+
+  .filters-actions{ display:flex; gap:8px; justify-content:flex-end; }
+  @media (max-width: 576px){
+    .filters-actions{ justify-content:flex-start; }
+  }
+
+  .table thead th { white-space:nowrap; }
+  .actions { display:flex; gap:6px; flex-wrap:wrap; }
+</style>
+{% endblock %}
 
 {% block content %}
 
-<form method="get" class="card p-3 mb-3" style="display:grid; grid-template-columns: 1fr 180px 180px 220px 120px; gap:10px; align-items:end;">
-  <div>
-    <label class="form-label">Buscar</label>
-    <input type="text" name="q" value="{{ q }}" placeholder="Nombre o Comuna" style="width:100%; padding:6px 8px;">
-  </div>
-  <div>
-    <label class="form-label">Comuna</label>
-    <select name="comuna" style="width:100%;">
-      <option value="">Todas</option>
-      {% for c in comunas %}
-        <option value="{{ c }}" {% if c == comuna_sel %}selected{% endif %}>{{ c }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div>
-    <label class="form-label">Estado</label>
-    <select name="estado" style="width:100%;">
-      <option value="">Todos</option>
-      <option value="act" {% if estado_sel == "act" %}selected{% endif %}>Activo</option>
-      <option value="inact" {% if estado_sel == "inact" %}selected{% endif %}>Inactivo</option>
-    </select>
-  </div>
-  <div style="display:flex; gap:6px;">
-    <div>
-      <label class="form-label">Capacidad</label>
-      <select name="cap_cmp">
-        <option value="">--</option>
-        <option value="gt" {% if cap_cmp == "gt" %}selected{% endif %}>&ge;</option>
-        <option value="lt" {% if cap_cmp == "lt" %}selected{% endif %}>&le;</option>
-      </select>
+  <!-- Cabecera -->
+  <div class="page-head">
+    <div class="page-head-left">
+      <h4 class="mb-0">Gestionar Sedes</h4>
     </div>
-    <div style="align-self:end;">
-      <input type="number" name="cap_val" value="{{ cap_val }}" style="width:100px; padding:6px 8px;">
-    </div>
+    <a class="btn btn-primary" href="{% url 'core:sede_create' %}">Nueva sede</a>
   </div>
-  <div style="display:flex; gap:8px;">
-    <button class="btn" type="submit">Buscar</button>
-    <a class="btn" href="{% url 'core:sede_create' %}">+ Nueva sede</a>
-  </div>
-</form>
 
-{% if sedes %}
-  <div style="overflow:auto;">
-    <table class="table table-striped" style="min-width:900px;">
-      <thead>
-        <tr>
-          <th>Nombre</th>
-          <th>Dirección</th>
-          <th>Comuna</th>
-          <th>Capacidad</th>
-          <th>Estado</th>
-          <th style="min-width:220px;">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for s in sedes %}
-          <tr>
-            <td>{{ s.nombre }}</td>
-            <td>{{ s.direccion }}</td>
-            <td>{{ s.comuna }}</td>
-            <td>{% if s.capacidad %}{{ s.capacidad }}{% else %}—{% endif %}</td>
-            <td>{{ s.activa|yesno:"Activo,Inactivo" }}</td>
-            <td>
-              <a class="btn" href="{% url 'core:sede_detail' s.id %}">Ver</a>
-              <a class="btn" href="{% url 'core:sede_edit' s.id %}">Editar</a>
-              <form method="post" action="{% url 'core:sede_delete' s.id %}" style="display:inline;" onsubmit="return confirm('¿Eliminar esta sede?');">
-                {% csrf_token %}
-                <button class="btn" type="submit" style="background:#d9534f; color:#fff;">Eliminar</button>
-              </form>
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-{% else %}
-  <p>No hay sedes para los filtros aplicados.</p>
-{% endif %}
+  <!-- Filtros -->
+  <form method="get" class="card filters-card mb-3">
+    <div class="card-body">
+      <div class="filters-grid">
+        <div>
+          <label class="form-label">Buscar</label>
+          <input type="text" name="q" value="{{ q }}" placeholder="Nombre o Comuna" class="form-control">
+        </div>
+
+        <div>
+          <label class="form-label">Comuna</label>
+          <select name="comuna" class="form-control">
+            <option value="">Todas</option>
+            {% for c in comunas %}
+              <option value="{{ c }}" {% if c == comuna_sel %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="form-label">Estado</label>
+          <select name="estado" class="form-control">
+            <option value="">Todos</option>
+            <option value="act" {% if estado_sel == "act" %}selected{% endif %}>Activo</option>
+            <option value="inact" {% if estado_sel == "inact" %}selected{% endif %}>Inactivo</option>
+          </select>
+        </div>
+
+        <div style="display:flex; gap:6px;">
+          <div>
+            <label class="form-label">Capacidad</label>
+            <select name="cap_cmp" class="form-control">
+              <option value="">--</option>
+              <option value="gt" {% if cap_cmp == "gt" %}selected{% endif %}>&ge;</option>
+              <option value="lt" {% if cap_cmp == "lt" %}selected{% endif %}>&le;</option>
+            </select>
+          </div>
+          <div style="align-self:end;">
+            <input type="number" name="cap_val" value="{{ cap_val }}" class="form-control" style="width:110px;">
+          </div>
+        </div>
+
+        <!-- Solo botón Buscar (alineado) -->
+        <div class="filters-actions">
+          <button class="btn btn-primary" type="submit">Buscar</button>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  {% if sedes %}
+    <div class="card">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="thead-light">
+              <tr>
+                <th>Nombre</th>
+                <th>Dirección</th>
+                <th>Comuna</th>
+                <th>Capacidad</th>
+                <th>Estado</th>
+                <th style="min-width:220px;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in sedes %}
+                <tr>
+                  <td>{{ s.nombre }}</td>
+                  <td>{{ s.direccion }}</td>
+                  <td>{{ s.comuna }}</td>
+                  <td>{% if s.capacidad %}{{ s.capacidad }}{% else %}—{% endif %}</td>
+                  <td>{{ s.activa|yesno:"Activo,Inactivo" }}</td>
+                  <td>
+                    <div class="actions">
+                      <a class="btn btn-sm btn-outline-secondary" href="{% url 'core:sede_detail' s.id %}">Ver</a>
+                      <a class="btn btn-sm btn-outline-primary" href="{% url 'core:sede_edit' s.id %}">Editar</a>
+                      <form method="post" action="{% url 'core:sede_delete' s.id %}" style="display:inline;" onsubmit="return confirm('¿Eliminar esta sede?');">
+                        {% csrf_token %}
+                        <button class="btn btn-sm btn-danger" type="submit">Eliminar</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-info mb-0">No hay sedes para los filtros aplicados.</div>
+  {% endif %}
 
 {% endblock %}

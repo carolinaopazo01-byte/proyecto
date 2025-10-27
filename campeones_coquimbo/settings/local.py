@@ -10,11 +10,19 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+# ====== AUTENTICACIÓN ======
+LOGIN_URL = 'usuarios:login_rut'          # usa tu vista real
+LOGIN_REDIRECT_URL = 'core:bienvenidos'    # a dónde ir tras iniciar sesión
+LOGOUT_REDIRECT_URL = 'core:home'          # a dónde volver tras salir
+
+
+# ====== STATIC / MEDIA ======
+DEBUG = True  # en dev
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-DEBUG = True
+
 
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
@@ -26,3 +34,6 @@ AUTHENTICATION_BACKENDS = [
     "applications.usuarios.auth_backends.RutBackend",
     "django.contrib.auth.backends.ModelBackend",
 ]
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'               # para subir/servir archivos (p.ej. planificaciones)

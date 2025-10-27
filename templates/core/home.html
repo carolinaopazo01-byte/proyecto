@@ -1,12 +1,257 @@
 {% extends "base/public.html" %}
+{% load static %}
 {% block title %}Inicio — Campeones{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ===== Carrusel ===== */
+  .cpc-carousel{
+    max-width: 1100px;
+    margin: 32px auto;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 28px rgba(0,0,0,.15);
+  }
+  /* Mostrar parte superior completa y cortar abajo */
+  .cpc-carousel .carousel-item img{
+    width: 100%;
+    height: 480px;
+    object-fit: cover;
+    object-position: top;  /* ancla arriba */
+    display: block;
+  }
+  /* Caption pequeño arriba-izquierda */
+  .cpc-carousel .carousel-caption.cpc-cap{
+    position: absolute; top: 12px; left: 12px;
+    right: auto; bottom: auto; transform: none;
+    text-align: left;
+    padding: 10px 12px; border-radius: 10px;
+    background: rgba(255,255,255,.85); color: #111;
+    box-shadow: 0 2px 10px rgba(0,0,0,.12);
+  }
+  .cpc-carousel .carousel-caption.cpc-cap h6{ margin: 0 0 2px; font-weight: 700; }
+  .cpc-carousel .carousel-caption.cpc-cap p{ margin: 0; font-size: .9rem; line-height: 1.2; }
+  .cpc-carousel .badge-cpc{
+    display:inline-block; font-size:.72rem; font-weight:600;
+    padding:3px 8px; border-radius:999px;
+    background: rgba(0,0,0,.08); color:#111; margin-bottom:6px;
+  }
+  @media (max-width: 576px){
+    .cpc-carousel .carousel-item img{ height: 300px; }
+    .cpc-carousel .carousel-caption.cpc-cap{ top:8px; left:8px; padding:8px 10px; }
+    .cpc-carousel .carousel-caption.cpc-cap h6{ font-size:.95rem; }
+    .cpc-carousel .carousel-caption.cpc-cap p{ font-size:.8rem; }
+  }
+
+  /* ===== Sección de información del programa ===== */
+  .program-intro{ max-width:1100px; margin: 24px auto 0; }
+  .program-hero{
+    background: linear-gradient(135deg, rgba(5,99,117,.08), rgba(9,18,54,.05));
+    border: 1px solid rgba(0,0,0,.06);
+    border-radius: 14px; padding: 28px;
+  }
+  .program-hero h3{ font-weight: 800; margin-bottom:10px; letter-spacing:.2px; }
+  .program-hero p.lead{ margin:0; font-size:1.05rem; line-height:1.6; color:#222; }
+  .hi{ color: var(--cpc-teal, #056375); font-weight:700; }
+  .sc{ font-variant: small-caps; letter-spacing:.5px; }
+
+  .program-cards{ margin-top:18px; }
+  .program-card{
+    height:100%; border:1px solid rgba(0,0,0,.06);
+    border-radius:14px; background:#fff;
+    box-shadow:0 8px 28px rgba(0,0,0,.04);
+  }
+  .program-card .card-header{
+    background:#fff; border-bottom:1px dashed rgba(0,0,0,.08);
+    padding:14px 18px;
+  }
+  .program-card .card-title{
+    display:flex; align-items:center; gap:10px; margin:0;
+    font-weight:800; color:#111;
+  }
+  .program-card .card-body{ padding:16px 18px 18px; color:#333; }
+  .program-bullet{ margin:0 0 6px 0; }
+  .program-bullet:last-child{ margin-bottom:0; }
+
+  .stat{ display:flex; align-items:baseline; gap:10px; padding:2px 0 0; }
+  .stat .num{ font-size:1.65rem; font-weight:800; color:var(--cpc-teal, #056375); }
+  .stat .sub{ color:#555; }
+
+  .pill{
+    display:inline-block; border-radius:999px; padding:4px 10px;
+    background: rgba(5,99,117,.08); color: var(--cpc-teal, #056375);
+    font-weight:700; font-size:.8rem; letter-spacing:.2px;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-  <div class="mb-3">
-    <a class="btn btn-light border" href="javascript:history.back()">← Atrás</a>
-    <a class="btn btn-light border" href="{% url 'core:home' %}">🏠 Inicio</a>
-  </div>
-  <div class="bg-white p-4 rounded shadow-sm">
-    <h2 class="text-primary mb-3">Inicio</h2>
-    <p><strong>Campeones para Coquimbo</strong> es una iniciativa municipal…</p>
-  </div>
+
+  <!-- Sección de información del programa (AHORA ARRIBA) -->
+  <section class="program-intro">
+    <!-- Mensaje principal -->
+    <div class="program-hero mb-4">
+      <h3>¿Qué es <span class="hi">Campeones para Coquimbo</span>?</h3>
+      <p class="lead">
+        Es un programa que busca promover la formación <span class="sc hi">integral</span> de los
+        <span class="sc">niños y niñas</span>, utilizando el <span class="sc hi">deporte formativo</span> como instrumento
+        de <span class="sc hi">inclusión</span> y mejora de la <span class="sc hi">salud física</span> y la <span class="sc hi">salud mental</span>
+        en nuestra comuna, así como el apoyo a los <span class="sc hi">deportistas de alto rendimiento</span>.
+      </p>
+    </div>
+
+    <!-- Tarjetas -->
+    <div class="program-cards">
+      <div class="row">
+        <!-- Destinatarios -->
+        <div class="col-md-6 col-lg-4 mb-3">
+          <div class="program-card h-100">
+            <div class="card-header">
+              <h5 class="card-title">
+                <i class="fas fa-users"></i>
+                Destinatarios
+              </h5>
+            </div>
+            <div class="card-body">
+              <p class="program-bullet">
+                Niños, niñas, adolescentes y jóvenes de la comuna de Coquimbo que realicen deporte a un nivel formativo.
+              </p>
+              <p class="program-bullet mb-0">
+                Además, deportistas de <span class="hi">alto rendimiento</span> y proyección competitiva en diversas disciplinas deportivas.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Beneficiarios directos -->
+        <div class="col-md-6 col-lg-4 mb-3">
+          <div class="program-card h-100">
+            <div class="card-header">
+              <h5 class="card-title">
+                <i class="fas fa-user-check"></i>
+                Beneficiarios directos
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="stat">
+                <div class="num">+1.000</div>
+                <div class="sub">deportistas (mediano plazo)</div>
+              </div>
+              <p class="mt-2 mb-0">
+                Proyección en el ámbito <span class="sc hi">formativo</span>.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Beneficiarios indirectos -->
+        <div class="col-md-12 col-lg-4 mb-3">
+          <div class="program-card h-100">
+            <div class="card-header">
+              <h5 class="card-title">
+                <i class="fas fa-city"></i>
+                Beneficiarios indirectos
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="stat">
+                <div class="num">227.730</div>
+                <div class="sub">habitantes de Coquimbo</div>
+              </div>
+              <p class="mt-2">
+                La infraestructura y los espacios deportivos serán abiertos a toda la comunidad para fomentar la
+                cultura del deporte, la realización de actividades físicas y la consecución de una vida saludable.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Carrusel (AHORA ABAJO) -->
+  <section class="cpc-carousel">
+    <div id="cpcCarousel" class="carousel slide" data-ride="carousel" data-interval="5000" data-pause="hover" aria-label="Galería CPC">
+      <!-- Indicadores -->
+      <ol class="carousel-indicators">
+        <li data-target="#cpcCarousel" data-slide-to="0" class="active"></li>
+        <li data-target="#cpcCarousel" data-slide-to="1"></li>
+        <li data-target="#cpcCarousel" data-slide-to="2"></li>
+        <li data-target="#cpcCarousel" data-slide-to="3"></li>
+      </ol>
+
+      <!-- Slides -->
+      <div class="carousel-inner">
+        <!-- Slide 1 -->
+        <div class="carousel-item active">
+          <img src="{% static 'img/carrusel.jpg' %}" alt="Campeones para Coquimbo - Imagen 1">
+          <div class="carousel-caption cpc-cap">
+            <span class="badge-cpc">Alumno destacado</span>
+            {% if alumno %}
+              <h6>{{ alumno.nombre|default:"Nombre del Alumno" }}</h6>
+              <p>Deporte: {{ alumno.deporte|default:"—" }} · Sede: {{ alumno.sede|default:"—" }}</p>
+            {% else %}
+              <h6>Nombre del Alumno</h6>
+              <p>Deporte: Fútbol · Sede: San Juan</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Slide 2 -->
+        <div class="carousel-item">
+          <img src="{% static 'img/carrusel1.jpg' %}" alt="Campeones para Coquimbo - Imagen 2">
+          <div class="carousel-caption cpc-cap">
+            <span class="badge-cpc">Compromiso</span>
+            {% if alumno %}
+              <h6>{{ alumno.nombre|default:"Nombre del Alumno" }}</h6>
+              <p>Progreso mensual: {{ alumno.progreso|default:"—" }} · Disciplina: {{ alumno.deporte|default:"—" }}</p>
+            {% else %}
+              <h6>Nombre del Alumno</h6>
+              <p>Progreso mensual: 85% · Disciplina: Atletismo</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Slide 3 -->
+        <div class="carousel-item">
+          <img src="{% static 'img/carrusel2.jpg' %}" alt="Campeones para Coquimbo - Imagen 3">
+          <div class="carousel-caption cpc-cap">
+            <span class="badge-cpc">Esfuerzo</span>
+            {% if alumno %}
+              <h6>{{ alumno.nombre|default:"Nombre del Alumno" }}</h6>
+              <p>Entrena en: {{ alumno.sede|default:"—" }} · Categoría: {{ alumno.categoria|default:"—" }}</p>
+            {% else %}
+              <h6>Nombre del Alumno</h6>
+              <p>Entrena en: Tierras Blancas · Categoría: Sub 16</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Slide 4 -->
+        <div class="carousel-item">
+          <img src="{% static 'img/carrusel3.jpg' %}" alt="Campeones para Coquimbo - Imagen 4">
+          <div class="carousel-caption cpc-cap">
+            <span class="badge-cpc">Superación</span>
+            {% if alumno %}
+              <h6>{{ alumno.nombre|default:"Nombre del Alumno" }}</h6>
+              <p>Último logro: {{ alumno.ultimo_logro|default:"—" }}</p>
+            {% else %}
+              <h6>Nombre del Alumno</h6>
+              <p>Último logro: Podio regional</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Controles -->
+      <a class="carousel-control-prev" href="#cpcCarousel" role="button" data-slide="prev" aria-label="Anterior">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+      </a>
+      <a class="carousel-control-next" href="#cpcCarousel" role="button" data-slide="next" aria-label="Siguiente">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+      </a>
+    </div>
+  </section>
+
 {% endblock %}

@@ -1,33 +1,133 @@
-{% extends "base.html" %}
+{% extends "base/plantilla.html" %}
+{% load static %}
+
 {% block title %}{% if is_edit %}Editar deporte{% else %}Nuevo deporte{% endif %}{% endblock %}
-{% block header %}{% if is_edit %}Editar deporte{% else %}Nuevo deporte{% endif %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ===== Cabecera alineada a la franja celeste (mismo contenedor) ===== */
+  .ph-shell{ width:100%; margin:0 0 .35rem 0; } /* ↓ antes .75rem */
+  .ph{
+    height:56px;
+    display:grid;
+    grid-template-columns: 1fr;
+    align-items:center;
+  }
+  .ph-title{
+    margin:0; line-height:1.1;
+    white-space:normal; overflow:visible; text-overflow:clip;
+    font-size:clamp(16px, 2.8vw, 20px);
+  }
+
+  /* Opcional: compactar un pelín el padding superior del contenedor de esta página */
+  .cpc-safe.cpc-gutters{ padding-top: 8px !important; } /* aplica solo en esta vista */
+
+  /* ===== Card del formulario ===== */
+  .card-form{
+    border:1px solid #e5e7eb; border-radius:12px; background:#fff; box-shadow:0 8px 18px rgba(0,0,0,.06);
+    margin-top:-6px; /* pull-up suave para acercar las secciones a la cabecera */
+  }
+  .card-form__head{ padding:.55rem .8rem; background:#f8fafc; border-bottom:1px solid #eef2f7; border-top-left-radius:12px;border-top-right-radius:12px; }
+  .card-form__title{ margin:0; font-size:.95rem; font-weight:700; letter-spacing:.2px; }
+  .card-form__body{ padding:.8rem; }
+
+  .form-grid{ display:grid; grid-template-columns:repeat(12,1fr); gap:.6rem; }
+  .col-12{grid-column:span 12;} .col-6{grid-column:span 6;}
+  @media (max-width:992px){ .col-6{grid-column:span 12;} }
+
+  .stack{ display:flex; flex-direction:column; gap:.25rem; }
+  .form-label{ font-weight:700; font-size:.85rem; margin:0; color:#056375; }
+
+  .card-form input[type="text"],
+  .card-form select,
+  .card-form textarea,
+  .card-form .form-control,
+  .card-form .form-select{
+    padding:.45rem .6rem !important;
+    font-size:.9rem !important;
+    height:2.35rem; line-height:1.25;
+    border-radius:8px; border:1px solid #cfd8e3; background:#fff;
+    transition: box-shadow .12s ease, border-color .12s ease;
+  }
+  .card-form textarea{ min-height:7rem; height:auto; }
+
+  .card-form input:focus,
+  .card-form select:focus,
+  .card-form textarea:focus{
+    border-color:#056375 !important;
+    box-shadow:0 0 0 .2rem rgba(5,99,117,.28) !important;
+    outline:none;
+  }
+
+  .field-errors{ color:#dc3545; font-size:.8rem; margin-top:.1rem; }
+
+  /* ===== Acciones: barra sticky centrada ===== */
+  .actions-wrap{
+    position: sticky;
+    bottom:16px;
+    z-index:20;
+    display:flex; justify-content:center; align-items:center; gap:.5rem;
+    padding:.6rem .8rem;
+    max-width:720px;
+    margin:1rem auto 0;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    background:rgba(255,255,255,.95);
+    backdrop-filter:saturate(120%) blur(4px);
+    box-shadow:0 6px 20px rgba(0,0,0,.08);
+  }
+  .btn-compact{ padding:.35rem .7rem; border-radius:8px; }
+</style>
+{% endblock %}
 
 {% block content %}
-<form method="post" novalidate>
-  {% csrf_token %}
-  <div class="card p-3 mb-3">
-    <div class="row g-3">
-      <div class="col-md-6">
-        <label class="form-label">Nombre</label>
-        {{ form.nombre }}
-        {% for e in form.nombre.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
-      </div>
-      <div class="col-md-6">
-        <label class="form-label">Categoría</label>
-        {{ form.categoria }}
-        {% for e in form.categoria.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
-      </div>
-      <div class="col-12">
-        <label class="form-label">Equipamiento</label>
-        {{ form.equipamiento }}
-        {% for e in form.equipamiento.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
-      </div>
+
+  <!-- CABECERA (mismo contenedor que el contenido para alinear con franja celeste) -->
+  <div class="ph-shell container-fluid cpc-safe cpc-gutters">
+    <div class="ph">
+      <h4 class="ph-title">{% if is_edit %}Editar deporte{% else %}Nuevo deporte{% endif %}</h4>
     </div>
   </div>
 
-  <div class="d-flex gap-2">
-    <button class="btn btn-primary" type="submit">{% if is_edit %}Guardar cambios{% else %}Guardar{% endif %}</button>
-    <a class="btn btn-secondary" href="{% url 'core:deportes_list' %}">Cancelar</a>
+  <!-- CONTENIDO -->
+  <div class="container-fluid cpc-safe cpc-gutters">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <div class="card-form">
+        <div class="card-form__head">
+          <h6 class="card-form__title">Datos del deporte</h6>
+        </div>
+        <div class="card-form__body">
+          <div class="form-grid">
+            <div class="col-6 stack">
+              <label class="form-label">Nombre</label>
+              {{ form.nombre }}
+              {% for e in form.nombre.errors %}<div class="field-errors">{{ e }}</div>{% endfor %}
+            </div>
+
+            <div class="col-6 stack">
+              <label class="form-label">Categoría</label>
+              {{ form.categoria }}
+              {% for e in form.categoria.errors %}<div class="field-errors">{{ e }}</div>{% endfor %}
+            </div>
+
+            <div class="col-12 stack">
+              <label class="form-label">Equipamiento</label>
+              {{ form.equipamiento }}
+              {% for e in form.equipamiento.errors %}<div class="field-errors">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+
+          <!-- ACCIONES (centradas) -->
+          <div class="actions-wrap">
+            <a class="btn btn-light btn-compact" href="{% url 'core:deportes_list' %}">Cancelar</a>
+            <button class="btn btn-primary btn-compact" type="submit">
+              {% if is_edit %}Guardar cambios{% else %}Guardar{% endif %}
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
   </div>
-</form>
 {% endblock %}

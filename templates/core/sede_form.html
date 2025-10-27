@@ -1,42 +1,129 @@
-{% extends "base.html" %}
+{% extends "base/plantilla.html" %}
+
 {% block title %}{% if is_edit %}Editar sede{% else %}Nueva sede{% endif %}{% endblock %}
-{% block header %}{% if is_edit %}Editar sede{% else %}Nueva sede{% endif %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root{
+    --sp-xs:.35rem; --sp-sm:.6rem;
+    --fs-xs:.84rem; --fs-sm:.92rem;
+    --radius:10px;
+    --border:#e5e7eb; --bg-head:#f8fafc;
+  }
+
+  /* Cabecera SIN botón atrás, alineada al layout base */
+  .page-head{ display:flex; align-items:center; gap:10px; margin-bottom:.6rem; }
+  .page-head h4{ margin:0; font-size:1.05rem; font-weight:700; }
+
+  .page { display:flex; flex-direction:column; gap: var(--sp-sm); }
+
+  .section { background:#fff; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+  .section__head { padding:.55rem .8rem; background:var(--bg-head); border-bottom:1px solid #eef2f7; }
+  .section__title { font-size:.95rem; font-weight:700; margin:0; letter-spacing:.2px; }
+  .section__body { padding:.8rem; }
+
+  .form-grid { display:grid; grid-template-columns: repeat(12,1fr); gap:.6rem; }
+  .col-12{grid-column:span 12;} .col-8{grid-column:span 8;}
+  .col-6{grid-column:span 6;} .col-4{grid-column:span 4;} .col-3{grid-column:span 3;}
+  @media (max-width: 992px){
+    .col-8,.col-6,.col-4,.col-3{grid-column:span 12;}
+  }
+
+  .stack{ display:flex; flex-direction:column; gap:.25rem; }
+  .form-label{ font-weight:600; font-size: var(--fs-xs); margin-bottom:0; }
+
+  .section input[type="text"],
+  .section input[type="number"],
+  .section select,
+  .section textarea,
+  .section .form-control,
+  .section .form-select{
+    padding:.3rem .5rem!important;
+    font-size:var(--fs-sm)!important;
+    height:2.1rem; line-height:1.2;
+    border-radius:8px;
+  }
+  .section textarea{ min-height:90px; height:auto; }
+
+  /* Botonera sticky CENTRADA (igual al resto de formularios) */
+  .actions-wrap{
+    position: sticky; bottom:16px; z-index:20;
+    display:flex; justify-content:center; gap:.5rem;
+    padding:.6rem .8rem; max-width:980px; margin:1rem auto 0;
+    border:1px solid #e5e7eb; border-radius:12px;
+    background:rgba(255,255,255,.95); backdrop-filter:saturate(120%) blur(4px);
+    box-shadow:0 6px 20px rgba(0,0,0,.08);
+  }
+  .btn-compact{ padding:.35rem .7rem; border-radius:8px; }
+</style>
+{% endblock %}
 
 {% block content %}
-<form method="post" novalidate>
-  {% csrf_token %}
-  <div class="card p-3 mb-3">
-    <div class="row g-3">
-      <div class="col-md-6">
-        <label class="form-label">Nombre (obligatorio)</label>
-        {{ form.nombre }}
-      </div>
-      <div class="col-md-6">
-        <label class="form-label">Comuna</label>
-        {{ form.comuna }}
 
+  <!-- Cabecera (alineada, sin botón Atrás) -->
+  <div class="page-head">
+    <h4>{% if is_edit %}Editar sede{% else %}Nueva sede{% endif %}</h4>
+  </div>
+
+  <form method="post" novalidate class="page">
+    {% csrf_token %}
+
+    <!-- 1) Identificación de la sede -->
+    <section class="section">
+      <div class="section__head"><h6 class="section__title">1. Identificación de la sede</h6></div>
+      <div class="section__body">
+        <div class="form-grid">
+          <div class="col-6 stack">
+            <label class="form-label">Nombre (obligatorio)</label>
+            {{ form.nombre }}
+          </div>
+          <div class="col-6 stack">
+            <label class="form-label">Comuna</label>
+            {{ form.comuna }}
+          </div>
+        </div>
       </div>
-      <div class="col-md-8">
-        <label class="form-label">Dirección (obligatorio)</label>
-        {{ form.direccion }}
+    </section>
+
+    <!-- 2) Ubicación y capacidad -->
+    <section class="section">
+      <div class="section__head"><h6 class="section__title">2. Ubicación y capacidad</h6></div>
+      <div class="section__body">
+        <div class="form-grid">
+          <div class="col-8 stack">
+            <label class="form-label">Dirección (obligatorio)</label>
+            {{ form.direccion }}
+          </div>
+          <div class="col-4 stack">
+            <label class="form-label">Capacidad (opcional)</label>
+            {{ form.capacidad }}
+          </div>
+        </div>
       </div>
-      <div class="col-md-4">
-        <label class="form-label">Capacidad (opcional)</label>
-        {{ form.capacidad }}
+    </section>
+
+    <!-- 3) Estado y descripción -->
+    <section class="section">
+      <div class="section__head"><h6 class="section__title">3. Estado y descripción</h6></div>
+      <div class="section__body">
+        <div class="form-grid">
+          <div class="col-3 d-flex align-items-center" style="gap:.4rem;">
+            {{ form.activa }} <label class="form-check-label mb-0">Activo</label>
+          </div>
+          <div class="col-12 stack">
+            <label class="form-label">Descripción (opcional)</label>
+            {{ form.descripcion }}
+          </div>
+        </div>
       </div>
-      <div class="col-12">
-        <label class="form-label">Descripción (opcional)</label>
-        {{ form.descripcion }}
-      </div>
-      <div class="col-md-3 d-flex align-items-center gap-2">
-        {{ form.activa }} <label class="form-check-label">Activo</label>
-      </div>
+    </section>
+
+    <!-- ACCIONES (centradas) -->
+    <div class="actions-wrap">
+      <a class="btn btn-light btn-compact" href="{% url 'core:sedes_list' %}">Cancelar</a>
+      <button class="btn btn-primary btn-compact" type="submit">
+        {% if is_edit %}Guardar cambios{% else %}Guardar{% endif %}
+      </button>
     </div>
-  </div>
-
-  <div class="d-flex gap-2">
-    <button class="btn btn-primary" type="submit">{% if is_edit %}Guardar cambios{% else %}Guardar{% endif %}</button>
-    <a class="btn btn-secondary" href="{% url 'core:sedes_list' %}">Cancelar</a>
-  </div>
-</form>
+  </form>
 {% endblock %}

@@ -4,61 +4,271 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <title>{% block title %}Campeones Para Coquimbo - Inicio{% endblock %}</title>
-  <link rel="icon" href="{% static 'img/logo/mi_logo.jpg' %}">
+
+  <!-- Favicon -->
+  <link rel="icon" href="{% static 'img/logo/mi_logo.png' %}">
+
+  <!-- Vendors -->
   <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
   <link href="{% static 'vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet">
+
+  <!-- Fuente -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tema -->
   <link href="{% static 'css/ruang-admin.min.css' %}" rel="stylesheet">
   <link href="{% static 'css/panel.css' %}" rel="stylesheet">
+
   {% block extra_css %}{% endblock %}
   <style>
-    .navbar-brand img{height:36px;width:36px;object-fit:cover;border-radius:50%}
-    .hero{background:linear-gradient(120deg,#4e73df 0,#224abe 100%);color:#fff;padding:64px 0}
-    .hero h1{font-weight:700}
+    :root{
+      --cpc-teal:#056375;
+      --cpc-navy:#091236;
+      --cpc-ivory:#FAF9F8;
+      --cpc-sea:#A1B2AE;
+
+      --tone-aqua:#10A5AA;
+      --tone-deep:#0A5A64;
+      --aqua-dark:#0B5A66;
+      --aqua-light:#035761; /* tu tono */
+    }
+
+    /* Tipografía global + fixes iOS */
+    html, body{
+      font-family:"Manrope", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+      -webkit-text-size-adjust:100%;
+      color:#111; line-height:1.5;
+    }
+    a{-webkit-tap-highlight-color:rgba(0,0,0,0);}
+    h1,h2,h3,h4,h5,h6{ font-weight:800; letter-spacing:.2px; }
+
+    /* ================= NAVBAR: franja en UNA sola línea ================= */
+    .navbar{
+      background:#fff;
+      border-bottom:1px solid var(--cpc-sea);
+      padding-top:.25rem; padding-bottom:.25rem;  /* compacta */
+    }
+    /* Asegura visibilidad del ícono hamburguesa en Bootstrap */
+    .navbar.navbar-light .navbar-toggler{ border-color:rgba(0,0,0,.12); }
+    .navbar.navbar-light .navbar-toggler-icon{
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Cpath stroke='rgba(0,0,0,.6)' stroke-width='2' stroke-linecap='round' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
+    }
+
+    .navbar-brand img{
+      height:44px; width:auto; object-fit:contain;
+      transition:height .12s ease;
+    }
+
+    /* Contenedor de enlaces con scroll horizontal suave si hace falta */
+    .nav-scroll{
+      overflow-x:auto; overflow-y:hidden;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:none;    /* Firefox oculta scrollbar */
+      width:100%;
+    }
+    .nav-scroll::-webkit-scrollbar{ display:none; } /* Chrome/Safari */
+
+    /* Enlaces: no permiten salto y no envuelven */
+    .navbar-nav{
+      flex-wrap:nowrap !important;
+      gap:.25rem;
+      white-space:nowrap;
+      align-items:center;
+    }
+    .navbar .nav-link{
+      padding:.5rem .75rem;
+      font-weight:700;
+      color:#222;
+      border-radius:.5rem;
+      transition:background .12s ease,color .12s ease;
+    }
+    .navbar .nav-link:hover,
+    .navbar .nav-link:focus{
+      color:#fff;
+      background:var(--cpc-teal);
+    }
+
+    /* Botón login no rompe línea y mantiene tamaño contenido */
+    .navbar .btn-primary{
+      white-space:nowrap;
+      padding:.45rem .75rem;
+      background:var(--cpc-teal); border-color:var(--cpc-teal);
+      font-weight:700;
+    }
+    .navbar .btn-primary:hover{ background:#045768; border-color:#045768; }
+
+    /* En móviles, colapsa normal con hamburguesa */
+    @media (max-width: 991.98px){
+      .navbar .btn-primary{ margin-top:.5rem; width:100%; }
+    }
+    /* iPhone 14 Pro Max y menores: compacta un poco más */
+    @media (max-width: 440px){
+      .navbar-brand img{ height:36px; }
+      .navbar .nav-link{ padding:.42rem .52rem; }
+    }
+
+    /* ================= CONTENIDO ================= */
+    .container.my-3{ position:relative; z-index:1; }
+
+    /* ================= FOOTER ================= */
+    .site-footer{
+      background:linear-gradient(to top, var(--aqua-dark) 0%, var(--aqua-light) 100%);
+      color:#fffefe;
+    }
+    .site-footer a{ color:#fffefe; text-decoration:none; }
+    .site-footer a:hover{ opacity:.85; }
+    .site-footer .muted{ color:#fffefe; }
+    .site-footer .divider{ border-top:1px solid rgba(255,255,255,.18); }
+    .site-footer .icon{ width:18px; }
+
+    .social-minimal a{
+      display:inline-flex; align-items:center; justify-content:center;
+      width:38px; height:38px; border-radius:50%;
+      background:#fff; border:1px solid rgba(0,0,0,.08);
+      margin-right:8px;
+      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+    }
+    .social-minimal a:hover{
+      transform: translateY(-1px);
+      box-shadow:0 8px 16px rgba(0,0,0,.12);
+      border-color: rgba(0,0,0,.16);
+    }
+    .social-minimal i{ font-size:1rem; color:#111; }
+
+    .footer-logos-wrap{
+      display:flex; justify-content:flex-end; align-items:center; gap:16px; flex-wrap:wrap;
+    }
+    .logo-circle{
+      width:128px; height:128px; border-radius:50%;
+      background:#fff; border:1px solid rgba(0,0,0,.06);
+      box-shadow:0 12px 26px rgba(0,0,0,.10), inset 0 0 0 6px rgba(255,255,255,.92);
+      display:flex; align-items:center; justify-content:center;
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+    .logo-circle:hover{
+      transform: translateY(-2px);
+      box-shadow:0 18px 36px rgba(0,0,0,.14), inset 0 0 0 6px rgba(255,255,255,1);
+      border-color: rgba(0,0,0,.14);
+    }
+    .logo-circle img{
+      max-width:80%; max-height:80%; object-fit:contain; display:block; filter:saturate(115%);
+    }
+    @media (max-width:576px){
+      .footer-logos-wrap{ justify-content:center; }
+      .logo-circle{ width:104px; height:104px; }
+    }
+    @media (max-width:440px){
+      .logo-circle{ width:96px; height:96px; }
+    }
   </style>
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+<!-- ================= NAVBAR / FRANJA DE SECCIONES ================= -->
+<nav class="navbar navbar-expand-lg navbar-light">
   <div class="container">
-    <a class="navbar-brand d-flex align-items-center" href="{% url 'core:home' %}">
-      <img src="{% static 'img/logo/mi_logo.jpg' %}" alt="Logo" class="mr-2">
-      <strong>CPC</strong>
+    <a class="navbar-brand d-flex align-items-center mr-3" href="{% url 'core:home' %}" aria-label="Inicio">
+      <img src="{% static 'img/logo/mi_logo.png' %}" alt="Logo CPC">
     </a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navPublic" aria-controls="navPublic" aria-expanded="false" aria-label="Toggle navigation">
+
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navPublic" aria-controls="navPublic" aria-expanded="false" aria-label="Abrir menú">
       <span class="navbar-toggler-icon"></span>
     </button>
-    <div class="collapse navbar-collapse" id="navPublic">
-      <ul class="navbar-nav ml-auto">
-        <li class="nav-item"><a class="nav-link" href="{% url 'core:home' %}">Inicio</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'core:comunicados_list' %}">Comunicados</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'core:quienes' %}">Conócenos</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'core:procesos' %}">Procesos de inscripción</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'core:deportes' %}">Deportes y recintos</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'core:equipo' %}">Equipo Multidisciplinario</a></li>
-        <li class="nav-item ml-lg-3">
-          <a class="btn btn-primary" href="{% url 'usuarios:login_rut' %}">
 
-            <i class="fas fa-sign-in-alt mr-1"></i> Iniciar sesión
-          </a>
-        </li>
-      </ul>
+    <div class="collapse navbar-collapse" id="navPublic">
+      <!-- CONTENEDOR CON SCROLL HORIZONTAL (si hace falta) -->
+      <div class="nav-scroll w-100">
+        <ul class="navbar-nav mx-lg-auto">
+          <li class="nav-item"><a class="nav-link" href="{% url 'core:home' %}">Inicio</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'core:comunicados_list' %}">Comunicados</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'core:quienes' %}">Conócenos</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'core:procesos' %}">Procesos de inscripción</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'core:deportes' %}">Deportes y recintos</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'core:equipo' %}">Equipo Multidisciplinario</a></li>
+        </ul>
+      </div>
+
+      <!-- CTA alineado a la derecha, sin romper línea -->
+      <div class="ml-lg-3 mt-2 mt-lg-0">
+        <a class="btn btn-primary" href="{% url 'usuarios:login_rut' %}">
+          <i class="fas fa-sign-in-alt mr-1"></i> Iniciar sesión
+        </a>
+      </div>
     </div>
   </div>
 </nav>
 
+<!-- ================= CONTENIDO ================= -->
 <div class="container my-3">
   {% block content %}{% endblock %}
 </div>
 
-<footer class="bg-white border-top mt-5">
-  <div class="container py-4 text-center text-muted">
-    © <script>document.write(new Date().getFullYear());</script> Campeones Para Coquimbo
+<!-- ================= FOOTER ================= -->
+<footer class="site-footer mt-5 pt-5">
+  <div class="container">
+    <div class="row">
+      <!-- Col 1: Contacto -->
+      <div class="col-md-4 mb-4">
+        <h6 class="text-uppercase mb-3">Contacto</h6>
+        <p class="mb-2 d-flex align-items-start">
+          <i class="fas fa-map-marker-alt mr-2 mt-1 icon"></i>
+          <span>Dirección referencial, Coquimbo, Chile</span>
+        </p>
+        <p class="mb-2 d-flex align-items-start">
+          <i class="fas fa-phone mr-2 mt-1 icon"></i>
+          <span>+56 9 1234 5678</span>
+        </p>
+        <p class="mb-0 d-flex align-items-start">
+          <i class="fas fa-envelope mr-2 mt-1 icon"></i>
+          <span>contacto@cpc.cl</span>
+        </p>
+      </div>
+
+      <!-- Col 2: Síguenos -->
+      <div class="col-md-4 mb-4">
+        <h6 class="text-uppercase mb-3">Síguenos en redes sociales</h6>
+        <div class="social-minimal">
+          <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+          <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+          <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+        </div>
+      </div>
+
+      <!-- Col 3: Logos (derecha, grandes) -->
+      <div class="col-md-4 mb-4">
+        <div class="footer-logos-wrap" aria-label="Logos institucionales">
+          <div class="logo-circle">
+            <img src="{% static 'img/muni.png' %}" alt="Municipalidad de Coquimbo - Escudo">
+          </div>
+          <div class="logo-circle">
+            <img src="{% static 'img/muni2.png' %}" alt="Coquimbo es su Gente - Logo">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider my-3"></div>
+
+    <!-- Franja final -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center py-3">
+      <div class="muted small mb-2 mb-md-0">
+        © <script>document.write(new Date().getFullYear());</script> Campeones Para Coquimbo
+      </div>
+      <ul class="list-inline mb-0 small">
+        <li class="list-inline-item"><a href="#">Política de privacidad</a></li>
+      </ul>
+    </div>
   </div>
 </footer>
 
+<!-- JS -->
 <script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
 <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+
 {% block extra_js %}{% endblock %}
 </body>
 </html>

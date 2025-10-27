@@ -1,49 +1,143 @@
 {% extends "base/public.html" %}
+{% load static %}
 
 {% block title %}Iniciar Sesión | Campeones Para Coquimbo{% endblock %}
 
 {% block extra_css %}
-  <!-- Fuente Poppins para el look del login -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root{ --azul:#004080; --azul-osc:#003060; --suave:#f4f6f9; --borde:#cfd8e3; }
-    .login-root{font-family:'Poppins',sans-serif;background:var(--suave); margin:0; padding:0;}
-    .login-header{background:var(--azul);color:#fff;text-align:center;padding:24px;border-radius:12px}
-    .login-header h1{margin:0;font-size:28px;font-weight:700}
-    .login-header p{margin:6px 0 0}
-    .login-wrap{max-width:420px;margin:32px auto;background:#fff;padding:26px;border-radius:14px;box-shadow:0 8px 18px rgba(0,0,0,.08)}
-    .login-label{display:block;font-weight:600;margin:8px 0 6px;color:var(--azul)}
-    .login-input{width:100%;padding:12px;border:1px solid var(--borde);border-radius:10px;font-size:14px}
-    .login-btn{width:100%;margin-top:14px;display:inline-flex;justify-content:center;gap:8px;align-items:center;background:var(--azul);color:#fff;border:none;padding:12px;border-radius:10px;font-weight:600;cursor:pointer}
-    .login-btn:hover{background:var(--azul-osc)}
-    .login-help{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:14px}
-    .login-help a{text-decoration:none;color:var(--azul);font-weight:600}
-    .login-muted{color:#6b7280;font-size:12px;margin-top:6px}
-  </style>
+<style>
+  /* ===== Paleta y tipografía (mismas del sitio) ===== */
+  :root{
+    --cpc-teal:   #056375;   /* primario */
+    --cpc-navy:   #091236;   /* azul marino */
+    --cpc-ivory:  #FAF9F8;   /* blanco cálido */
+    --cpc-sea:    #A1B2AE;   /* gris verdoso suave */
+    --tone-aqua:  #10A5AA;   /* aqua */
+    --tone-deep:  #0A5A64;   /* teal profundo */
+    --aqua-dark:  #0B5A66;   /* base degradado */
+    --aqua-light: #D7F0F3;   /* claro degradado */
+    --ring:       rgba(5,99,117,.28);
+    --hover-soft: rgba(16,165,170,.08);
+  }
+
+  /* Usa la fuente global (Manrope) definida en base/public.html */
+  .login-root{
+    font-family: inherit;
+    background: var(--cpc-ivory);
+    margin: 0; padding: 0;
+    min-height: calc(100vh - 180px); /* deja espacio para navbar+footer */
+    display: flex; align-items: flex-start; justify-content: center;
+  }
+
+  /* Cabecera compacta y consistente con la paleta */
+  .login-header{
+    width: 100%;
+    max-width: 840px;
+    background: linear-gradient(90deg, var(--aqua-dark) 0%, var(--tone-deep) 100%);
+    color: #fff;
+    text-align: center;
+    padding: 18px 16px;
+    border-radius: 14px;
+    box-shadow: 0 10px 22px rgba(0,0,0,.08);
+    margin: 28px 16px 16px;
+  }
+  .login-header h1{ margin:0; font-size: clamp(20px, 2.8vw, 28px); font-weight:800; letter-spacing:.2px; }
+  .login-header p{ margin:6px 0 0; opacity:.95; font-weight:600; }
+
+  /* Tarjeta del formulario */
+  .login-wrap{
+    width: 100%; max-width: 520px;
+    margin: 10px 16px 48px;
+    background:#fff;
+    padding: 26px;
+    border-radius: 14px;
+    border: 1px solid #eef2f7;
+    box-shadow: 0 8px 18px rgba(0,0,0,.06);
+  }
+
+  .login-label{
+    display:block; font-weight:700; margin:10px 0 6px; color: var(--cpc-teal);
+  }
+  .login-input{
+    width:100%;
+    padding:12px;
+    border:1px solid #cfd8e3;
+    border-radius:10px;
+    font-size:14px;
+    background:#fff;
+    transition: box-shadow .12s ease, border-color .12s ease, background .12s ease;
+  }
+  .login-input:focus{
+    border-color: var(--cpc-teal);
+    box-shadow: 0 0 0 .2rem var(--ring);
+    outline: none;
+  }
+
+  .login-btn{
+    width:100%; margin-top:14px;
+    display:inline-flex; justify-content:center; gap:8px; align-items:center;
+    background: var(--cpc-teal); color:#fff; border:none;
+    padding:12px; border-radius:10px; font-weight:800; cursor:pointer;
+    transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+  }
+  .login-btn:hover{ background:#045768; transform: translateY(-1px); box-shadow:0 10px 20px rgba(0,0,0,.08); }
+
+  .login-help{
+    display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:14px; gap:12px; flex-wrap:wrap;
+  }
+  .login-help a{ text-decoration:none; color: var(--cpc-teal); font-weight:800; }
+  .login-help a:hover{ text-decoration: underline; }
+  .login-muted{ color:#6b7280; font-size:12px; }
+
+  .alert{ margin-bottom:12px; border-radius:10px; }
+
+  /* Responsivo */
+  @media (max-width: 420px){
+    .login-wrap{ padding:20px; }
+    .login-help{ flex-direction:column; align-items:flex-start; }
+  }
+</style>
 {% endblock %}
 
 {% block content %}
   <div class="login-root">
-    <div class="login-header">
-      <h1>Campeones Para Coquimbo</h1>
-      <p>Iniciar sesión</p>
-    </div>
+    <div style="width:100%; display:flex; flex-direction:column; align-items:center;">
+      <div class="login-header">
+        <h1>Campeones Para Coquimbo</h1>
+        <p>Iniciar sesión</p>
+      </div>
 
-    <div class="login-wrap">
-      
-      <label for="rut" class="login-label">RUT (sin puntos ni guion)</label>
-      <input id="rut" type="text" class="login-input" placeholder="Ejem: 12345678K" autocomplete="username" />
+      <div class="login-wrap">
+        {# Framework de mensajes de Django #}
+        {% if messages %}
+          {% for m in messages %}
+            <div class="alert alert-{{ m.tags }}">{{ m }}</div>
+          {% endfor %}
+        {% endif %}
 
-      <label for="pass" class="login-label">Contraseña</label>
-      <input id="pass" type="password" class="login-input" placeholder="Tu contraseña" autocomplete="current-password" />
+        {# Mensaje de error enviado por la vista login_rut #}
+        {% if error %}
+          <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
 
-      <button class="login-btn" type="button">
-        <i class="fa-solid fa-right-to-bracket"></i> Entrar
-      </button>
+        <form method="post" action="{% url 'usuarios:login_rut' %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.GET.next|default:'' }}"/>
 
-      <div class="login-help">
-        <span class="login-muted">¿Primera vez? Te asignaremos una contraseña temporal.</span>
-        <a href="#">¿Olvidaste tu contraseña?</a>
+          <label for="rut" class="login-label">Rut (sin puntos ni guión)</label>
+          <input id="rut" name="rut" type="text" class="login-input" placeholder="Ej: 12345678K" autocomplete="username" required>
+
+          <label for="pass" class="login-label">Contraseña</label>
+          <input id="pass" name="password" type="password" class="login-input" placeholder="Tu contraseña" autocomplete="current-password" required>
+
+          <button class="login-btn" type="submit">
+            <i class="fas fa-right-to-bracket"></i> Entrar
+          </button>
+
+          <div class="login-help">
+            <span class="login-muted">¿Primera vez? Te asignaremos una contraseña temporal.</span>
+            <a href="{% url 'usuarios:password_reset' %}">¿Olvidaste tu contraseña?</a>
+          </div>
+        </form>
       </div>
     </div>
   </div>

@@ -1,80 +1,153 @@
-{% extends "base.html" %}
+{% extends "base/plantilla.html" %}
+
 {% block title %}Equipo (usuarios){% endblock %}
-{% block header %}Equipo (usuarios){% endblock %}
+
+{% block extra_css %}
+<style>
+  .page-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:.75rem; }
+  .page-head-left { display:flex; align-items:center; gap:10px; }
+  .table thead th { white-space:nowrap; }
+  .actions { display:flex; gap:8px; flex-wrap:wrap; }
+
+  /* Alinear filtros con la franja celeste (mismos gutters laterales) */
+  .filters-card .card-body{
+    padding-top:.75rem;
+    padding-bottom:.75rem;
+    padding-left: var(--cpc-gutter-x, 16px);
+    padding-right: var(--cpc-gutter-x, 16px);
+  }
+
+  /* Inputs compactos en filtros */
+  .filters .form-control, .filters select, .filters input[type="text"]{
+    height:2.1rem; font-size:.95rem;
+  }
+
+  /* Fila de botones a la derecha, alineados con el borde del contenedor */
+  .filters-actions{
+    display:flex; gap:8px; justify-content:flex-end;
+  }
+  @media (max-width: 576px){
+    .filters-actions{ justify-content:flex-start; }
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<form method="get" class="mb-3" style="display:flex; gap:10px; flex-wrap:wrap; align-items:end;">
-  <div>
-    <label class="form-label">Buscar</label><br>
-    <input type="text" name="q" value="{{ q }}" placeholder="RUT / Nombre / Usuario / Email" style="padding:6px 8px; min-width:280px;">
+
+  <!-- Cabecera -->
+  <div class="page-head">
+    <div class="page-head-left">
+      <h4 class="mb-0">Equipo (usuarios)</h4>
+    </div>
+    <div class="d-flex" style="gap:8px;">
+      <a class="btn btn-primary" href="{% url 'usuarios:usuario_create' %}">Nuevo</a>
+      <a class="btn btn-outline-secondary"
+         href="?q={{ q }}&rol={{ rol }}&estado={{ estado }}&export=1">Exportar Excel</a>
+    </div>
   </div>
 
-  <div>
-    <label class="form-label">Rol</label><br>
-    <select name="rol">
-      <option value="">Todos</option>
-      {% for value,label in roles %}
-        <option value="{{ value }}" {% if value == rol %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
-  </div>
+  <!-- Filtros: card con gutters iguales a la franja -->
+  <form method="get" class="card filters-card mb-3 filters">
+    <div class="card-body">
+      <div class="row g-2 align-items-end">
+        <div class="col-lg-5">
+          <label class="form-label mb-1">Buscar</label>
+          <input class="form-control" type="text" name="q" value="{{ q }}"
+                 placeholder="RUT / Nombre / Usuario / Email">
+        </div>
 
-  <div>
-    <label class="form-label">Estado</label><br>
-    <select name="estado">
-      <option value="">Todos</option>
-      <option value="act" {% if estado == "act" %}selected{% endif %}>Activo</option>
-      <option value="inact" {% if estado == "inact" %}selected{% endif %}>Inactivo</option>
-    </select>
-  </div>
+        <div class="col-lg-3">
+          <label class="form-label mb-1">Rol</label>
+          <select class="form-control" name="rol">
+            <option value="">Todos</option>
+            {% for value,label in roles %}
+              <option value="{{ value }}" {% if value == rol %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
 
-  <div style="display:flex; gap:8px;">
-    <button class="btn" type="submit">Buscar</button>
-    <a class="btn" href="{% url 'usuarios:usuario_create' %}">+ Nuevo</a>
-    <a class="btn" href="?q={{ q }}&rol={{ rol }}&estado={{ estado }}&export=1">Exportar Excel</a>
-  </div>
-</form>
+        <div class="col-lg-2">
+          <label class="form-label mb-1">Estado</label>
+          <select class="form-control" name="estado">
+            <option value="">Todos</option>
+            <option value="act" {% if estado == "act" %}selected{% endif %}>Activo</option>
+            <option value="inact" {% if estado == "inact" %}selected{% endif %}>Inactivo</option>
+          </select>
+        </div>
 
-{% if items %}
-  <div style="overflow:auto;">
-    <table class="table table-striped" style="min-width:1000px;">
-      <thead>
-        <tr>
-          <th>RUT</th><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Email</th><th>Teléfono</th><th>Estado</th><th style="min-width:220px;">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for u in items %}
-          <tr>
-            <td>{{ u.rut }}</td>
-            <td>{{ u.first_name }} {{ u.last_name }}</td>
-            <td>{{ u.username }}</td>
-            <td>{{ u.get_tipo_usuario_display }}</td>
-            <td>{{ u.email }}</td>
-            <td>{{ u.telefono }}</td>
-            <td>{{ u.is_active|yesno:"Activo,Inactivo" }}</td>
-            <td>
-              <a class="btn" href="{% url 'usuarios:usuario_detail' u.id %}">Ver</a>
-              <a class="btn" href="{% url 'usuarios:usuario_edit' u.id %}">Editar</a>
+        <!-- Botones en su propia fila, pegados al borde derecho = alineados con franja -->
+        <div class="col-12">
+          <div class="filters-actions">
+            <button class="btn btn-primary" type="submit">Buscar</button>
+            <a class="btn btn-outline-secondary" href="?q=&rol=&estado=">Limpiar</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
 
-              <form method="post" action="{% url 'usuarios:usuario_toggle_active' u.id %}" style="display:inline;">
-                {% csrf_token %}
-                <button class="btn" type="submit">
-                  {% if u.is_active %}Desactivar{% else %}Activar{% endif %}
-                </button>
-              </form>
+  {% if items %}
+    <div class="card shadow-sm">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="thead-light">
+              <tr>
+                <th>RUT</th>
+                <th>Nombre</th>
+                <th>Usuario</th>
+                <th>Rol</th>
+                <th>Email</th>
+                <th>Teléfono</th>
+                <th>Estado</th>
+                <th style="min-width:220px;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for u in items %}
+                <tr>
+                  <td>{{ u.rut }}</td>
+                  <td>{{ u.first_name }} {{ u.last_name }}</td>
+                  <td>{{ u.username }}</td>
+                  <td>{{ u.get_tipo_usuario_display }}</td>
+                  <td>{{ u.email }}</td>
+                  <td>{{ u.telefono }}</td>
+                  <td>
+                    {% if u.is_active %}
+                      <span class="badge badge-success">Activo</span>
+                    {% else %}
+                      <span class="badge badge-secondary">Inactivo</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="actions">
+                      <a class="btn btn-sm btn-outline-info" href="{% url 'usuarios:usuario_detail' u.id %}">Ver</a>
+                      <a class="btn btn-sm btn-outline-primary" href="{% url 'usuarios:usuario_edit' u.id %}">Editar</a>
 
-              <form method="post" action="{% url 'usuarios:usuario_delete' u.id %}" style="display:inline;" onsubmit="return confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.');">
-                {% csrf_token %}
-                <button class="btn" type="submit" style="background:#d9534f; color:#fff;">Eliminar</button>
-              </form>
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-{% else %}
-  <p>No hay usuarios para los filtros aplicados.</p>
-{% endif %}
+                      <form method="post" action="{% url 'usuarios:usuario_toggle_active' u.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button class="btn btn-sm {% if u.is_active %}btn-warning{% else %}btn-success{% endif %}" type="submit">
+                          {% if u.is_active %}Desactivar{% else %}Activar{% endif %}
+                        </button>
+                      </form>
+
+                      <form method="post" action="{% url 'usuarios:usuario_delete' u.id %}"
+                            style="display:inline;"
+                            onsubmit="return confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.');">
+                        {% csrf_token %}
+                        <button class="btn btn-sm btn-danger" type="submit">Eliminar</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-info mb-0">No hay usuarios para los filtros aplicados.</div>
+  {% endif %}
+
 {% endblock %}

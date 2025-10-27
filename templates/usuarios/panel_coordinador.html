@@ -1,21 +1,149 @@
-{% extends "base.html" %}
+{% extends "base/app.html" %}
+{% load static %}
+
 {% block title %}Panel Coordinador{% endblock %}
-{% block header %}Panel Coordinador{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ===== Estilo estandarizado (idéntico al del Admin) ===== */
+  :root{
+    --tile-border:#e5e7eb;
+    --tile-bg:#fff;
+    --tile-head:#f8fafc;
+  }
+
+  .page-head{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:12px;margin-bottom:.75rem
+  }
+  .page-head h4{margin:0;font-weight:800;font-size:1.1rem;letter-spacing:.2px}
+  .page-sub{color:#6b7280;font-size:.92rem}
+
+  .tiles{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+    gap:14px
+  }
+  .tile{
+    display:flex;flex-direction:column;gap:.6rem;
+    border:1px solid var(--tile-border);border-radius:12px;background:var(--tile-bg);
+    padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.04)
+  }
+  .tile__head{
+    display:flex;align-items:center;gap:.6rem;background:var(--tile-head);
+    padding:.55rem .7rem;border-radius:10px;border:1px solid #eef2f7
+  }
+  .tile__icon{
+    width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;
+    border-radius:6px;background:#eef2ff
+  }
+  .tile__title{margin:0;font-size:.98rem;font-weight:800}
+  .tile__desc{margin:0;color:#6b7280;font-size:.9rem;min-height:2.2em}
+  .tile .btn{align-self:flex-start}
+
+
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-  <p>Hola, <strong>{{ rut }}</strong>.</p>
 
-  <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:10px;">
-    <a class="btn" href="{% url 'core:cursos_list' %}">Supervisar Cursos</a>
-    <a class="btn" href="{% url 'core:estudiantes_list' %}">Gestionar Estudiantes</a>
-    <a class="btn" href="{% url 'core:planificacion_upload' %}">Planificación</a>
-    <a class="btn" href="{% url 'core:reportes_home' %}">Reportes</a>
-    <a class="btn" href="{% url 'core:sedes_list' %}">Gestionar Sedes</a>
-    <a class="btn" href="{% url 'core:deportes_list' %}">Gestionar Deportes</a>
-    <a class="btn" href="{% url 'core:comunicados_list' %}">Comunicados</a>
+  <div class="page-head">
+    <div>
+      <h4>Panel Coordinador</h4>
+      <div class="page-sub"><strong>{{ rut }}</strong></div>
+    </div>
+    <div>
+      </a>
+    </div>
   </div>
 
-  <div style="margin-top:18px;">
-    <a class="btn" href="{% url 'usuarios:logout' %}">Salir</a>
+  <div class="tiles">
+
+    <!-- Cursos -->
+    <div class="tile">
+      <div class="tile__head">
+        <span class="tile__icon"><i class="fas fa-layer-group"></i></span>
+        <h6 class="tile__title mb-0">Cursos y cupos</h6>
+      </div>
+      <p class="tile__desc">Supervisa cursos, cupos y asignaciones.</p>
+      <a class="btn btn-primary" href="{% url 'core:cursos_list' %}">
+        <i class="fas fa-cogs mr-1"></i> Supervisar cursos
+      </a>
+    </div>
+
+    <!-- Estudiantes -->
+    <div class="tile">
+      <div class="tile__head">
+        <span class="tile__icon"><i class="fas fa-user-graduate"></i></span>
+        <h6 class="tile__title mb-0">Estudiantes</h6>
+      </div>
+      <p class="tile__desc">Alta, edición y consulta de estudiantes.</p>
+      <a class="btn btn-primary" href="{% url 'core:estudiantes_list' %}">
+        <i class="fas fa-users mr-1"></i> Gestionar estudiantes
+      </a>
+    </div>
+
+    <!-- Planificación -->
+    <div class="tile">
+      <div class="tile__head">
+        <span class="tile__icon"><i class="fas fa-clipboard-check"></i></span>
+        <h6 class="tile__title mb-0">Planificación</h6>
+      </div>
+      <p class="tile__desc">Carga y administración de planificaciones.</p>
+      <a class="btn btn-primary" href="{% url 'core:planificacion_upload' %}">
+        <i class="fas fa-upload mr-1"></i> Subir planificación
+      </a>
+    </div>
+
+    <!-- Reportes -->
+    <div class="tile">
+      <div class="tile__head">
+        <span class="tile__icon"><i class="fas fa-chart-bar"></i></span>
+        <h6 class="tile__title mb-0">Reportes</h6>
+      </div>
+      <p class="tile__desc">Indicadores, listados y exportaciones.</p>
+      <a class="btn btn-primary" href="{% url 'core:reportes_home' %}">
+        <i class="fas fa-file-alt mr-1"></i> Abrir reportes
+      </a>
+    </div>
+
+    <!-- Sedes -->
+    <div class="tile">
+      <div class="tile__head">
+        <span class="tile__icon"><i class="fas fa-map-marker-alt"></i></span>
+        <h6 class="tile__title mb-0">Sedes</h6>
+      </div>
+      <p class="tile__desc">Crea y administra sedes.</p>
+      <a class="btn btn-primary" href="{% url 'core:sedes_list' %}">
+        <i class="fas fa-building mr-1"></i> Gestionar sedes
+      </a>
+    </div>
+
+    <!-- Deportes -->
+    <div class="tile">
+      <div class="tile__head">
+        <span class="tile__icon"><i class="fas fa-running"></i></span>
+        <h6 class="tile__title mb-0">Deportes</h6>
+      </div>
+      <p class="tile__desc">Catálogo y mantenimiento de deportes.</p>
+      <a class="btn btn-primary" href="{% url 'core:deportes_list' %}">
+        <i class="fas fa-dumbbell mr-1"></i> Gestionar deportes
+      </a>
+    </div>
+
+    <!-- Comunicados -->
+    <div class="tile">
+      <div class="tile__head">
+        <span class="tile__icon"><i class="fas fa-bullhorn"></i></span>
+        <h6 class="tile__title mb-0">Comunicados</h6>
+      </div>
+      <p class="tile__desc">Publica y gestiona comunicados.</p>
+      <a class="btn btn-primary" href="{% url 'core:comunicados_list' %}">
+        <i class="fas fa-envelope-open-text mr-1"></i> Abrir comunicados
+      </a>
+    </div>
+
   </div>
 {% endblock %}
+
+{% block extra_js %}{% endblock %}

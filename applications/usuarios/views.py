@@ -1,21 +1,17 @@
 # applications/usuarios/views.py
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.db.models import Q
 from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_protect
+from django.contrib import messages  # opcional, por si luego quieres usar messages.*
+from django.contrib.auth.decorators import login_required  # para whoami
 
 from .models import Usuario
 from .utils import normalizar_rut
 from .forms import UsuarioCreateForm, UsuarioUpdateForm
 from applications.usuarios.utils import role_required
 
-def normaliza_rut(r):
-    if not r:
-        return ""
-    return r.replace(".", "").replace("-", "").strip().upper()
 
 def _redirigir_por_tipo(user: Usuario):
     """Enruta al panel según el tipo de usuario."""
@@ -32,53 +28,46 @@ def _redirigir_por_tipo(user: Usuario):
         return redirect("usuarios:panel_prof_multidisciplinario")
     return redirect("usuarios:panel_atleta")
 
-# Si tu modelo de usuario tiene el campo tipo_usuario, se usa para decidir el panel
-@login_required
-def panel_view(request):
-    """
-    Muestra el panel según el tipo de usuario:
-    - ADMIN  → panel_admin.html
-    - COORD  → panel_coordinador.html (sin gestión de usuarios)
-    - Otros  → panel.html (panel genérico)
-    """
-    user = request.user
-    rut = user.username
-    tipo = getattr(user, "tipo_usuario", "").upper()
 
-    context = {"rut": rut, "user": user}
-
-    if tipo == "ADMIN":
-        return render(request, "usuarios/panel_admin.html", context)
-
-    elif tipo == "COORD":
-        return render(request, "usuarios/panel_coordinador.html", context)
-
-    else:
-        return render(request, "usuarios/panel.html", context)
-
-@csrf_protect
+@require_http_methods(["GET", "POST"])
 def login_rut(request):
     """
-    Login por RUT + password.
-    Requiere que el 'username' en la BD sea el RUT normalizado (sin puntos, con guion o sin él).
+    Autenticación por RUT + password.
+    - Construye username con solo dígitos (123456789) y, si falla, prueba con guion (12345678-9).
+    - Si viene `next`, redirige a `next` después de autenticar.
+    - Si no hay `next`, redirige según el tipo de usuario.
     """
     if request.method == "POST":
-        rut = normaliza_rut(request.POST.get("rut", ""))
-        password = request.POST.get("password", "")
+        rut_ingresado = request.POST.get("rut") or ""
+        password = request.POST.get("password") or ""
+        next_url = request.POST.get("next") or request.GET.get("next") or ""
 
-        # Puedes mapear rut->username aquí si tu username guarda el RUT sin guión:
-        username = rut  # ajusta si tu BD guarda otro formato
+        rut_norm = normalizar_rut(rut_ingresado)  # ej: "12345678-9"
+        username = rut_norm.replace(".", "").replace("-", "")  # ej: "123456789"
 
+        # 1) Intento con solo dígitos
         user = authenticate(request, username=username, password=password)
-        if user:
-            login(request, user)
-            # redirige al panel unificado
-            return redirect("usuarios:panel")
-        else:
-            return render(request, "usuarios/login.html", {"error": "RUT o contraseña inválidos."})
+        if not user:
+            # 2) Intento alternativo con guion por si el username quedó así en BD
+            user = authenticate(request, username=rut_norm, password=password)
 
-    # GET: mostrar el form (esto hace que Django setee la cookie CSRF)
+        if not user:
+            return render(request, "usuarios/login.html", {"error": "RUT o contraseña incorrectos"})
+
+        if not user.is_active:
+            return render(request, "usuarios/login.html", {"error": "Usuario inactivo"})
+
+        login(request, user)
+
+        # Respeta 'next' si venía en la URL o en el form
+        if next_url:
+            return redirect(next_url)
+
+        # Sin next: envía al panel correspondiente
+        return _redirigir_por_tipo(user)
+
     return render(request, "usuarios/login.html")
+
 
 def logout_view(request):
     logout(request)
@@ -150,8 +139,16 @@ def usuarios_list(request):
         resp.write(",".join(headers) + "\n")
         for u in qs:
             nombre = f"{u.first_name} {u.last_name}".strip()
-            estado_txt = "Activo" if u.is_active else "Inactivo"
-            fila = [u.rut, nombre, u.username, u.get_tipo_usuario_display(), u.email or "", u.telefono or "", estado_txt]
+            estado_txt = "Activo" if u.is_active else "Inactivo"  # ← aquí el fix
+            fila = [
+                u.rut,
+                nombre,
+                u.username,
+                u.get_tipo_usuario_display(),
+                u.email or "",
+                u.telefono or "",
+                estado_txt,
+            ]
             resp.write(",".join('"%s"' % (s.replace('"', '""')) for s in fila) + "\n")
         return resp
 
@@ -214,3 +211,13 @@ def usuario_toggle_active(request, usuario_id: int):
 def usuario_delete(request, usuario_id: int):
     get_object_or_404(Usuario, pk=usuario_id).delete()
     return redirect("usuarios:usuarios_list")
+
+
+# ====================== Debug ======================
+@login_required
+def whoami(request):
+    return HttpResponse(
+        f"auth={request.user.is_authenticated}, "
+        f"user={request.user.username}, "
+        f"rol={getattr(request.user,'tipo_usuario',None)}"
+    )

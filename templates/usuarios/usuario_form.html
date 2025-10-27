@@ -1,62 +1,145 @@
-{% extends "base.html" %}
+{% extends "base/plantilla.html" %}
+
 {% block title %}{% if is_edit %}Editar usuario{% else %}Nuevo usuario{% endif %}{% endblock %}
-{% block header %}{% if is_edit %}Editar usuario{% else %}Nuevo usuario{% endif %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ===== Estilo compacto (coherente con Estudiantes/Cursos) ===== */
+  :root{
+    --sp-xs:.35rem; --sp-sm:.6rem; --sp-md:.9rem;
+    --fs-xs:.82rem; --fs-sm:.9rem; --fs-md:1rem;
+    --radius:10px;
+    --border:#e5e7eb; --bg-head:#f8fafc;
+  }
+
+  .page { display:flex; flex-direction:column; gap: var(--sp-sm); }
+
+  /* Cabecera SIN botón atrás */
+  .page-head { display:flex; align-items:center; gap:12px; margin-bottom:.75rem; }
+  .page-title { margin:0; font-size:1.05rem; font-weight:700; }
+
+  .section { background:#fff; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+  .section__head { padding:.55rem .8rem; background:var(--bg-head); border-bottom:1px solid #eef2f7; }
+  .section__title { font-size:.95rem; font-weight:700; margin:0; letter-spacing:.2px; }
+  .section__body { padding:.8rem; }
+
+  /* Grid compacto */
+  .form-grid { display:grid; grid-template-columns: repeat(12,1fr); gap:.6rem; }
+  .col-12{grid-column:span 12;} .col-9{grid-column:span 9;}
+  .col-8{grid-column:span 8;} .col-6{grid-column:span 6;}
+  .col-4{grid-column:span 4;} .col-3{grid-column:span 3;}
+  @media (max-width: 992px){
+    .col-9,.col-8,.col-6,.col-4,.col-3{grid-column:span 12;}
+  }
+
+  .stack{ display:flex; flex-direction:column; gap:.25rem; }
+  .form-label{ font-weight:600; font-size: var(--fs-xs); margin-bottom:0; }
+
+  .section input[type="text"],
+  .section input[type="number"],
+  .section input[type="date"],
+  .section input[type="email"],
+  .section select,
+  .section textarea,
+  .section .form-control,
+  .section .form-select{
+    padding:.3rem .5rem !important;
+    font-size: var(--fs-sm) !important;
+    height:2.1rem; line-height:1.2;
+    border-radius:8px;
+  }
+  .section textarea{ min-height:7rem; }
+
+  /* Botonera sticky CENTRADA (como en Estudiantes/Cursos) */
+  .actions-wrap{
+    position: sticky; bottom:16px; z-index:20;
+    display:flex; justify-content:center; gap:.5rem;
+    padding:.6rem .8rem; max-width:980px; margin:1rem auto 0;
+    border:1px solid #e5e7eb; border-radius:12px;
+    background:rgba(255,255,255,.95); backdrop-filter:saturate(120%) blur(4px);
+    box-shadow:0 6px 20px rgba(0,0,0,.08);
+  }
+  .btn-compact{ padding:.35rem .7rem; border-radius:8px; }
+
+  .field-errors{ color:#dc3545; font-size:.8rem; margin-top:.1rem; }
+  .help-note{ color:#6b7280; font-size:.9rem; margin:.25rem 0 0; }
+</style>
+{% endblock %}
 
 {% block content %}
-<form method="post" novalidate>
+
+<!-- Cabecera (sin Atrás) -->
+<div class="page-head">
+  <h4 class="page-title">{% if is_edit %}Editar usuario{% else %}Nuevo usuario{% endif %}</h4>
+</div>
+
+<form method="post" novalidate class="page">
   {% csrf_token %}
 
-  <fieldset class="card p-3 mb-3">
-    <legend class="h5">Datos personales</legend>
-    <div class="row g-3">
-      <div class="col-md-4">
-        <label class="form-label">RUT</label>
-        {{ form.rut }}
-        {% for e in form.rut.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">Nombres</label>
-        {{ form.first_name }}
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">Apellidos</label>
-        {{ form.last_name }}
-      </div>
-      <div class="col-md-6">
-        <label class="form-label">Email</label>
-        {{ form.email }}
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Teléfono</label>
-        {{ form.telefono }}
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Fecha de nacimiento</label>
-        {{ form.fecha_nacimiento }}
+  <!-- 1) Datos personales -->
+  <section class="section">
+    <div class="section__head"><h6 class="section__title">1. Datos personales</h6></div>
+    <div class="section__body">
+      <div class="form-grid">
+        <div class="col-4 stack">
+          <label class="form-label">RUT</label>
+          {{ form.rut }}
+          {% for e in form.rut.errors %}<div class="field-errors">{{ e }}</div>{% endfor %}
+        </div>
+
+        <div class="col-4 stack">
+          <label class="form-label">Nombres</label>
+          {{ form.first_name }}
+        </div>
+        <div class="col-4 stack">
+          <label class="form-label">Apellidos</label>
+          {{ form.last_name }}
+        </div>
+
+        <div class="col-8 stack">
+          <label class="form-label">Email</label>
+          {{ form.email }}
+        </div>
+        <div class="col-4 stack">
+          <label class="form-label">Teléfono</label>
+          {{ form.telefono }}
+        </div>
+
+        <div class="col-4 stack">
+          <label class="form-label">Fecha de nacimiento</label>
+          {{ form.fecha_nacimiento }}
+        </div>
       </div>
     </div>
-  </fieldset>
+  </section>
 
-  <fieldset class="card p-3 mb-3">
-    <legend class="h5">Rol y estado</legend>
-    <div class="row g-3">
-      <div class="col-md-6">
-        <label class="form-label">Rol</label>
-        {{ form.tipo_usuario }}
+  <!-- 2) Rol y estado -->
+  <section class="section">
+    <div class="section__head"><h6 class="section__title">2. Rol y estado</h6></div>
+    <div class="section__body">
+      <div class="form-grid">
+        <div class="col-6 stack">
+          <label class="form-label">Rol</label>
+          {{ form.tipo_usuario }}
+        </div>
+        <div class="col-3 d-flex align-items-center" style="gap:.4rem;">
+          {{ form.is_active }} <label class="form-check-label mb-0">Activo</label>
+        </div>
       </div>
-      <div class="col-md-3 d-flex align-items-center gap-2">
-        {{ form.is_active }} <label class="form-check-label">Activo</label>
-      </div>
+      <p class="help-note">
+        Permisos automáticos por rol: Administrador = staff + superusuario; Coordinador = staff; otros = sin staff.
+        {% if not is_edit %}
+          <br>La contraseña inicial se generará como <strong>DDMMAAAA</strong> con la fecha de nacimiento.
+        {% endif %}
+      </p>
     </div>
-    <p class="text-muted mt-2" style="font-size:0.9rem;">
-      Permisos automáticos por rol: Administrador = staff + superusuario; Coordinador = staff; otros = sin staff.
-      {% if not is_edit %}<br>La contraseña inicial se generará como <strong>DDMMAAAA</strong> con la fecha de nacimiento.{% endif %}
-    </p>
-  </fieldset>
+  </section>
 
-  <div class="d-flex gap-2">
-    <button class="btn btn-primary" type="submit">Guardar</button>
-    <a class="btn btn-secondary" href="{% url 'usuarios:usuarios_list' %}">Cancelar</a>
+  <!-- Acciones (centradas) -->
+  <div class="actions-wrap">
+    <a class="btn btn-light btn-compact" href="{% url 'usuarios:usuarios_list' %}">Cancelar</a>
+    <button class="btn btn-primary btn-compact" type="submit">Guardar</button>
   </div>
 </form>
+
 {% endblock %}

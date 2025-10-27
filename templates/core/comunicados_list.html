@@ -1,31 +1,63 @@
-{% extends "base.html" %}
+{% extends "base/plantilla.html" %}
+{% load static %}
+
 {% block title %}Comunicados{% endblock %}
-{% block header %}Listado de Comunicados{% endblock %}
 
-{% block content %}
-  {% if request.user.tipo_usuario in "ADMIN,COORD,PROF,PMUL" %}
-    <p><a class="btn" href="{% url 'core:comunicado_create' %}">➕ Nuevo comunicado</a></p>
+{% block extra_css %}
+  <style>
+    /* === Lista tipo tarjetas === */
+    .com-list{ display:grid; gap:12px; padding:0; margin:0; list-style:none; }
+    .com-card{ border:1px solid #e5e7eb; border-radius:12px; background:#fff; }
+    .com-card .card-body{ padding:14px; }
+    .com-title{ margin:0 0 6px; font-weight:800; }
+    .com-meta{ color:#6b7280; font-size:.9rem; }
+    .com-body{ white-space:pre-wrap; margin:10px 0 0; }
+    .actions{ display:flex; gap:8px; flex-wrap:wrap; }
+  </style>
+{% endblock %}
+
+{# Botón/acción a la derecha de la cabecera fija #}
+{% block header_right %}
+  {% if request.user.tipo_usuario == 'ADMIN' or request.user.tipo_usuario == 'COORD' or request.user.tipo_usuario == 'PROF' or request.user.tipo_usuario == 'PMUL' %}
+    <a class="btn btn-primary" href="{% url 'core:comunicado_create' %}">Nuevo comunicado</a>
   {% endif %}
+{% endblock %}
 
+{# Contenido principal (el header ya lo aporta base/plantilla.html) #}
+{% block body %}
   {% if data %}
-    <ul style="list-style:none; padding:0; display:grid; gap:12px;">
+    <ul class="com-list">
       {% for c in data %}
-        <li style="border:1px solid #ddd; border-radius:8px; padding:12px;">
-          <h3 style="margin:0 0 6px 0;">{{ c.titulo }}</h3>
-          <small>por {{ c.autor.username }} — {{ c.creado|date:"d/m/Y H:i" }}</small>
-          <p style="margin-top:8px; white-space:pre-wrap;">{{ c.cuerpo }}</p>
+        <li class="com-card card shadow-sm">
+          <div class="card-body">
+            <h5 class="com-title"><i class="fas fa-bullhorn mr-2"></i>{{ c.titulo }}</h5>
+            <div class="com-meta">por {{ c.autor.username }} — {{ c.creado|date:"d/m/Y H:i" }}</div>
+            <p class="com-body">{{ c.cuerpo }}</p>
 
-          {% if request.user == c.autor or request.user.tipo_usuario in "ADMIN,COORD" %}
-            <form method="post" action="{% url 'core:comunicado_delete' c.id %}" style="display:inline;">
-              {% csrf_token %}
-              <a class="btn" href="{% url 'core:comunicado_edit' c.id %}">✏️ Editar</a>
-              <button class="btn" type="submit" style="background:#d9534f; color:white;">🗑️ Eliminar</button>
-            </form>
-          {% endif %}
+            {% if request.user == c.autor or request.user.tipo_usuario == 'ADMIN' or request.user.tipo_usuario == 'COORD' %}
+              <div class="actions mt-2">
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'core:comunicado_edit' c.id %}">
+                  <i class="fas fa-pen"></i> Editar
+                </a>
+                <form method="post" action="{% url 'core:comunicado_delete' c.id %}" onsubmit="return confirm('¿Eliminar este comunicado?');" style="display:inline;">
+                  {% csrf_token %}
+                  <button class="btn btn-sm btn-danger" type="submit">
+                    <i class="fas fa-trash-alt"></i> Eliminar
+                  </button>
+                </form>
+              </div>
+            {% endif %}
+          </div>
         </li>
       {% endfor %}
     </ul>
   {% else %}
-    <p>No hay comunicados aún.</p>
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="alert alert-info mb-0">No hay comunicados aún.</div>
+      </div>
+    </div>
   {% endif %}
 {% endblock %}
+
+{% block extra_js %}{% endblock %}

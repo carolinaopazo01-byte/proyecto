@@ -1,174 +1,278 @@
-{% extends "base.html" %}
+{% extends "base/plantilla.html" %}
+{% load static %}
+
 {% block title %}{% if is_edit %}Editar curso{% else %}Crear curso{% endif %}{% endblock %}
-{% block header %}{% if is_edit %}Editar curso{% else %}Crear curso{% endif %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ===== Compact / minimal ===== */
+  :root{
+    --sp-xs:.35rem; --sp-sm:.6rem; --sp-md:.9rem;
+    --fs-xs:.82rem; --fs-sm:.9rem; --fs-md:1rem;
+    --radius:10px;
+    --border:#e5e7eb; --bg-head:#f8fafc;
+  }
+
+  .page { display:flex; flex-direction:column; gap: var(--sp-sm); }
+
+  /* Cabecera (SIN botón Atrás) */
+  .page-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:.75rem; }
+  .page-head-left { display:flex; align-items:center; gap:10px; }
+  .page-title { margin:0; }
+
+  .section { background:#fff; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+  .section__head { padding:.55rem .8rem; background:var(--bg-head); border-bottom:1px solid #eef2f7; }
+  .section__title { font-size:.95rem; font-weight:700; margin:0; letter-spacing:.2px; }
+  .section__body { padding:.8rem; }
+
+  /* Grid compacto */
+  .form-grid { display:grid; grid-template-columns: repeat(12,1fr); gap:.6rem; }
+  .col-12{grid-column:span 12;} .col-6{grid-column:span 6;} .col-4{grid-column:span 4;}
+  .col-3{grid-column:span 3;} .col-2{grid-column:span 2;}
+  @media (max-width: 992px){ .col-6,.col-4,.col-3,.col-2{grid-column:span 12;} }
+
+  .stack{ display:flex; flex-direction:column; gap:.25rem; }
+  .form-label{ font-weight:600; font-size: var(--fs-xs); margin-bottom:0; }
+
+  .section input[type="text"],
+  .section input[type="number"],
+  .section input[type="time"],
+  .section input[type="date"],
+  .section select,
+  .section textarea,
+  .section .form-control,
+  .section .form-select{
+    padding:.3rem .5rem !important;
+    font-size: var(--fs-sm) !important;
+    height:2.1rem;
+    line-height:1.2;
+    border-radius:8px;
+  }
+
+  /* Horarios */
+  .rows{ display:flex; flex-direction:column; gap:.5rem; }
+  .row-box{ border:1px dashed var(--border); border-radius:8px; padding:.6rem; background:#fafafa; }
+
+  /* Botonera IGUAL a “Planificación” */
+  .actions-wrap{
+    position: sticky;
+    bottom:16px;
+    z-index:20;
+    display:flex;
+    justify-content:flex-end;
+    gap:.5rem;
+    padding:.6rem .8rem;
+    max-width:720px;             /* igual que Planificación */
+    margin:1rem auto 0;          /* centrado como Planificación */
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    background:rgba(255,255,255,.95);
+    backdrop-filter:saturate(120%) blur(4px);
+    box-shadow:0 6px 20px rgba(0,0,0,.08);
+  }
+  .btn-compact{ padding:.35rem .7rem; border-radius:8px; }
+
+  .field-errors{ color:#dc3545; font-size:.8rem; margin-top:.1rem; }
+</style>
+{% endblock %}
 
 {% block content %}
-<form method="post" novalidate>
-  {% csrf_token %}
-
-  <!-- 1) Identificación -->
-  <fieldset class="card mb-3 p-3">
-    <legend class="h5">1. Identificación</legend>
-    <div class="row g-3">
-      <div class="col-md-6">
-        <label class="form-label">Nombre del curso</label>
-        {{ form.nombre }}
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Programa</label>
-        {{ form.programa }}
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Disciplina</label>
-        {{ form.disciplina }}
-      </div>
-      <div class="col-md-6">
-        <label class="form-label">Categoría (Sub-12, Adulto, Mixto)</label>
-        {{ form.categoria }}
-      </div>
-      <div class="col-md-6">
-        <label class="form-label">Sede / Recinto</label>
-        {{ form.sede }}
-      </div>
+  <!-- Cabecera con título (SIN botón Atrás) -->
+  <div class="page-head">
+    <div class="page-head-left">
+      <h4 class="page-title">{% if is_edit %}Editar curso{% else %}Crear curso{% endif %}</h4>
     </div>
-  </fieldset>
-
-  <!-- 2) Calendario -->
-  <fieldset class="card mb-3 p-3">
-    <legend class="h5">2. Calendario</legend>
-    <div class="row g-3">
-      <div class="col-md-6">
-        <label class="form-label">Fecha inicio</label>
-        {{ form.fecha_inicio }}
-      </div>
-      <div class="col-md-6">
-        <label class="form-label">Fecha término</label>
-        {{ form.fecha_termino }}
-      </div>
-    </div>
-  </fieldset>
-
-  <!-- 3) Profesorado -->
-  <fieldset class="card mb-3 p-3">
-    <legend class="h5">3. Profesorado</legend>
-    <div class="row g-3">
-      <div class="col-md-6">
-        <label class="form-label">Profesor responsable</label>
-        {{ form.profesor }}
-      </div>
-      <div class="col-md-6">
-        <label class="form-label">Profesores de apoyo (opcional)</label>
-        {{ form.profesores_apoyo }}
-      </div>
-    </div>
-  </fieldset>
-
-  <!-- 4) Horarios estructurados -->
-  <fieldset class="card mb-3 p-3">
-    <legend class="h5">4. Horarios</legend>
-
-    {{ formset.management_form }}
-    <div id="horarios-forms" class="d-flex flex-column gap-2">
-      {% for f in formset %}
-        <div class="row g-2 align-items-end horario-item">
-          <div class="col-md-4">
-            <label class="form-label">Día</label>{{ f.dia }}
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">Hora inicio</label>{{ f.hora_inicio }}
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">Hora fin</label>{{ f.hora_fin }}
-          </div>
-          <div class="col-md-2">
-            {% if f.instance.pk %}
-              <label class="form-label d-block">Eliminar</label>{{ f.DELETE }}
-            {% endif %}
-          </div>
-        </div>
-      {% endfor %}
-    </div>
-
-    <button id="btn-add-horario" type="button" class="btn mt-2">Agregar horario</button>
-
-    <!-- prototipo oculto para nuevas filas -->
-    <template id="empty-form-template">
-      <div class="row g-2 align-items-end horario-item">
-        <div class="col-md-4">
-          <label class="form-label">Día</label>__prefix__-dia
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">Hora inicio</label>__prefix__-hora_inicio
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">Hora fin</label>__prefix__-hora_fin
-        </div>
-        <div class="col-md-2"></div>
-      </div>
-    </template>
-  </fieldset>
-
-  <!-- Cupos e inscripciones -->
-  <fieldset class="card mb-3 p-3">
-    <legend class="h5">Cupos e inscripciones</legend>
-    <div class="row g-3">
-      <div class="col-md-4">
-        <label class="form-label">Cupos totales</label>
-        {{ form.cupos }}
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">Cupos lista de espera (opcional)</label>
-        {{ form.cupos_espera }}
-      </div>
-      <div class="col-md-4 d-flex align-items-center gap-2">
-        {{ form.permitir_inscripcion_rapida }} <label class="form-check-label">Permitir inscripción rápida del profesor en 1ra clase</label>
-      </div>
-    </div>
-  </fieldset>
-
-  <!-- 5) Visibilidad/Estado -->
-  <fieldset class="card mb-3 p-3">
-    <legend class="h5">5. Visibilidad / Estado</legend>
-    <div class="row g-3">
-      <div class="col-md-3 d-flex align-items-center gap-2">
-        {{ form.publicado }} <label class="form-check-label">Publicado</label>
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">Estado</label>
-        {{ form.estado }}
-      </div>
-    </div>
-  </fieldset>
-
-  <div class="mt-3 d-flex gap-2">
-    <button class="btn btn-primary" type="submit">{% if is_edit %}Guardar cambios{% else %}Guardar{% endif %}</button>
-    <a class="btn btn-secondary" href="{% url 'core:cursos_list' %}">Cancelar</a>
   </div>
-</form>
 
+  <form method="post" novalidate class="page">
+    {% csrf_token %}
+
+    <!-- 1) Identificación -->
+    <section class="section">
+      <div class="section__head"><h6 class="section__title">1. Identificación</h6></div>
+      <div class="section__body">
+        <div class="form-grid">
+          <div class="col-6 stack">
+            <label class="form-label">Nombre del curso</label>
+            {{ form.nombre }}{% if form.nombre.errors %}<div class="field-errors">{{ form.nombre.errors|join:", " }}</div>{% endif %}
+          </div>
+          <div class="col-3 stack">
+            <label class="form-label">Programa</label>
+            {{ form.programa }}{% if form.programa.errors %}<div class="field-errors">{{ form.programa.errors|join:", " }}</div>{% endif %}
+          </div>
+          <div class="col-3 stack">
+            <label class="form-label">Disciplina</label>
+            {{ form.disciplina }}{% if form.disciplina.errors %}<div class="field-errors">{{ form.disciplina.errors|join:", " }}</div>{% endif %}
+          </div>
+          <div class="col-6 stack">
+            <label class="form-label">Categoría (Sub-12, Adulto, Mixto)</label>
+            {{ form.categoria }}{% if form.categoria.errors %}<div class="field-errors">{{ form.categoria.errors|join:", " }}</div>{% endif %}
+          </div>
+          <div class="col-6 stack">
+            <label class="form-label">Sede / Recinto</label>
+            {{ form.sede }}{% if form.sede.errors %}<div class="field-errors">{{ form.sede.errors|join:", " }}</div>{% endif %}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2) Calendario -->
+    <section class="section">
+      <div class="section__head"><h6 class="section__title">2. Calendario</h6></div>
+      <div class="section__body">
+        <div class="form-grid">
+          <div class="col-6 stack">
+            <label class="form-label">Fecha inicio</label>
+            {{ form.fecha_inicio }}{% if form.fecha_inicio.errors %}<div class="field-errors">{{ form.fecha_inicio.errors|join:", " }}</div>{% endif %}
+          </div>
+          <div class="col-6 stack">
+            <label class="form-label">Fecha término</label>
+            {{ form.fecha_termino }}{% if form.fecha_termino.errors %}<div class="field-errors">{{ form.fecha_termino.errors|join:", " }}</div>{% endif %}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3) Profesorado -->
+    <section class="section">
+      <div class="section__head"><h6 class="section__title">3. Profesorado</h6></div>
+      <div class="section__body">
+        <div class="form-grid">
+          <div class="col-6 stack">
+            <label class="form-label">Profesor responsable</label>
+            {{ form.profesor }}{% if form.profesor.errors %}<div class="field-errors">{{ form.profesor.errors|join:", " }}</div>{% endif %}
+          </div>
+          <div class="col-6 stack">
+            <label class="form-label">Profesores de apoyo (opcional)</label>
+            {{ form.profesores_apoyo }}{% if form.profesores_apoyo.errors %}<div class="field-errors">{{ form.profesores_apoyo.errors|join:", " }}</div>{% endif %}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4) Horarios -->
+    <section class="section">
+      <div class="section__head d-flex align-items-center justify-content-between">
+        <h6 class="section__title mb-0">4. Horarios</h6>
+        <button id="btn-add-horario" type="button" class="btn btn-outline-primary btn-compact">Agregar horario</button>
+      </div>
+      <div class="section__body">
+        {{ formset.management_form }}
+        <div class="rows" id="horarios-forms">
+          {% for f in formset %}
+            <div class="row-box">
+              <div class="form-grid">
+                <div class="col-4 stack">
+                  <label class="form-label">Día</label>{{ f.dia }}{% if f.dia.errors %}<div class="field-errors">{{ f.dia.errors|join:", " }}</div>{% endif %}
+                </div>
+                <div class="col-3 stack">
+                  <label class="form-label">Hora inicio</label>{{ f.hora_inicio }}{% if f.hora_inicio.errors %}<div class="field-errors">{{ f.hora_inicio.errors|join:", " }}</div>{% endif %}
+                </div>
+                <div class="col-3 stack">
+                  <label class="form-label">Hora fin</label>{{ f.hora_fin }}{% if f.hora_fin.errors %}<div class="field-errors">{{ f.hora_fin.errors|join:", " }}</div>{% endif %}
+                </div>
+                <div class="col-2 stack">
+                  {% if f.instance.pk %}
+                    <label class="form-label d-block">Eliminar</label>{{ f.DELETE }}
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- prototipo oculto para nuevas filas -->
+        <template id="empty-form-template">
+          <div class="row-box">
+            <div class="form-grid">
+              <div class="col-4 stack">
+                <label class="form-label">Día</label>__prefix__-dia
+              </div>
+              <div class="col-3 stack">
+                <label class="form-label">Hora inicio</label>__prefix__-hora_inicio
+              </div>
+              <div class="col-3 stack">
+                <label class="form-label">Hora fin</label>__prefix__-hora_fin
+              </div>
+              <div class="col-2"></div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </section>
+
+    <!-- 5) Cupos e inscripciones -->
+    <section class="section">
+      <div class="section__head"><h6 class="section__title">5. Cupos e inscripciones</h6></div>
+      <div class="section__body">
+        <div class="form-grid">
+          <div class="col-4 stack">
+            <label class="form-label">Cupos totales</label>
+            {{ form.cupos }}{% if form.cupos.errors %}<div class="field-errors">{{ form.cupos.errors|join:", " }}</div>{% endif %}
+          </div>
+          <div class="col-4 stack">
+            <label class="form-label">Cupos lista de espera (opcional)</label>
+            {{ form.cupos_espera }}{% if form.cupos_espera.errors %}<div class="field-errors">{{ form.cupos_espera.errors|join:", " }}</div>{% endif %}
+          </div>
+          <div class="col-4 d-flex align-items-center">
+            {{ form.permitir_inscripcion_rapida }}
+            <label class="form-check-label ml-2">Permitir inscripción rápida del profesor en 1ra clase</label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6) Visibilidad / Estado -->
+    <section class="section">
+      <div class="section__head"><h6 class="section__title">6. Visibilidad / Estado</h6></div>
+      <div class="section__body">
+        <div class="form-grid">
+          <div class="col-3 d-flex align-items-center">
+            {{ form.publicado }} <label class="form-check-label ml-2">Publicado</label>
+          </div>
+          <div class="col-4 stack">
+            <label class="form-label">Estado</label>
+            {{ form.estado }}{% if form.estado.errors %}<div class="field-errors">{{ form.estado.errors|join:", " }}</div>{% endif %}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ACCIONES (IGUALES A PLANIFICACIÓN) -->
+    <div class="actions-wrap">
+      <a class="btn btn-light btn-compact" href="{% url 'core:cursos_list' %}">Cancelar</a>
+      <button class="btn btn-primary btn-compact" type="submit">
+        {% if is_edit %}Guardar cambios{% else %}Guardar{% endif %}
+      </button>
+    </div>
+  </form>
+{% endblock %}
+
+{% block extra_js %}
 <script>
-  // Agregar filas de horarios usando empty_form
+  // Agregar filas de horarios (compacto)
   (function(){
     const container = document.getElementById("horarios-forms");
     const btnAdd = document.getElementById("btn-add-horario");
     const total = document.querySelector('input[name$="TOTAL_FORMS"]');
-    const template = document.getElementById("empty-form-template").innerHTML;
-
-    if (!btnAdd || !total) return;
+    const template = document.getElementById("empty-form-template");
+    if (!btnAdd || !total || !template) return;
 
     btnAdd.addEventListener("click", () => {
-      const index = parseInt(total.value, 10);
-      let html = template.replace(/__prefix__-dia/g, `<select name="horarios-${index}-dia" id="id_horarios-${index}-dia" class="form-select">
-        <option value="0">Lunes</option><option value="1">Martes</option><option value="2">Miércoles</option>
-        <option value="3">Jueves</option><option value="4">Viernes</option><option value="5">Sábado</option><option value="6">Domingo</option>
-      </select>`);
-      html = html.replace(/__prefix__-hora_inicio/g, `<input type="time" name="horarios-${index}-hora_inicio" id="id_horarios-${index}-hora_inicio" class="form-control">`);
-      html = html.replace(/__prefix__-hora_fin/g, `<input type="time" name="horarios-${index}-hora_fin" id="id_horarios-${index}-hora_fin" class="form-control">`);
-
-      const wrapper = document.createElement("div");
-      wrapper.innerHTML = html.trim();
-      container.appendChild(wrapper.firstChild);
-
+      const index = parseInt(total.value || "0", 10);
+      let html = template.innerHTML
+        .replace(/__prefix__-dia/g,
+          `<select name="horarios-${index}-dia" id="id_horarios-${index}-dia" class="form-control">
+            <option value="0">Lunes</option><option value="1">Martes</option><option value="2">Miércoles</option>
+            <option value="3">Jueves</option><option value="4">Viernes</option><option value="5">Sábado</option><option value="6">Domingo</option>
+          </select>`)
+        .replace(/__prefix__-hora_inicio/g,
+          `<input type="time" name="horarios-${index}-hora_inicio" id="id_horarios-${index}-hora_inicio" class="form-control">`)
+        .replace(/__prefix__-hora_fin/g,
+          `<input type="time" name="horarios-${index}-hora_fin" id="id_horarios-${index}-hora_fin" class="form-control">`);
+      const wrap = document.createElement("div");
+      wrap.innerHTML = html.trim();
+      container.appendChild(wrap.firstChild);
       total.value = index + 1;
     });
   })();

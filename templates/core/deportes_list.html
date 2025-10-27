@@ -1,38 +1,69 @@
-{% extends "base.html" %}
+{% extends "base/plantilla.html" %}
+{% load static %}
+
 {% block title %}Deportes{% endblock %}
-{% block header %}Deportes{% endblock %}
+
+{% block extra_css %}
+<style>
+  .page-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .page-head-left { display:flex; align-items:center; gap:10px; }
+  .table thead th { white-space:nowrap; }
+  .actions { display:flex; gap:8px; flex-wrap:wrap; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div style="display:flex; gap:10px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
-  <a class="btn" href="{% url 'core:deporte_create' %}">+ Nuevo deporte</a>
-</div>
+  <div class="page-head mb-3">
+    <div class="page-head-left">
+      <h4 class="mb-0">Deportes</h4>
+    </div>
+    <a class="btn btn-primary" href="{% url 'core:deporte_create' %}">Nuevo deporte</a>
+  </div>
 
-{% if items %}
-  <table class="table table-striped">
-    <thead>
-      <tr>
-        <th>Nombre</th>
-        <th>Categoría</th>
-        <th style="width:180px;">Acciones</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for d in items %}
-        <tr>
-          <td>{{ d.nombre }}</td>
-          <td>{{ d.categoria }}</td>
-          <td>
-            <a class="btn" href="{% url 'core:deporte_edit' d.id %}">Editar</a>
-            <form method="post" action="{% url 'core:deporte_delete' d.id %}" style="display:inline;" onsubmit="return confirm('¿Eliminar este deporte?');">
-              {% csrf_token %}
-              <button class="btn" type="submit" style="background:#d9534f; color:#fff;">Eliminar</button>
-            </form>
-          </td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-{% else %}
-  <p>No hay deportes cargados.</p>
-{% endif %}
+  {% if items %}
+    <div class="card shadow-sm">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="thead-light">
+              <tr>
+                <th>Nombre</th>
+                <th>Categoría</th>
+                <th style="min-width:160px;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for d in items %}
+              <tr>
+                <td>{{ d.nombre }}</td>
+                <td>{{ d.categoria }}</td>
+                <td>
+                  <div class="actions">
+                    <a class="btn btn-sm btn-outline-primary" href="{% url 'core:deporte_edit' d.id %}">
+                      <i class="fas fa-pen"></i> Editar
+                    </a>
+                    <form method="post" action="{% url 'core:deporte_delete' d.id %}" style="display:inline;">
+                      {% csrf_token %}
+                      <button class="btn btn-sm btn-danger"
+                              type="submit"
+                              onclick="return confirm('¿Eliminar este deporte?');">
+                        <i class="fas fa-trash-alt"></i> Eliminar
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-info mb-0">
+      No hay deportes cargados.
+    </div>
+  {% endif %}
 {% endblock %}
+
+{% block extra_js %}{% endblock %}

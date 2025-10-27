@@ -1,36 +1,75 @@
-{% extends "base.html" %}
+{% extends "base/plantilla.html" %}
 {% block title %}Atletas{% endblock %}
-{% block header %}Listado de atletas{% endblock %}
-{% block content %}
-<div style="display:flex; gap:10px; margin-bottom:10px;">
-  <a class="btn" href="{% url 'core:atleta_create' %}">➕ Nuevo atleta</a>
-  <form method="get">
-    <input type="text" name="q" value="{{ q }}" placeholder="Buscar por RUT" style="padding:5px;">
-    <button class="btn">Buscar</button>
-  </form>
-</div>
 
-{% if atletas %}
-<table class="table table-striped">
-  <thead><tr><th>Nombre</th><th>RUT</th><th>Edad</th><th>Comuna</th><th>Acciones</th></tr></thead>
-  <tbody>
-    {% for a in atletas %}
-    <tr>
-      <td>{{ a.usuario.get_full_name }}</td>
-      <td>{{ a.rut }}</td>
-      <td>{{ a.edad }}</td>
-      <td>{{ a.comuna }}</td>
-      <td>
-        <a class="btn" href="{% url 'core:atleta_edit' a.id %}">Editar</a>
-        <form method="post" action="{% url 'core:atleta_delete' a.id %}" style="display:inline;">{% csrf_token %}
-          <button class="btn btn-danger" onclick="return confirm('¿Eliminar?');">Eliminar</button>
-        </form>
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-{% else %}
-<p>No hay atletas registrados.</p>
-{% endif %}
+{% block extra_css %}
+<style>
+  .page-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .page-head-left { display:flex; align-items:center; gap:10px; }
+  .table thead th { white-space:nowrap; }
+  .actions { display:flex; gap:8px; flex-wrap:wrap; }
+  .search-input { padding:5px; }
+</style>
 {% endblock %}
+
+{% block header %}Listado de atletas{% endblock %}
+
+{% block content %}
+  <!-- Cabecera con mismas distancias -->
+  <div class="page-head mb-3">
+    <div class="page-head-left">
+      <form method="get" class="d-flex align-items-center" role="search">
+        <input type="text" name="q" value="{{ q }}" placeholder="Buscar por RUT" class="form-control form-control-sm search-input">
+        <button class="btn btn-sm btn-outline-primary ml-2" type="submit">Buscar</button>
+      </form>
+    </div>
+
+    <a class="btn btn-primary" href="{% url 'core:atleta_create' %}">Nuevo atleta</a>
+  </div>
+
+  {% if atletas %}
+    <div class="card shadow-sm">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="thead-light">
+              <tr>
+                <th>Nombre</th>
+                <th>RUT</th>
+                <th>Edad</th>
+                <th>Comuna</th>
+                <th style="min-width:160px;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for a in atletas %}
+              <tr>
+                <td>{{ a.usuario.get_full_name }}</td>
+                <td>{{ a.rut }}</td>
+                <td>{{ a.edad }}</td>
+                <td>{{ a.comuna }}</td>
+                <td>
+                  <div class="actions">
+                    <a class="btn btn-sm btn-outline-primary" href="{% url 'core:atleta_edit' a.id %}">
+                      <i class="fas fa-pen"></i> Editar
+                    </a>
+                    <form method="post" action="{% url 'core:atleta_delete' a.id %}" style="display:inline;">
+                      {% csrf_token %}
+                      <button class="btn btn-sm btn-danger" type="submit" onclick="return confirm('¿Eliminar?');">
+                        <i class="fas fa-trash-alt"></i> Eliminar
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-info mb-0">No hay atletas registrados.</div>
+  {% endif %}
+{% endblock %}
+
+{% block extra_js %}{% endblock %}
