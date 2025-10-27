@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block header %}Publicar franjas recurrentes{% endblock %}
+{% block content %}
+<form method="post">{% csrf_token %}
+  <div class="row g-3">
+    <div class="col-md-6">
+      <label class="form-label">Días</label>
+      <div class="form-control" style="height:auto;">
+        {{ form.dias_semana }}
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label">Hora inicio (día)</label>
+      {{ form.hora_inicio_dia }}
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Hora término (día)</label>
+      {{ form.hora_fin_dia }}
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label">Duración (min)</label>
+      {{ form.duracion_min }}
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Cada (min)</label>
+      {{ form.cada_min }}
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Semanas</label>
+      {{ form.semanas }}
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Piso</label>
+      {{ form.piso }}
+    </div>
+    <div class="col-md-12">
+      <label class="form-label">Notas</label>
+      {{ form.notas }}
+    </div>
+  </div>
+
+  <button class="btn btn-primary mt-3">Generar</button>
+  <a class="btn btn-secondary mt-3" href="{% url 'pmul:slots_list' %}">Cancelar</a>
+</form>
+{% endblock %}

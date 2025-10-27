@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block header %}Mis cursos{% endblock %}
+{% block content %}
+<table border="1" cellpadding="6" cellspacing="0">
+  <thead><tr><th>Curso</th><th>Disciplina</th><th>Sede</th><th>Profesor</th></tr></thead>
+  <tbody>
+  {% for i in inscripciones %}
+    <tr>
+      <td>{{ i.curso.nombre }}</td>
+      <td>{{ i.curso.disciplina }}</td>
+      <td>{{ i.curso.sede }}</td>
+      <td>{{ i.curso.profesor.get_full_name|default:i.curso.profesor.username }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="4">No tienes cursos inscritos.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

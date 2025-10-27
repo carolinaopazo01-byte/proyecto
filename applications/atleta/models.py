@@ -1,8 +1,8 @@
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from applications.core.models import SedeDeporte
 from datetime import date
+from django.utils import timezone
 
 Usuario = settings.AUTH_USER_MODEL
 
@@ -12,7 +12,7 @@ class Atleta(models.Model):
         BECADO = 'BEC', 'Becado'
         ALTO_REND = 'AR', 'Alto rendimiento'
 
-    # Relación con el usuario (nombres, email, etc. suelen vivir ahí)
+    # Relación con el usuario (nombres, email, etc.)
     usuario = models.OneToOneField(
         Usuario,
         on_delete=models.CASCADE,
@@ -23,19 +23,18 @@ class Atleta(models.Model):
     rut = models.CharField(max_length=12, unique=True)
     fecha_nacimiento = models.DateField(null=True, blank=True)
     direccion = models.CharField(max_length=200, blank=True)
-    comuna = models.CharField(max_length=80, blank=True)  # NUEVO
-    edad = models.PositiveSmallIntegerField(null=True, blank=True, editable=False)  # NUEVO (autocalculada)
+    comuna = models.CharField(max_length=80, blank=True)
+    edad = models.PositiveSmallIntegerField(null=True, blank=True, editable=False)
 
     # Clasificación/estado
     tipo_atleta = models.CharField(max_length=3, choices=TipoAtleta.choices, default=TipoAtleta.BECADO)
     estado = models.CharField(max_length=50, blank=True)
     faltas_consecutivas = models.IntegerField(default=0)
 
-    # Tutor / representante legal (ya existente)
+    # Tutor / representante legal
     apoderado = models.ForeignKey('usuarios.Apoderado', on_delete=models.SET_NULL, null=True, blank=True)
 
-    # 3) Información deportiva del atleta (NUEVO)
-    # Ojo: Inscripción ya amarra a SedeDeporte/Deporte; estos campos son de "postulación/logros"
+    # Información deportiva (postulación/logros)
     pertenece_organizacion = models.BooleanField(default=False)
     club_nombre = models.CharField(max_length=120, blank=True)
     logro_nacional = models.BooleanField(default=False)
@@ -44,7 +43,6 @@ class Atleta(models.Model):
     puntaje_o_logro = models.CharField(max_length=120, blank=True)
 
     def __str__(self):
-        # get_full_name puede no existir si el user model es custom; si no, usa str(self.usuario)
         try:
             nombre = self.usuario.get_full_name()
         except AttributeError:
@@ -78,76 +76,81 @@ class Atleta(models.Model):
 
     # --------- persistencia ----------
     def save(self, *args, **kwargs):
-        # calcula y persiste la edad siempre que haya fecha_nacimiento
         self.edad = self._calc_edad()
         super().save(*args, **kwargs)
 
 
 class Inscripcion(models.Model):
-    atleta = models.ForeignKey(Atleta, on_delete=models.CASCADE, related_name='inscripciones')
-    sede_deporte = models.ForeignKey(SedeDeporte, on_delete=models.CASCADE, related_name='inscripciones')
-    fecha = models.DateField(auto_now_add=True)
-    activa = models.BooleanField(default=True)
+    atleta = models.ForeignKey("atleta.Atleta", on_delete=models.CASCADE, related_name="inscripciones")
+    # Dejar null=True/blank=True si tienes datos previos sin curso; luego puedes hacerlo obligatorio
+    curso = models.ForeignKey("core.Curso", on_delete=models.CASCADE, related_name="inscripciones", null=True,
+                              blank=True)
+    fecha  = models.DateField(default=timezone.now)
+    estado = models.CharField(
+        max_length=20,
+        choices=[("ACTIVA", "Activa"), ("INACTIVA", "Inactiva")],
+        default="ACTIVA",
+    )
 
     class Meta:
-        unique_together = ('atleta', 'sede_deporte')
-
-    def clean(self):
-        if self.activa:
-            ocupados = Inscripcion.objects.filter(
-                sede_deporte=self.sede_deporte, activa=True
-            ).exclude(pk=self.pk).count()
-            if ocupados >= self.sede_deporte.cupos_max:
-                raise ValidationError("No quedan cupos disponibles para esta disciplina en la sede.")
+        constraints = [
+            models.UniqueConstraint(fields=["atleta", "curso"], name="uniq_inscripcion_atleta_curso")
+        ]
 
     def __str__(self):
-        return f"{self.atleta} -> {self.sede_deporte}"
+        return f"{self.atleta} → {self.curso}"
 
 
 class Clase(models.Model):
-    sede_deporte = models.ForeignKey(SedeDeporte, on_delete=models.CASCADE, related_name='clases')
-    profesor = models.ForeignKey('usuarios.Profesor', on_delete=models.SET_NULL, null=True)
+    # Hacemos null=True/blank=True para migrar sin prompt; luego puedes quitarlo cuando completes datos
+    curso = models.ForeignKey("core.Curso", on_delete=models.CASCADE, related_name="clases", null=True, blank=True)
+    profesor = models.ForeignKey(Usuario, on_delete=models.CASCADE)
     fecha = models.DateField()
     hora_inicio = models.TimeField()
     hora_fin = models.TimeField()
-    tema = models.CharField(max_length=150, blank=True)
-    descripcion = models.TextField(blank=True)
+    tema = models.CharField(max_length=100)
+    descripcion = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"{self.sede_deporte} / {self.fecha}"
-
+        # Evita fallar si curso está NULL temporalmente
+        curso_txt = str(self.curso) if self.curso else "—"
+        return f"{curso_txt} - {self.tema} ({self.fecha})"
 
 class AsistenciaAtleta(models.Model):
     clase = models.ForeignKey(Clase, on_delete=models.CASCADE, related_name='asistencias')
-    atleta = models.ForeignKey(Atleta, on_delete=models.CASCADE, related_name='asistencias')
+    atleta = models.ForeignKey(Atleta, on_delete=models.CASCADE, related_name='asistencias', null=True, blank=True)
     presente = models.BooleanField(default=False)
     observaciones = models.CharField(max_length=200, blank=True)
-
-    # NUEVO:
     registrada_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True, blank=True,
         related_name='asistencias_registradas'
     )
-    registrada_en = models.DateTimeField(auto_now_add=True)
+    registrada_en = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
     class Meta:
-        unique_together = ('clase', 'atleta')
+        constraints = [
+            models.UniqueConstraint(fields=["clase", "atleta"], name="uniq_asistencia_atleta_por_clase")
+        ]
 
     def __str__(self):
         return f"{self.atleta} - {self.clase} : {'Presente' if self.presente else 'Ausente'}"
 
+
 class AsistenciaProfesor(models.Model):
     profesor = models.ForeignKey('usuarios.Profesor', on_delete=models.CASCADE)
-    fecha = models.DateField()
+    # Default para no pedir valor en migración
+    fecha = models.DateField(default=timezone.now)
     hora_entrada = models.TimeField(null=True, blank=True)
     hora_salida = models.TimeField(null=True, blank=True)
     horas_trabajadas = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     observaciones = models.CharField(max_length=200, blank=True)
 
     class Meta:
-        unique_together = ('profesor', 'fecha')
+        constraints = [
+            models.UniqueConstraint(fields=["profesor", "fecha"], name="uniq_asistencia_profesor_fecha")
+        ]
 
     def __str__(self):
         return f"{self.profesor} {self.fecha}"

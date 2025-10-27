@@ -8,6 +8,12 @@ from django.urls import reverse
 
 from .models import Usuario
 
+def rut_equivalente(rut):
+    """Convierte cualquier formato de RUT a uno comparable, solo números y DV."""
+    if not rut:
+        return ""
+    return rut.replace(".", "").replace("-", "").strip().upper()
+
 def role_required(*roles):
     """
     Usa: @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, ...)

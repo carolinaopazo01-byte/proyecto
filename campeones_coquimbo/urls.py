@@ -9,6 +9,8 @@ urlpatterns = [
     path("atleta/", include("applications.atleta.urls", namespace="atleta")),
     path("usuarios/", include("applications.usuarios.urls", namespace="usuarios")),
     path("evaluaciones/", include("applications.evaluaciones.urls", namespace="evaluaciones")),
+    path("pmul/", include("applications.pmul.urls", namespace="pmul")),
+    path("apoderado/", include("applications.apoderado.urls", namespace="apoderado")),
 ]
 
 if settings.DEBUG:

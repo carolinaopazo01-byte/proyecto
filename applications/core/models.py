@@ -1,11 +1,11 @@
 # applications/core/models.py
 from django.db import models
 from django.conf import settings
-from django.utils import timezone
 from datetime import date
-import datetime
+from django.utils.timezone import localdate
 
 Usuario = settings.AUTH_USER_MODEL
+
 
 class Sede(models.Model):
     nombre = models.CharField(max_length=150)
@@ -18,6 +18,7 @@ class Sede(models.Model):
     def __str__(self):
         return self.nombre
 
+
 class Deporte(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     categoria = models.CharField(max_length=100, blank=True)
@@ -25,6 +26,7 @@ class Deporte(models.Model):
 
     def __str__(self):
         return self.nombre
+
 
 class SedeDeporte(models.Model):
     sede = models.ForeignKey(Sede, on_delete=models.CASCADE, related_name="disciplinas")
@@ -39,6 +41,7 @@ class SedeDeporte(models.Model):
     def __str__(self):
         return f"{self.sede} - {self.deporte}"
 
+
 class Evento(models.Model):
     nombre = models.CharField(max_length=150)
     tipo = models.CharField(max_length=100, blank=True)
@@ -48,6 +51,7 @@ class Evento(models.Model):
 
     def __str__(self):
         return f"{self.nombre} ({self.fecha})"
+
 
 class Comunicado(models.Model):
     titulo = models.CharField(max_length=200)
@@ -61,50 +65,6 @@ class Comunicado(models.Model):
     def __str__(self):
         return self.titulo
 
-class Planificacion(models.Model):
-    """
-    Planificación por curso y semana. Guarda el archivo 'vigente' y
-    quién lo subió. El campo 'semana' guarda la fecha del LUNES de esa semana.
-    """
-    curso = models.ForeignKey("core.Curso", on_delete=models.CASCADE, related_name="planificaciones")
-    semana = models.DateField(help_text="Fecha del lunes de la semana")
-    archivo = models.FileField(upload_to="planificaciones/%Y/%m/", null=True, blank=True)
-    autor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
-    creado = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = ("curso", "semana")  # 1 planificación vigente por curso/semana
-        ordering = ["-semana", "-creado"]
-
-    def __str__(self):
-        return f"{self.curso} · semana {self.semana}"
-
-class PlanificacionVersion(models.Model):
-    """
-    Historial de versiones para una Planificación (cada vez que se sube un nuevo archivo).
-    """
-    planificacion = models.ForeignKey(Planificacion, on_delete=models.CASCADE, related_name="versiones")
-    archivo = models.FileField(upload_to="planificaciones/versiones/%Y/%m/")
-    creado = models.DateTimeField(auto_now_add=True)
-    autor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
-
-    class Meta:
-        ordering = ["-creado"]
-
-    def __str__(self):
-        return f"Versión {self.id} de {self.planificacion}"
-
-class AsistenciaClase(models.Model):
-    curso_id = models.IntegerField()  # placeholder hasta que Curso tenga su flujo completo
-    fecha = models.DateField()
-    profesor = models.ForeignKey(Usuario, on_delete=models.PROTECT)
-    creado = models.DateTimeField(auto_now_add=True)
-
-class AsistenciaAlumno(models.Model):
-    asistencia = models.ForeignKey(AsistenciaClase, on_delete=models.CASCADE, related_name="alumnos")
-    estudiante_id = models.IntegerField()  # placeholder hasta modelo Estudiante
-    presente = models.BooleanField(default=False)
-    justificado = models.BooleanField(default=False)
 
 class Curso(models.Model):
     class Programa(models.TextChoices):
@@ -117,18 +77,10 @@ class Curso(models.Model):
         CERRADAS   = "CER", "Inscripciones cerradas"
         ARCHIVADO  = "ARC", "Archivado"
 
-    # -------- 1) Identificación --------
+    # -------- Identificación --------
     nombre = models.CharField(max_length=120)
     programa = models.CharField(max_length=5, choices=Programa.choices, default=Programa.FORMATIVO)
-    disciplina = models.ForeignKey('core.Deporte', on_delete=models.PROTECT)
-    categoria = models.CharField(max_length=80, blank=True)  # ej: Sub-12, Adulto, Mixto
-    sede = models.ForeignKey('core.Sede', on_delete=models.PROTECT)
-
-    # -------- 2) Calendario --------
-    fecha_inicio = models.DateField(null=True, blank=True)
-    fecha_termino = models.DateField(null=True, blank=True)
-
-    # -------- 3) Profesorado --------
+    disciplina = models.ForeignKey("core.Deporte", on_delete=models.PROTECT)
     profesor = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -142,33 +94,39 @@ class Curso(models.Model):
         limit_choices_to={"tipo_usuario": "PROF"},
         help_text="Profesores de apoyo (opcional, múltiple)",
     )
+    categoria = models.CharField(max_length=80, blank=True)
+    sede = models.ForeignKey("core.Sede", on_delete=models.PROTECT)
 
-    # -------- 4) Cupos e inscripciones --------
+    # -------- Calendario --------
+    fecha_inicio = models.DateField(null=True, blank=True)
+    fecha_termino = models.DateField(null=True, blank=True)
+
+    # -------- Cupos e inscripciones --------
     cupos = models.PositiveIntegerField(default=20)
     cupos_espera = models.PositiveIntegerField(default=0, help_text="Opcional: cupos de lista de espera")
     permitir_inscripcion_rapida = models.BooleanField(
         default=False,
-        help_text="Permitir inscripción rápida del profesor en 1ra clase"
+        help_text="Permitir inscripción rápida del profesor en 1ra clase",
     )
 
-    # -------- 5) Visibilidad/Estado --------
+    # -------- Estado --------
     publicado = models.BooleanField(default=False)
     estado = models.CharField(max_length=3, choices=Estado.choices, default=Estado.BORRADOR)
 
     # -------- Compatibilidad (antiguos) --------
-    # Campo antiguo de horario en texto: lo dejamos pero ya NO se usa en el formulario nuevo.
+    # campo de texto antiguo; ya no se usa pero lo mantenemos por compatibilidad
     horario = models.CharField(
         max_length=120,
         blank=True,
         default="",
-        help_text="(Deprecado) Ej: Lun y Mié 18:00-19:30. Usar horarios estructurados."
+        help_text="(Deprecado) Ej: Lun y Mié 18:00-19:30. Usar horarios estructurados.",
     )
     lista_espera = models.BooleanField(
         default=True,
-        help_text="(Deprecado) Usa 'cupos_espera' en su lugar."
+        help_text="(Deprecado) Usa 'cupos_espera' en su lugar.",
     )
 
-    # Meta
+    # meta
     creado = models.DateTimeField(auto_now_add=True)
     modificado = models.DateTimeField(auto_now=True)
 
@@ -177,6 +135,16 @@ class Curso(models.Model):
 
     def __str__(self):
         return f"{self.nombre} - {self.get_programa_display()} - {self.disciplina}"
+
+    # >>> helper para mostrar horarios en las tablas
+    def horarios_str(self) -> str:
+        qs = self.horarios.all().order_by("dia", "hora_inicio")
+        if not qs.exists():
+            return self.horario or "—"
+        return " · ".join(
+            f"{h.get_dia_display()} {h.hora_inicio:%H:%M}-{h.hora_fin:%H:%M}"
+            for h in qs
+        )
 
 
 class CursoHorario(models.Model):
@@ -200,25 +168,95 @@ class CursoHorario(models.Model):
     def __str__(self):
         return f"{self.curso.nombre}: {self.get_dia_display()} {self.hora_inicio}-{self.hora_fin}"
 
-class Estudiante(models.Model):
 
+class Planificacion(models.Model):
+    curso  = models.ForeignKey('core.Curso', on_delete=models.CASCADE,
+                               related_name='planificaciones', null=True, blank=True)
+    semana = models.DateField(null=True, blank=True, help_text='Fecha del lunes de la semana')
+    semana_iso = models.CharField(max_length=10, blank=True, default="", db_index=True)
+    archivo = models.FileField(upload_to="planificaciones/", blank=True, null=True)
+    comentarios = models.TextField(blank=True, null=True)
+    publica = models.BooleanField(default=False)
+    autor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                              on_delete=models.SET_NULL)
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-semana", "-creado"]
+        indexes = [
+            models.Index(fields=["curso", "semana"]),
+            models.Index(fields=["semana_iso"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=["curso", "semana"], name="uniq_plan_curso_semana"),
+        ]
+
+    def __str__(self):
+        return f"{self.curso} · semana {self.semana}"
+
+    def set_semana_iso(self):
+        if self.semana:
+            iso_year, iso_week, _ = self.semana.isocalendar()
+            self.semana_iso = f"{iso_year}-W{int(iso_week):02d}"
+
+    def save(self, *args, **kwargs):
+        # aseguramos semana_iso cada vez
+        self.set_semana_iso()
+        super().save(*args, **kwargs)
+
+class PlanificacionVersion(models.Model):
+    planificacion = models.ForeignKey(Planificacion, on_delete=models.CASCADE, related_name="versiones")
+    archivo = models.FileField(upload_to="planificaciones/versiones/%Y/%m/")
+    creado = models.DateTimeField(auto_now_add=True)
+    autor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+
+    class Meta:
+        ordering = ["-creado"]
+
+    def __str__(self):
+        return f"Versión {self.id} de {self.planificacion}"
+
+
+class AsistenciaClase(models.Model):
+    # placeholder hasta integrar con tus clases reales
+    curso_id = models.IntegerField()
+    fecha = models.DateField()
+    profesor = models.ForeignKey(Usuario, on_delete=models.PROTECT)
+    creado = models.DateTimeField(auto_now_add=True)
+
+
+class AsistenciaAlumno(models.Model):
+    asistencia = models.ForeignKey(AsistenciaClase, on_delete=models.CASCADE, related_name="alumnos")
+    estudiante_id = models.IntegerField()
+    presente = models.BooleanField(default=False)
+    justificado = models.BooleanField(default=False)
+
+
+class Estudiante(models.Model):
     rut = models.CharField(max_length=12, unique=True)
     nombres = models.CharField(max_length=120)
     apellidos = models.CharField(max_length=120)
     fecha_nacimiento = models.DateField(null=True, blank=True)
     email = models.EmailField(blank=True, null=True)
-    telefono = models.CharField(max_length=30, blank=True, null=True)
-    curso = models.ForeignKey('core.Curso', on_delete=models.SET_NULL, blank=True, null=True)
+    telefono = models.CharField(max_length=20, blank=True, null=True)
+    curso = models.ForeignKey("core.Curso", on_delete=models.SET_NULL, blank=True, null=True)
     activo = models.BooleanField(default=True)
-    direccion = models.CharField(max_length=200, blank=True, default="")
-    comuna = models.CharField(max_length=80, blank=True, default="")
+
+    direccion = models.CharField(max_length=150, blank=True, null=True)
+    comuna = models.CharField(max_length=80, blank=True, null=True)
     edad = models.PositiveSmallIntegerField(null=True, blank=True, editable=False)
+
     apoderado_nombre = models.CharField(max_length=200, blank=True, default="")
     apoderado_telefono = models.CharField(max_length=30, blank=True, default="")
+    apoderado_rut = models.CharField(max_length=12, blank=True, default="")  # 👈 NUEVO
+
     pertenece_organizacion = models.BooleanField(default=False)
     club_nombre = models.CharField(max_length=120, blank=True, default="")
     logro_nacional = models.BooleanField(default=False)
     logro_internacional = models.BooleanField(default=False)
+
+    creado = models.DateTimeField(auto_now_add=True)
+    modificado = models.DateTimeField(auto_now=True)  # opcional, pero útil
     categoria_competida = models.CharField(max_length=80, blank=True, default="")
     puntaje_o_logro = models.CharField(max_length=120, blank=True, default="")
 
@@ -230,20 +268,16 @@ class Estudiante(models.Model):
             return None
         hoy = date.today()
         e = hoy.year - self.fecha_nacimiento.year - (
-                (hoy.month, hoy.day) < (self.fecha_nacimiento.month, self.fecha_nacimiento.day)
+            (hoy.month, hoy.day) < (self.fecha_nacimiento.month, self.fecha_nacimiento.day)
         )
         return max(e, 0)
 
     def save(self, *args, **kwargs):
         self.edad = self._calc_edad()
-        # Validaciones mínimas de negocio (opcional; puedes mover a forms.clean())
+        # sugerencias suaves (no bloqueamos)
         if self.edad is not None and self.edad < 18:
-            # sugerimos apoderado para menores de edad
             if not self.apoderado_nombre or not self.apoderado_telefono:
-                # No levantamos excepción dura para no romper creación rápida;
-                # si prefieres estricto: raise ValueError("Para menores...")
                 pass
         if self.pertenece_organizacion and not self.club_nombre:
-            # idem comentario anterior
             pass
         super().save(*args, **kwargs)

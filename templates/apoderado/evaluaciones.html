@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Evaluaciones médicas{% endblock %}
+{% block header %}Evaluaciones médicas (PMUL){% endblock %}
+{% block content %}
+{% if hijo %}
+  <div class="mb-2 text-muted">Atleta: <b>{{ hijo.nombres }} {{ hijo.apellidos }}</b></div>
+{% endif %}
+<table class="table table-striped">
+  <thead><tr><th>Fecha</th><th>Especialidad</th><th>Motivo</th><th>Observaciones</th></tr></thead>
+  <tbody>
+    {% for f in items %}
+      <tr>
+        <td>{{ f.fecha|date:"d/m/Y" }}</td>
+        <td>{{ f.get_especialidad_display }}</td>
+        <td>{{ f.motivo|default:"—" }}</td>
+        <td>{{ f.observaciones|default:"—" }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="4">No hay evaluaciones disponibles.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

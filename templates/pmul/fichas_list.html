@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Fichas clínicas{% endblock %}
+{% block header %}Fichas clínicas{% endblock %}
+{% block content %}
+<div class="mb-2">
+  <a class="btn" href="{% url 'pmul:ficha_new' %}">➕ Nueva ficha</a>
+</div>
+<table class="table table-striped">
+  <thead><tr><th>Fecha</th><th>Atleta</th><th>Especialidad</th><th>Motivo</th><th>Estado</th><th>Acción</th></tr></thead>
+  <tbody>
+    {% for f in items %}
+      <tr>
+        <td>{{ f.fecha|date:"d/m/Y" }}</td>
+        <td>{{ f.paciente.nombres }} {{ f.paciente.apellidos }}</td>
+        <td>{{ f.get_especialidad_display }}</td>
+        <td>{{ f.motivo|default:"—" }}</td>
+        <td>{{ f.get_estado_display }}</td>
+        <td><a class="btn" href="{% url 'pmul:ficha_detail' f.id %}">👁️ Ver</a></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6">Sin fichas.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

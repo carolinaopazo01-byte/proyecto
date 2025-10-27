@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Panel Atleta{% endblock %}
+{% block header %}Panel del Atleta{% endblock %}
+
+{% block content %}
+  <p>Hola, <strong>{{ request.user.username }}</strong>.</p>
+
+  {# --- BLOQUE DE PRÓXIMA CITA --- #}
+  {% if proxima_cita %}
+    <div style="background:#e8fff1;border:1px solid #b8f0cf;
+                padding:12px;border-radius:8px;margin:10px 0;">
+      <strong>Próxima cita:</strong>
+      {{ proxima_cita.inicio|date:"D d/m H:i" }} – {{ proxima_cita.fin|date:"H:i" }}
+      con {{ proxima_cita.profesional.get_full_name|default:proxima_cita.profesional.username }}
+    </div>
+  {% endif %}
+
+  <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:12px;">
+    <a class="btn" href="{% url 'pmul:reservar_listado' %}?semana={% now 'Y-m-d' %}">
+      🗓️ Tomar hora (Equipo Multidisciplinario)
+    </a>
+    <a class="btn" href="{% url 'core:comunicados_list' %}">Comunicados</a>
+    <a class="btn" href="{% url 'atleta:mis_cursos' %}">📘 Mi curso</a>
+    <a class="btn" href="{% url 'atleta:asistencia_semana' %}?semana={% now 'Y-m-d' %}">✅ Asistencia</a>
+    <a class="btn" href="{% url 'atleta:planificacion_semana' %}?semana={% now 'Y-m-d' %}">📝 Planificación</a>
+    <a class="btn" href="{% url 'atleta:documentos_protocolos' %}">📄 Documentos y protocolos</a>
+    <a class="btn" href="{% url 'atleta:cambiar_password' %}">🔒 Cambiar contraseña</a>
+  </div>
+
+  <p style="margin-top:20px;">
+    <a class="btn" href="{% url 'usuarios:logout' %}">Salir</a>
+  </p>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Apoderado{% endblock %}
+{% block header %}Apoderado{% endblock %}
+
+{% block content %}
+<div class="card p-3 mb-3">
+  <div class="mb-2">
+    <b>Bienvenido, {{ apoderado.first_name|default:apoderado.username }}</b>.
+    Aquí puedes consultar la información de los deportistas que representas en el programa Campeones para Coquimbo.
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+    <div class="card p-3">
+      <div class="text-muted">% asistencia semana</div>
+      <div class="h4 m-0">{{ asistencia_pct|default:"—" }}{% if asistencia_pct is not None %}%{% endif %}</div>
+    </div>
+    <div class="card p-3">
+      <div class="text-muted">Próxima clase</div>
+      {% if proxima_clase %}
+        <div class="m-0">{{ proxima_clase.fecha|date:"d/m" }} · {{ proxima_clase.hora|time:"H:i" }}</div>
+      {% else %}
+        <div class="text-muted m-0">Sin información</div>
+      {% endif %}
+    </div>
+    <div class="card p-3">
+      <div class="text-muted">Próximas citas (PMUL)</div>
+      <div class="h4 m-0">{{ citas|default:0 }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="card p-3 mb-3">
+  <div class="h6 mb-2">Mi(s) Atleta(s)</div>
+  {% if atletas %}
+    <div class="list-group">
+      {% for a in atletas %}
+  <div class="list-group-item d-flex justify-content-between align-items-center">
+    <div>
+      <div class="fw-semibold">{{ a.nombres }} {{ a.apellidos }}</div>
+      <div class="text-muted small">
+        {% if a.curso %}
+          {{ a.curso.disciplina.nombre }}{% if a.curso.categoria %} · {{ a.curso.categoria }}{% endif %}
+          {% if a.curso.sede %} · {{ a.curso.sede.nombre }}{% endif %}
+        {% endif %}
+      </div>
+    </div>
+    <a class="btn btn-sm btn-outline-primary"
+       href="{% url 'apoderado:alumno_detalle' a.pk %}">
+      Ver detalle
+    </a>
+  </div>
+{% endfor %}
+    </div>
+  {% else %}
+    <div class="text-muted">No hay atletas asociados.</div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Reportes PMUL{% endblock %}
+{% block header %}Reportes de atenciones{% endblock %}
+{% block content %}
+<form method="get" class="card p-3 mb-3" style="display:flex;gap:10px;align-items:end;">
+  <div><label class="form-label">Desde</label><input type="date" name="desde" value="{{ desde|date:'Y-m-d' }}"></div>
+  <div><label class="form-label">Hasta</label><input type="date" name="hasta" value="{{ hasta|date:'Y-m-d' }}"></div>
+  <button class="btn">Aplicar</button>
+</form>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+  <div class="card p-3"><div class="text-muted">Total citas</div><div class="h4">{{ total }}</div></div>
+  <div class="card p-3"><div class="text-muted">Atendidas</div><div class="h4">{{ atendidas }}</div></div>
+  <div class="card p-3"><div class="text-muted">Reprogramadas</div><div class="h4">{{ reprogramadas }}</div></div>
+  <div class="card p-3"><div class="text-muted">Canceladas</div><div class="h4">{{ canceladas }}</div></div>
+  <div class="card p-3"><div class="text-muted">Pendientes</div><div class="h4">{{ pendientes }}</div></div>
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Panel PMUL{% endblock %}
+{% block header %}Hola, {{ request.user.username }}{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="card p-3"><div class="text-muted">📅 Citas de hoy</div><div class="h4 m-0">{{ citas_hoy }}</div></div></div>
+  <div class="col-md-3"><div class="card p-3"><div class="text-muted">✅ Atendidas esta semana</div><div class="h4 m-0">{{ atendidas_semana }}</div></div></div>
+  <div class="col-md-3"><div class="card p-3"><div class="text-muted">🏃‍♂️ Deportistas activos</div><div class="h4 m-0">{{ deportistas_activos }}</div></div></div>
+  <div class="col-md-3"><div class="card p-3"><div class="text-muted">⚠️ Pend./Reprog. semana</div><div class="h4 m-0">{{ pendientes_reprog }}</div></div></div>
+</div>
+
+<div class="d-flex flex-wrap gap-2">
+  <a class="btn btn-primary" href="{% url 'pmul:agenda' %}">📖 Mi Agenda</a>
+  <a class="btn btn-outline-primary" href="{% url 'pmul:slots_list' %}">🕓 Publicar disponibilidad</a>
+  <a class="btn btn-outline-secondary" href="{% url 'pmul:fichas_list' %}">🩺 Evaluaciones / Fichas clínicas</a>
+  <a class="btn btn-outline-secondary" href="{% url 'core:comunicados_list' %}">🗞️ Comunicados</a>
+  <a class="btn btn-outline-danger" href="{% url 'usuarios:logout' %}">🚪 Salir</a>
+</div>
+{% endblock %}

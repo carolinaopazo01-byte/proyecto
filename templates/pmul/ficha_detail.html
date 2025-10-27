@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Ficha clínica{% endblock %}
+{% block header %}Ficha clínica{% endblock %}
+{% block content %}
+<div class="card p-3" style="max-width:900px;">
+  <p><b>Fecha:</b> {{ f.fecha|date:"d/m/Y" }}</p>
+  <p><b>Atleta:</b> {{ f.paciente.nombres }} {{ f.paciente.apellidos }}</p>
+  <p><b>Profesional:</b> {{ f.profesional.username }} · {{ f.get_especialidad_display }}</p>
+  <p><b>Motivo:</b> {{ f.motivo|default:"—" }}</p>
+  <p><b>Observaciones:</b><br>{{ f.observaciones|linebreaks }}</p>
+  <p><b>Diagnóstico/Indicaciones:</b><br>{{ f.diagnostico|linebreaks|default:"—" }}</p>
+  <p><b>Estado:</b> {{ f.get_estado_display }}</p>
+
+  <h4>Adjuntos</h4>
+  {% if f.adjuntos.all %}
+    <ul>
+      {% for a in f.adjuntos.all %}
+        <li><a class="btn" href="{% url 'pmul:ficha_descargar_adjunto' f.id a.id %}">⬇️ {{ a.nombre|default:"Archivo" }}</a></li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-muted">— Sin adjuntos —</p>
+  {% endif %}
+
+  <h4>Publicación</h4>
+  <form method="post" action="{% url 'pmul:ficha_toggle_publicacion' f.id %}">
+    {% csrf_token %}
+    <label><input type="checkbox" name="publicar_profesor" {% if f.publicar_profesor %}checked{% endif %}> Profesor</label>
+    &nbsp;·&nbsp;
+    <label><input type="checkbox" name="publicar_coordinador" {% if f.publicar_coordinador %}checked{% endif %}> Coordinador</label>
+    &nbsp;·&nbsp;
+    <label><input type="checkbox" name="publicar_admin" {% if f.publicar_admin %}checked{% endif %}> Admin</label>
+    &nbsp;&nbsp;<button class="btn" type="submit">Guardar</button>
+  </form>
+</div>
+{% endblock %}
