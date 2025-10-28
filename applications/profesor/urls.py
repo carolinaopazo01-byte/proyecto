@@ -7,7 +7,7 @@ app_name = "profesor"
 urlpatterns = [
     # rutas que ya tenías en usuarios (las reutilizamos)
     path("panel/", vp.panel_profesor, name="panel_profesor"),
-    path("cursos/", vp.mis_cursos, name="mis_cursos_prof"),
+    path("miscursos/", vp.mis_cursos, name="mis_cursos_prof"),
     path("asistencia/", vp.asistencia_listado, name="asistencia_profesor"),
     path("asistencia/<int:curso_id>/", vp.asistencia_tomar, name="asistencia_tomar"),
     path("planificaciones/", vp.planificaciones, name="planificaciones_prof"),

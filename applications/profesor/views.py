@@ -16,6 +16,7 @@ from qrcode.constants import ERROR_CORRECT_M
 
 from applications.core.models import Sede
 from .models import AsistenciaProfesor
+from applications.core.models import Curso
 
 def _es_prof(user) -> bool:
     return (getattr(user, "tipo_usuario", "") or "").upper() == "PROF"
@@ -222,3 +223,11 @@ def placard_sede_qr(request, sede_id: int):
         return HttpResponseForbidden("Solo profesores.")
     sede = get_object_or_404(Sede, pk=sede_id)
     return render(request, "profesor/placard_sede_qr.html", {"sede": sede})
+
+
+@login_required
+def mis_cursos_prof(request):
+    if not _es_prof(request.user):
+        return HttpResponseForbidden("Solo profesores.")
+    cursos = Curso.objects.filter(profesor=request.user).order_by('-creado')
+    return render(request, "profesor/mis_cursos_prof.html", {"cursos": cursos})

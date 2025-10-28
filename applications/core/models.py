@@ -3,6 +3,7 @@ from django.db import models
 from django.conf import settings
 from datetime import date
 from django.utils.timezone import localdate
+from django.utils import timezone  # ← agregado para el default temporal
 
 Usuario = settings.AUTH_USER_MODEL
 
@@ -208,6 +209,7 @@ class Planificacion(models.Model):
         self.set_semana_iso()
         super().save(*args, **kwargs)
 
+
 class PlanificacionVersion(models.Model):
     planificacion = models.ForeignKey(Planificacion, on_delete=models.CASCADE, related_name="versiones")
     archivo = models.FileField(upload_to="planificaciones/versiones/%Y/%m/")
@@ -259,7 +261,8 @@ class Estudiante(models.Model):
     logro_nacional = models.BooleanField(default=False)
     logro_internacional = models.BooleanField(default=False)
 
-    creado = models.DateTimeField(auto_now_add=True)
+    # ← TEMPORAL: para llenar filas existentes sin NULL
+    creado = models.DateTimeField(default=timezone.now, null=True, blank=True)
     modificado = models.DateTimeField(auto_now=True)  # opcional, pero útil
     categoria_competida = models.CharField(max_length=80, blank=True, default="")
     puntaje_o_logro = models.CharField(max_length=120, blank=True, default="")

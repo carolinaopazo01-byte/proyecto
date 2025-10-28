@@ -87,7 +87,7 @@ def panel_coordinador(request):
 
 @role_required(Usuario.Tipo.PROF)
 def panel_profesor(request):
-    return render(request, "usuarios/panel_profesor.html")
+    return render(request, "profesor/panel_profesor.html")
 
 
 @role_required(Usuario.Tipo.APOD)

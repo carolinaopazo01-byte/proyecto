@@ -21,7 +21,8 @@ class AsistenciaProfesor(models.Model):
     #    on_delete=models.CASCADE,
     #    related_name="asistencias_profesor"
     #)
-    sede = models.ForeignKey(Sede, on_delete=models.PROTECT, null=True, blank=True)
+    # from applications.core.models import Sede
+    sede = models.ForeignKey('core.Sede', on_delete=models.PROTECT, null=True, blank=True)
 
     fecha = models.DateField()
     hora = models.TimeField(null=True, blank=True)                 # ya temporal
