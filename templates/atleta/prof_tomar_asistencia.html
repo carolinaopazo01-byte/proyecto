@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block header %}Tomar asistencia{% endblock %}
+{% block content %}
+
+<div class="mb-3">
+  <strong>{{ clase.sede_deporte.deporte }}</strong> · {{ clase.sede_deporte.sede }}<br>
+  {{ clase.fecha|date:"D d-m-Y" }} — {{ clase.hora_inicio }} a {{ clase.hora_fin }}
+</div>
+
+<form method="post" class="card p-3 shadow-sm">{% csrf_token %}
+  <table class="table table-sm align-middle">
+    <thead>
+      <tr><th>#</th><th>Atleta</th><th>Presente</th><th>Justificada</th><th>Obs.</th><th>Acciones</th></tr>
+    </thead>
+    <tbody>
+    {% for f in filas %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ f.atleta }}</td>
+        <td>
+          <input type="hidden" name="row-{{f.idx}}-id" value="{{ f.atleta.id }}">
+          <input type="checkbox" name="row-{{f.idx}}-presente" {% if f.presente %}checked{% endif %}>
+        </td>
+        <td><input type="checkbox" name="row-{{f.idx}}-justificada" {% if f.justificada %}checked{% endif %}></td>
+        <td><input type="text" class="form-control form-control-sm" name="row-{{f.idx}}-observaciones" value="{{ f.observaciones }}"></td>
+        <td>
+          {% if f.atleta.faltas_consecutivas >= 3 %}
+            <span class="badge text-bg-danger">Bloqueado</span>
+          {% else %}
+            {% if f.atleta.faltas_consecutivas > 0 %}
+              <span class="badge text-bg-warning">{{ f.atleta.faltas_consecutivas }} faltas</span>
+            {% endif %}
+          {% endif %}
+          {% if f.atleta.faltas_consecutivas >= 3 %}
+            <form method="post" action="{% url 'atleta:prof_levantar_cupo' clase.id f.atleta.id %}">{% csrf_token %}
+              <button class="btn btn-sm btn-outline-success">Levantar cupo</button>
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="d-flex gap-2">
+    <button class="btn btn-primary">Guardar asistencia</button>
+    <a class="btn btn-secondary" href="{% url 'atleta:prof_clases' %}">Volver</a>
+  </div>
+</form>
+
+<!-- Invitados / sobre-cupo -->
+<div class="card p-3 shadow-sm mt-4">
+  <h5>Agregar invitado / sobre-cupo</h5>
+  <form method="post" action="{% url 'atleta:prof_agregar_invitado' clase.id %}" class="row g-2">
+    {% csrf_token %}
+    <div class="col-sm-4"><input name="invitado_nombre" class="form-control" placeholder="Nombre y apellido" required></div>
+    <div class="col-sm-3"><input name="invitado_rut" class="form-control" placeholder="RUT (opcional)"></div>
+    <div class="col-sm-3"><input name="invitado_contacto" class="form-control" placeholder="Contacto"></div>
+    <div class="col-sm-2"><button class="btn btn-outline-primary w-100">Agregar</button></div>
+  </form>
+
+  {% if invitados %}
+  <div class="mt-3">
+    <h6>Invitados de esta clase</h6>
+    <ul class="mb-0">
+      {% for i in invitados %}
+        <li>{{ i.invitado_nombre }}{% if i.invitado_rut %} — {{ i.invitado_rut }}{% endif %} · {{ i.invitado_contacto }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block header %}Panel del profesor{% endblock %}
+{% block content %}
+<div class="card p-4 shadow-sm">
+  <h3 class="mb-3">Hola, {{ request.user.get_full_name|default:request.user.username }}.</h3>
+  <a class="btn btn-primary" href="{% url 'atleta:prof_clases' %}">📅 Mis clases</a>
+</div>
+{% endblock %}

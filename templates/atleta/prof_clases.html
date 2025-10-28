@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block header %}Mis clases{% endblock %}
+{% block content %}
+<div class="card p-3 shadow-sm">
+  <table class="table table-sm table-hover align-middle">
+    <thead><tr>
+      <th>Disciplina</th><th>Sede</th><th>Fecha</th><th>Horario</th><th></th>
+    </tr></thead>
+    <tbody>
+    {% for c in clases %}
+      <tr>
+        <td>{{ c.sede_deporte.deporte }}</td>
+        <td>{{ c.sede_deporte.sede }}</td>
+        <td>{{ c.fecha|date:"d-m-Y" }}</td>
+        <td>{{ c.hora_inicio }} - {{ c.hora_fin }}</td>
+        <td><a class="btn btn-sm btn-primary" href="{% url 'atleta:prof_tomar_asistencia' c.id %}">Tomar asistencia</a></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5">No tienes clases.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
