@@ -1,94 +1,108 @@
-{% extends "base/plantilla_profesor.html" %}
+{% extends "base.html" %}
 {% load static %}
-
-{% block title %}Panel Profesor / Entrenador{% endblock %}
-
-{% block extra_css %}
-<style>
-  :root{
-    --tile-border:#e5e7eb;
-    --tile-bg:#fff;
-    --tile-head:#f8fafc;
-  }
-  .page-head{
-    display:flex;align-items:center;justify-content:space-between;
-    gap:12px;margin-bottom:.75rem;
-  }
-  .page-head h4{margin:0;font-weight:800;font-size:1.1rem;letter-spacing:.2px}
-
-  /* Tarjetas compactas */
-  .tile{
-    display:flex;flex-direction:column;gap:.6rem;
-    border:1px solid var(--tile-border);border-radius:12px;background:var(--tile-bg);
-    padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.04);max-width:520px;
-  }
-  .tile__head{
-    display:flex;align-items:center;gap:.6rem;background:var(--tile-head);
-    padding:.55rem .7rem;border-radius:10px;border:1px solid #eef2f7
-  }
-  .tile__icon{
-    width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;
-    border-radius:6px;background:#eef6ff
-  }
-  .tile__title{margin:0;font-size:.98rem;font-weight:800}
-  .tile__desc{margin:0;color:#6b7280;font-size:.9rem;min-height:2.2em}
-  .tile .btn{align-self:flex-start}
-
-  /* Próximas clases */
-  .card-block{border:1px solid var(--tile-border);border-radius:12px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.04);}
-  .card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.6rem .8rem;background:var(--tile-head);border-bottom:1px solid #eef2f7;border-top-left-radius:12px;border-top-right-radius:12px}
-  .card-title{margin:0;font-size:.98rem;font-weight:800}
-  .list-condensed{margin:0;padding:.8rem;display:flex;flex-direction:column;gap:.5rem}
-  .item{display:flex;gap:10px;align-items:flex-start}
-  .badge-soft{background:#eef2ff;border:1px solid #e5e7eb;border-radius:8px;padding:.15rem .45rem;font-size:.8rem}
-  .muted{color:#6b7280}
-</style>
-{% endblock %}
-
 {% block content %}
 
-  <div class="page-head">
-    <div><h4>Panel Profesor / Entrenador</h4></div>
-    <div></div>
+<div class="container my-4">
+  <div class="d-flex align-items-center mb-3">
+    <a href="{% url 'core:home' %}" class="btn btn-light me-2">← Atrás</a>
+    <h3 class="m-0">Panel del profesor / entrenador</h3>
   </div>
 
-  {# === ÚNICA tarjeta: Comunicados === #}
-  <div class="tile mb-3">
-    <div class="tile__head">
-      <span class="tile__icon"><i class="fas fa-bullhorn"></i></span>
-      <h6 class="tile__title mb-0">Comunicados</h6>
-    </div>
-    <p class="tile__desc">Publica y revisa los anuncios del programa.</p>
-    <a class="btn btn-primary" href="{% url 'profesor:comunicados_prof' %}">
-      <i class="fas fa-envelope-open-text mr-1"></i> Ver comunicados
+  <div class="alert alert-light border">
+    Hola, {{ request.user.get_full_name|default:request.user.username }}.
+  </div>
+
+  <!-- Acciones rápidas -->
+  <div class="d-flex flex-wrap gap-2 mb-4">
+    <!-- Tomar asistencia (selector por clase) -->
+    <a class="btn btn-outline-primary"
+       href="{% url 'core:reporte_asistencia_por_clase' %}">
+      📝 Tomar asistencia
+    </a>
+
+    <!-- Planificaciones (lista + KPI) -->
+    <a class="btn btn-outline-secondary"
+       href="{% url 'core:planificaciones_list' %}">
+      📅 Planificaciones de mis cursos
+    </a>
+
+    <!-- Comunicados -->
+    <a class="btn btn-outline-danger"
+       href="{% url 'core:comunicados_list' %}">
+      📣 Comunicados
+    </a>
+
+    <!-- Agenda Equipo Multidisciplinario (PMUL) -->
+    <a class="btn btn-outline-success"
+       href="/pmul/agenda/">
+      💬 Agenda con Equipo Multidisciplinario
     </a>
   </div>
 
-  {# === Próximas clases === #}
-  <div class="card-block">
-    <div class="card-head">
-      <h6 class="card-title mb-0">Próximas clases</h6>
+  <div class="row g-4">
+    <!-- Mis cursos -->
+    <div class="col-md-6 col-xl-3">
+      <div class="p-4 bg-white rounded-3 shadow-sm h-100">
+        <div class="fs-2 mb-2">📘</div>
+        <h4 class="mb-2">Mis cursos</h4>
+        <p class="text-muted mb-3">Revisa disciplinas, sede y horarios.</p>
+        <!-- Si tienes una vista propia de “mis cursos” cámbiala aquí -->
+        <a class="btn btn-sm btn-primary" href="{% url 'core:planificaciones_list' %}">Ver</a>
+      </div>
     </div>
-    <div class="list-condensed">
-      {% if proximas_clases %}
-        {% for c in proximas_clases %}
-          <div class="item">
-            <span class="badge-soft">
-              {{ c.fecha|date:"D d/m" }} · {{ c.hora_inicio|time:"H:i" }}
-            </span>
-            <div>
-              <div><strong>{{ c.curso.nombre }}</strong>{% if c.curso.disciplina %} · {{ c.curso.disciplina }}{% endif %}</div>
-              <div class="muted">
-                {{ c.curso.sede }}{% if c.recinto %} · {{ c.recinto }}{% endif %}
-                {% if c.profesor %} · Prof. {{ c.profesor.get_full_name|default:c.profesor.username }}{% endif %}
-              </div>
-            </div>
-          </div>
-        {% endfor %}
-      {% else %}
-        <div class="muted">No hay clases próximas registradas.</div>
-      {% endif %}
+
+    <!-- Mi asistencia (atajo al selector) -->
+    <div class="col-md-6 col-xl-3">
+      <div class="p-4 bg-white rounded-3 shadow-sm h-100">
+        <div class="fs-2 mb-2">✅</div>
+        <h4 class="mb-2">Mi asistencia</h4>
+        <p class="text-muted mb-3">Toma y revisa asistencia por clase.</p>
+        <a class="btn btn-sm btn-primary" href="{% url 'core:reporte_asistencia_por_clase' %}">Ir al selector</a>
+      </div>
+    </div>
+
+    <!-- Planificación -->
+    <div class="col-md-6 col-xl-3">
+      <div class="p-4 bg-white rounded-3 shadow-sm h-100">
+        <div class="fs-2 mb-2">🗓️</div>
+        <h4 class="mb-2">Planificación</h4>
+        <p class="text-muted mb-3">Sube/consulta tu planificación semanal.</p>
+        <a class="btn btn-sm btn-primary" href="{% url 'core:planificaciones_list' %}">Abrir</a>
+      </div>
+    </div>
+
+    <!-- Comunicados -->
+    <div class="col-md-6 col-xl-3">
+      <div class="p-4 bg-white rounded-3 shadow-sm h-100">
+        <div class="fs-2 mb-2">📣</div>
+        <h4 class="mb-2">Comunicados</h4>
+        <p class="text-muted mb-3">Publica y revisa anuncios.</p>
+        <a class="btn btn-sm btn-primary" href="{% url 'core:comunicados_list' %}">Ver comunicados</a>
+      </div>
     </div>
   </div>
+
+  <!-- Bloques inferiores (mock): próximas clases y últimos comunicados -->
+  <div class="row g-4 mt-2">
+    <div class="col-lg-6">
+      <div class="p-4 bg-white rounded-3 shadow-sm h-100">
+        <h5 class="mb-3">Próximas clases</h5>
+        <ul class="mb-0">
+          <li><strong>Ejemplo:</strong> Básquetbol Sub-15 — Lun 18:00 · Cancha 1</li>
+          <li><strong>Ejemplo:</strong> Vóleibol Mixto — Mié 19:00 · Gimnasio 2º piso</li>
+        </ul>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="p-4 bg-white rounded-3 shadow-sm h-100">
+        <h5 class="mb-3">Últimos comunicados</h5>
+        <ul class="mb-0">
+          <li>[Básquetbol] Cambio horario miércoles</li>
+          <li>[Vóleibol] Traer implementación personal</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
 
 {% endblock %}

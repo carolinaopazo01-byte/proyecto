@@ -1,24 +1,20 @@
 # applications/usuarios/views.py
-from django.contrib.auth import authenticate, login, logout, get_user_model
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.db.models import Q
 from django.views.decorators.http import require_http_methods
-from django.utils.http import url_has_allowed_host_and_scheme
-from django.contrib import messages
-from django.template.loader import select_template, TemplateDoesNotExist
-from django.contrib.auth import update_session_auth_hash
+from django.contrib import messages  # opcional, por si luego quieres usar messages.*
+from django.contrib.auth.decorators import login_required  # para whoami
 
+from .models import Usuario
+from .utils import normalizar_rut
+from .forms import UsuarioCreateForm, UsuarioUpdateForm
 from applications.usuarios.utils import role_required
-from applications.core.models import Comunicado
-from .utils import normalizar_rut, formatear_rut
-from .forms import UsuarioCreateForm, UsuarioUpdateForm, CambioPasswordForm
-
-Usuario = get_user_model()
 
 
 def _redirigir_por_tipo(user: Usuario):
+    """Enruta al panel según el tipo de usuario."""
     t = user.tipo_usuario
     if t == Usuario.Tipo.ADMIN:
         return redirect("usuarios:panel_admin")
@@ -35,32 +31,39 @@ def _redirigir_por_tipo(user: Usuario):
 
 @require_http_methods(["GET", "POST"])
 def login_rut(request):
+    """
+    Autenticación por RUT + password.
+    - Construye username con solo dígitos (123456789) y, si falla, prueba con guion (12345678-9).
+    - Si viene `next`, redirige a `next` después de autenticar.
+    - Si no hay `next`, redirige según el tipo de usuario.
+    """
     if request.method == "POST":
-        rut_ingresado = (request.POST.get("rut") or "").strip()
+        rut_ingresado = request.POST.get("rut") or ""
         password = request.POST.get("password") or ""
-        next_url = (request.POST.get("next") or request.GET.get("next") or "").strip()
+        next_url = request.POST.get("next") or request.GET.get("next") or ""
 
-        # Variantes del rut para autenticación
-        rut_norm = normalizar_rut(rut_ingresado)          # 12345678-9
-        rut_fmt = formatear_rut(rut_norm)                 # 12.345.678-9
-        rut_plain = rut_norm.replace("-", "")             # 123456789
+        rut_norm = normalizar_rut(rut_ingresado)  # ej: "12345678-9"
+        username = rut_norm.replace(".", "").replace("-", "")  # ej: "123456789"
 
-        # authenticate usa el kw "username" incluso si USERNAME_FIELD es distinto
-        user = (
-            authenticate(request, username=rut_fmt,  password=password)
-            or authenticate(request, username=rut_norm,  password=password)
-            or authenticate(request, username=rut_plain, password=password)
-        )
+        # 1) Intento con solo dígitos
+        user = authenticate(request, username=username, password=password)
+        if not user:
+            # 2) Intento alternativo con guion por si el username quedó así en BD
+            user = authenticate(request, username=rut_norm, password=password)
 
         if not user:
             return render(request, "usuarios/login.html", {"error": "RUT o contraseña incorrectos"})
+
         if not user.is_active:
             return render(request, "usuarios/login.html", {"error": "Usuario inactivo"})
 
         login(request, user)
 
-        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        # Respeta 'next' si venía en la URL o en el form
+        if next_url:
             return redirect(next_url)
+
+        # Sin next: envía al panel correspondiente
         return _redirigir_por_tipo(user)
 
     return render(request, "usuarios/login.html")
@@ -74,17 +77,7 @@ def logout_view(request):
 # =================== Paneles ===================
 @role_required(Usuario.Tipo.ADMIN)
 def panel_admin(request):
-    # Toma los últimos comunicados según el campo temporal disponible
-    if hasattr(Comunicado, "creado"):
-        comunicados = Comunicado.objects.order_by("-creado", "-id")[:8]
-    elif hasattr(Comunicado, "fecha"):
-        comunicados = Comunicado.objects.order_by("-fecha", "-id")[:8]
-    elif hasattr(Comunicado, "created_at"):
-        comunicados = Comunicado.objects.order_by("-created_at", "-id")[:8]
-    else:
-        comunicados = Comunicado.objects.order_by("-id")[:8]
-
-    return render(request, "usuarios/panel_admin.html", {"comunicados": comunicados})
+    return render(request, "usuarios/panel_admin.html")
 
 
 @role_required(Usuario.Tipo.COORD)
@@ -94,7 +87,7 @@ def panel_coordinador(request):
 
 @role_required(Usuario.Tipo.PROF)
 def panel_profesor(request):
-    return render(request, "usuarios/panel_profesor.html")
+    return render(request, "profesor/panel_profesor.html")
 
 
 @role_required(Usuario.Tipo.APOD)
@@ -104,7 +97,7 @@ def panel_apoderado(request):
 
 @role_required(Usuario.Tipo.PMUL)
 def panel_prof_multidisciplinario(request):
-    return render(request, "pmul/panel.html")
+    return render(request, "usuarios/panel_prof_multidisciplinario.html")
 
 
 @role_required(Usuario.Tipo.ATLE)
@@ -124,11 +117,11 @@ def usuarios_list(request):
 
     if q:
         qs = qs.filter(
-            Q(rut__icontains=q)
-            | Q(first_name__icontains=q)
-            | Q(last_name__icontains=q)
-            | Q(username__icontains=q)
-            | Q(email__icontains=q)
+            Q(rut__icontains=q) |
+            Q(first_name__icontains=q) |
+            Q(last_name__icontains=q) |
+            Q(username__icontains=q) |
+            Q(email__icontains=q)
         )
     if rol:
         qs = qs.filter(tipo_usuario=rol)
@@ -137,28 +130,35 @@ def usuarios_list(request):
     elif estado == "inact":
         qs = qs.filter(is_active=False)
 
+    # Export CSV (Excel-friendly UTF-8 con BOM)
     if request.GET.get("export") == "1":
         resp = HttpResponse(content_type="text/csv; charset=utf-8")
         resp["Content-Disposition"] = 'attachment; filename="usuarios.csv"'
-        resp.write("\ufeff")  # BOM para Excel
+        resp.write("\ufeff")  # BOM
         headers = ["RUT", "Nombre", "Usuario", "Rol", "Email", "Teléfono", "Estado"]
         resp.write(",".join(headers) + "\n")
         for u in qs:
             nombre = f"{u.first_name} {u.last_name}".strip()
-            estado_txt = "Activo" if u.is_active else "Inactivo"
+            estado_txt = "Activo" if u.is_active else "Inactivo"  # ← aquí el fix
             fila = [
-                u.rut or "",
+                u.rut,
                 nombre,
-                u.username or "",
-                u.get_tipo_usuario_display() if hasattr(u, "get_tipo_usuario_display") else (u.tipo_usuario or ""),
+                u.username,
+                u.get_tipo_usuario_display(),
                 u.email or "",
                 u.telefono or "",
                 estado_txt,
             ]
-            resp.write(",".join('"%s"' % (str(s).replace('"', '""')) for s in fila) + "\n")
+            resp.write(",".join('"%s"' % (s.replace('"', '""')) for s in fila) + "\n")
         return resp
 
-    ctx = {"items": qs, "q": q, "rol": rol, "estado": estado, "roles": Usuario.Tipo.choices}
+    ctx = {
+        "items": qs,
+        "q": q,
+        "rol": rol,
+        "estado": estado,
+        "roles": Usuario.Tipo.choices,
+    }
     return render(request, "usuarios/usuarios_list.html", ctx)
 
 
@@ -170,12 +170,9 @@ def usuario_create(request):
         form = UsuarioCreateForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, "Usuario creado correctamente.")
             return redirect("usuarios:usuarios_list")
-        messages.error(request, "Revisa los errores del formulario.")
     else:
         form = UsuarioCreateForm()
-
     return render(request, "usuarios/usuario_form.html", {"form": form, "is_edit": False})
 
 
@@ -194,12 +191,9 @@ def usuario_edit(request, usuario_id: int):
         form = UsuarioUpdateForm(request.POST, instance=u)
         if form.is_valid():
             form.save()
-            messages.success(request, "Usuario actualizado correctamente.")
             return redirect("usuarios:usuarios_list")
-        messages.error(request, "Revisa los errores del formulario.")
     else:
         form = UsuarioUpdateForm(instance=u)
-
     return render(request, "usuarios/usuario_form.html", {"form": form, "is_edit": True, "u": u})
 
 
@@ -217,43 +211,13 @@ def usuario_toggle_active(request, usuario_id: int):
 def usuario_delete(request, usuario_id: int):
     get_object_or_404(Usuario, pk=usuario_id).delete()
     return redirect("usuarios:usuarios_list")
+
+
+# ====================== Debug ======================
 @login_required
-def cambiar_password(request):
-    if request.method == "POST":
-        form = CambioPasswordForm(request.POST, user=request.user)
-        if form.is_valid():
-            user = form.save()
-            update_session_auth_hash(request, user)  # mantener sesión tras cambio
-            messages.success(request, "Contraseña actualizada correctamente.")
-
-            # 1) Si viene ?next= volver ahí (si es seguro)
-            next_url = request.POST.get("next") or request.GET.get("next")
-            if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
-                return redirect(next_url)
-
-            # 2) Si no, redirigir al panel según rol
-            return _redirigir_por_tipo(request.user)
-        else:
-            messages.error(request, "Revisa los errores del formulario.")
-    else:
-        form = CambioPasswordForm(user=request.user)
-
-    try:
-        tpl = select_template([
-            "atleta/cambiar_password.html",   # tu ruta actual
-            "atletas/cambiar_password.html",  # tolerante por si lo mueves
-            "usuarios/cambiar_password.html",
-            "cambiar_password.html",
-        ])
-        return HttpResponse(tpl.render({"form": form}, request))
-    except TemplateDoesNotExist:
-        # Fallback mínimo (no te bloquea si aún no existe el template)
-        html = """
-        <h2>Cambiar contraseña</h2>
-        <form method="post">
-          {%% csrf_token %%}
-          %s
-          <p><button type="submit">Actualizar</button></p>
-        </form>
-        """ % (form.as_p(),)
-        return HttpResponse(html)
+def whoami(request):
+    return HttpResponse(
+        f"auth={request.user.is_authenticated}, "
+        f"user={request.user.username}, "
+        f"rol={getattr(request.user,'tipo_usuario',None)}"
+    )

@@ -1,27 +1,6 @@
-{% extends "base/plantilla.html" %}
+{% extends "base.html" %}
 {% block title %}Planificaciones{% endblock %}
 {% block header %}Planificaciones{% endblock %}
-
-{% block extra_css %}
-<style>
-  /* Cabecera */
-  .page-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-  .page-head-left { display:flex; align-items:center; gap:10px; }
-
-  /* Filtros */
-  .filters-row{ row-gap:.5rem; }
-  .filters-row .form-label{ font-size:.85rem; margin-bottom:.2rem; }
-
-  /* Tabla / acciones */
-  .col-actions-th{ width:140px; text-align:right; }
-  .col-actions-td{ text-align:right; }
-  .actions-inline{ display:inline-flex; gap:.4rem; flex-wrap:wrap; justify-content:flex-end; }
-
-  @media (max-width:576px){
-    .page-head h5{ font-size:1rem; }
-  }
-</style>
-{% endblock %}
 
 {% block content %}
 
@@ -31,126 +10,86 @@
   {% endfor %}
 {% endif %}
 
-<!-- Cabecera -->
-<div class="page-head mb-3">
-  <div class="page-head-left">
-    <h5 class="mb-0">Planificaciones — semana {{ lunes|date:"d-m-Y" }}</h5>
-  </div>
-  <a class="btn btn-primary" href="{% url 'core:planificacion_upload' %}">
-    <i class="fas fa-upload"></i> Subir planificación
-  </a>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="mb-0">Planificaciones de la semana {{ lunes|date:"d-m-Y" }}</h5>
+  <a class="btn btn-primary" href="{% url 'core:planificacion_upload' %}">Subir planificación</a>
 </div>
 
-<!-- Filtros -->
-<div class="card shadow-sm mb-3">
-  <div class="card-body py-2">
-    <form method="get" class="row filters-row align-items-end">
-      <div class="col-md-auto col-sm-6">
-        <label class="form-label mb-0 small">Semana</label>
-        <input type="date" class="form-control" name="semana" value="{{ semana }}">
-      </div>
-      <div class="col-md-auto col-sm-6">
-        <label class="form-label mb-0 small">Sede</label>
-        <select class="form-select" name="sede">
-          <option value="">Todas</option>
-          {% for s in sedes %}
-            <option value="{{ s.id }}" {% if s.id|stringformat:"s" == sede_id %}selected{% endif %}>{{ s.nombre }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-auto col-sm-6">
-        <label class="form-label mb-0 small">Disciplina</label>
-        <select class="form-select" name="disciplina">
-          <option value="">Todas</option>
-          {% for d in disciplinas %}
-            <option value="{{ d.id }}" {% if d.id|stringformat:"s" == dep_id %}selected{% endif %}>{{ d.nombre }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-auto col-sm-6">
-        <label class="form-label mb-0 small">Curso</label>
-        <select class="form-select" name="curso">
-          <option value="">Todos</option>
-          {% for c in cursos %}
-            <option value="{{ c.id }}" {% if c.id|stringformat:"s" == curso_id %}selected{% endif %}>
-              {{ c.nombre }} – {{ c.disciplina.nombre }} – {{ c.sede.nombre }}
-            </option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-auto col-12 mt-2 mt-md-0 d-flex gap-2">
-        <button class="btn btn-outline-secondary" type="submit">Filtrar</button>
-        <a class="btn btn-light" href="{% url 'core:planificaciones_list' %}">Limpiar</a>
-      </div>
-
-      {% if items %}
-        <div class="col-12 mt-2">
-          <span class="text-muted small">
-            Mostrando {{ items|length }} registro{% if items|length != 1 %}s{% endif %}
-          </span>
-        </div>
-      {% endif %}
-    </form>
+<form method="get" class="row g-2 mb-3">
+  <div class="col-auto">
+    <label class="form-label mb-0 small">Semana</label>
+    <input type="date" class="form-control" name="semana" value="{{ semana }}">
   </div>
-</div>
+  <div class="col-auto">
+    <label class="form-label mb-0 small">Sede</label>
+    <select class="form-select" name="sede">
+      <option value="">Todas</option>
+      {% for s in sedes %}
+        <option value="{{ s.id }}" {% if s.id|stringformat:"s" == sede_id %}selected{% endif %}>{{ s.nombre }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <label class="form-label mb-0 small">Disciplina</label>
+    <select class="form-select" name="disciplina">
+      <option value="">Todas</option>
+      {% for d in disciplinas %}
+        <option value="{{ d.id }}" {% if d.id|stringformat:"s" == dep_id %}selected{% endif %}>{{ d.nombre }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <label class="form-label mb-0 small">Curso</label>
+    <select class="form-select" name="curso">
+      <option value="">Todos</option>
+      {% for c in cursos %}
+        <option value="{{ c.id }}" {% if c.id|stringformat:"s" == curso_id %}selected{% endif %}>
+          {{ c.nombre }} – {{ c.disciplina.nombre }} – {{ c.sede.nombre }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto align-self-end">
+    <button class="btn btn-outline-secondary" type="submit">Filtrar</button>
+  </div>
+</form>
 
 {% if items %}
-  <div class="card shadow-sm">
-    <div class="card-body p-0">
-      <div class="table-responsive">
-        <table class="table table-sm table-hover align-middle mb-0" style="min-width: 920px;">
-          <thead class="thead-light">
-            <tr>
-              <th>Curso</th>
-              <th>Disciplina</th>
-              <th>Sede</th>
-              <th>Semana</th>
-              <th>Pública</th>
-              <th>Archivo</th>
-              <th>Autor</th>
-              <th class="col-actions-th">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for p in items %}
-              <tr>
-                <td>{{ p.curso.nombre }}</td>
-                <td>{{ p.curso.disciplina.nombre }}</td>
-                <td>{{ p.curso.sede.nombre }}</td>
-                <td>
-                  {{ p.semana|date:"d-m-Y" }}
-                  {% if p.semana_iso %}<span class="text-muted small">({{ p.semana_iso }})</span>{% endif %}
-                </td>
-                <td>
-                  {% if p.publica %}
-                    <span class="badge bg-success">Sí</span>
-                  {% else %}
-                    <span class="badge bg-secondary">No</span>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if p.archivo %}
-                    <a class="btn btn-sm btn-outline-primary" href="{% url 'core:planificacion_download' p.id %}">
-                      <i class="fas fa-download"></i> Descargar
-                    </a>
-                  {% else %}
-                    <span class="text-muted">—</span>
-                  {% endif %}
-                </td>
-                <td>{{ p.autor }}</td>
-                <td class="col-actions-td">
-                  <span class="actions-inline">
-                    <a class="btn btn-sm btn-outline-primary" href="{% url 'core:planificacion_detail' p.id %}">
-                      Ver
-                    </a>
-                  </span>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead>
+        <tr>
+          <th>Curso</th>
+          <th>Disciplina</th>
+          <th>Sede</th>
+          <th>Semana</th>
+          <th>Pública</th>
+          <th>Archivo</th>
+          <th>Autor</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in items %}
+          <tr>
+            <td>{{ p.curso.nombre }}</td>
+            <td>{{ p.curso.disciplina.nombre }}</td>
+            <td>{{ p.curso.sede.nombre }}</td>
+            <td>{{ p.semana|date:"d-m-Y" }} ({{ p.semana_iso }})</td>
+            <td>{% if p.publica %}Sí{% else %}No{% endif %}</td>
+            <td>
+              {% if p.archivo %}
+                <a href="{% url 'core:planificacion_download' p.id %}">Descargar</a>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td>{{ p.autor }}</td>
+            <td><a class="btn btn-sm btn-outline-primary" href="{% url 'core:planificacion_detail' p.id %}">Ver</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 {% else %}
   <div class="alert alert-info">No hay planificaciones para los filtros seleccionados.</div>
