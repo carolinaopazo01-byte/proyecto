@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.db import models  # <-- necesario para models.Q
 from django.db.models import Q
 
-from .models import Sede, Comunicado
+from .models import Sede, Comunicado, InscripcionCurso
 
 from .models import (
     Sede,
@@ -19,10 +19,6 @@ from .models import (
     CursoHorario,
 )
 
-
-# =========================================================
-#                       PLANIFICACIÓN
-# =========================================================
 MAX_MB = 10
 ALLOWED_EXTS = {".pdf", ".doc", ".docx", ".xls", ".xlsx"}
 
@@ -34,7 +30,7 @@ class PlanificacionUploadForm(forms.ModelForm):
         widget=forms.DateInput(attrs={"type": "date"}),
         label="Semana (elige cualquier día de la semana; se ajustará al lunes)"
     )
-    # archivo OPCIONAL
+
     archivo = forms.FileField(
         required=False,
         label="Archivo (PDF / DOCX / XLS / XLSX, máx. 10 MB)",
@@ -58,7 +54,6 @@ class PlanificacionUploadForm(forms.ModelForm):
         if not self.initial.get("semana"):
             self.initial["semana"] = timezone.localdate()
 
-    # ✅ Maneja archivo opcional
     def clean_archivo(self):
         f = self.cleaned_data.get("archivo")
         if not f:
@@ -76,9 +71,7 @@ class PlanificacionUploadForm(forms.ModelForm):
             cleaned["semana"] = _monday(cleaned["semana"])
             self.cleaned_data["semana"] = cleaned["semana"]
         return cleaned
-# =========================================================
-#                   HELPERS RUT (top-level)
-# =========================================================
+
 def _rut_normaliza(rut: str) -> str:
     """
     '12.345.678-9' -> '12345678-9'
@@ -119,10 +112,8 @@ def _rut_calc_dv(base: str) -> str:
 def _rut_igual(a: str, b: str) -> bool:
     return _rut_normaliza(a) == _rut_normaliza(b)
 
+######################
 
-# =========================================================
-#                            SEDES
-# =========================================================
 
 class SedeForm(forms.ModelForm):
     class Meta:
@@ -138,30 +129,22 @@ class SedeForm(forms.ModelForm):
             "radio_metros": "Radio de validación (m)",
         }
 
-# =========================================================
-#                           CURSOS
-# =========================================================
 class CursoForm(forms.ModelForm):
     class Meta:
         model = Curso
         fields = [
-            # 1) Identificación
             "nombre",
             "programa",
             "disciplina",
             "categoria",
             "sede",
-            # 2) Calendario
             "fecha_inicio",
             "fecha_termino",
-            # 3) Profesorado
             "profesor",
             "profesores_apoyo",
-            # 4) Cupos e inscripciones
             "cupos",
             "cupos_espera",
             "permitir_inscripcion_rapida",
-            # 5) Visibilidad/Estado
             "publicado",
             "estado",
         ]
@@ -195,7 +178,23 @@ CursoHorarioFormSet = inlineformset_factory(
     can_delete=True,
 )
 
+class InscripcionCursoForm(forms.ModelForm):
+    class Meta:
+        model = InscripcionCurso
+        fields = ["estudiante", "curso"]  # estado se maneja automático (activa)
+        labels = {"estudiante": "Estudiante", "curso": "Curso"}
 
+    def clean(self):
+        # Delega todas las validaciones al modelo (clean del modelo)
+        cleaned = super().clean()
+        if self.instance is None:
+            self.instance = InscripcionCurso(**cleaned)
+        else:
+            # Cargar cleaned en la instancia existente (edición)
+            for k, v in cleaned.items():
+                setattr(self.instance, k, v)
+        self.instance.full_clean()  # disparará errores si hay choque/cupos/etc.
+        return cleaned
 # =========================================================
 #                         ESTUDIANTE
 # =========================================================

@@ -7,7 +7,7 @@ from django.db.models import Q, Count
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 
-from .models import Comunicado, Curso, Sede, Estudiante, Planificacion, Deporte, PlanificacionVersion
+from .models import Comunicado, Curso, Sede, Estudiante, Planificacion, Deporte, PlanificacionVersion, InscripcionCurso
 #from .forms import PlanificacionForm, DeporteForm, PlanificacionUploadForm
 from .forms import DeporteForm, PlanificacionUploadForm
 # Control de acceso por rol
@@ -31,13 +31,10 @@ def save(self, *args, **kwargs):
         self.set_semana_iso()
     super().save(*args, **kwargs)
 
-# ------- Home (informativo) -------
 @require_http_methods(["GET"])
 def home(request):
     return render(request, "core/home.html")
 
-
-# ESTUDIANTES
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET"])
 def estudiantes_list(request):
@@ -926,3 +923,16 @@ def mi_asistencia_qr(request):
         "mensaje":        mensaje,
         "ok":             ok,
     })
+
+@login_required
+def inscribir_en_curso(request, estudiante_id, curso_id):
+    estudiante = get_object_or_404(Estudiante, pk=estudiante_id)
+    curso = get_object_or_404(Curso, pk=curso_id)
+
+    if request.method == "POST":
+        try:
+            InscripcionCurso.objects.create(estudiante=estudiante, curso=curso)
+            messages.success(request, "Inscripción realizada correctamente.")
+        except Exception as e:
+            messages.error(request, f"No se pudo inscribir: {e}")
+    return redirect(request.META.get("HTTP_REFERER", "core:cursos_list"))

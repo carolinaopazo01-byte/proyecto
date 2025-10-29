@@ -3,10 +3,12 @@
 {% block header %}Cursos{% endblock %}
 
 {% block content %}
-  <p><a class="btn" href="{% url 'core:curso_create' %}">➕ Nuevo curso</a></p>
+  <p>
+    <a class="btn" href="{% url 'core:curso_create' %}">➕ Nuevo curso</a>
+  </p>
 
   {% if cursos %}
-  <table border="1" cellpadding="6" cellspacing="0">
+  <table class="table table-striped">
     <thead>
       <tr>
         <th>Nombre</th>
@@ -16,8 +18,7 @@
         <th>Horario</th>
         <th>Sede</th>
         <th>Cupos</th>
-        <th>Publicado</th>
-        <th style="min-width:160px;">Acciones</th>
+        <th>Acción</th>  {# 👈 NUEVO #}
       </tr>
     </thead>
     <tbody>
@@ -26,25 +27,48 @@
         <td>{{ c.nombre }}</td>
         <td>{{ c.get_programa_display }}</td>
         <td>{{ c.disciplina }}</td>
-        <td>{{ c.profesor.username }}</td>
-        <td>{{ c.horarios_str }}</td>
-        <td>{{ c.sede }}</td>
-        <td>{{ c.cupos }}</td>
-        <td>{{ c.publicado|yesno:"Sí,No" }}</td>
+        <td>{{ c.profesor.get_full_name|default:c.profesor.username }}</td>
         <td>
-          <a class="btn" href="{% url 'core:curso_edit' c.id %}">✏️ Editar</a>
-          <form method="post" action="{% url 'core:curso_delete' c.id %}" style="display:inline;">
-            {% csrf_token %}
-            <button class="btn" type="submit" onclick="return confirm('¿Eliminar este curso?');" style="background:#d9534f; color:white;">
-              🗑️ Eliminar
-            </button>
-          </form>
+          {# Si tienes objetos CursoHorario, los puedes listar aquí #}
+          {% for h in c.cursohorario_set.all %}
+            {{ h.get_dia_display }} {{ h.hora_inicio|time:"H:i" }}–{{ h.hora_fin|time:"H:i" }}{% if not forloop.last %}<br>{% endif %}
+          {% empty %}
+            —
+          {% endfor %}
         </td>
+        <td>{{ c.sede }}</td>
+        <td>
+          {% if c.cupos %}
+            {{ c.cupos_ocupados }}/{{ c.cupos }}
+          {% else %}
+            —
+          {% endif %}
+        </td>
+
+        {# ===================== ACCIÓN: INSCRIBIR ===================== #}
+        <td>
+          {% if alumno %}
+            <form method="post" action="{% url 'core:inscribir_en_curso' c.id alumno.id %}" style="display:inline;">
+              {% csrf_token %}
+              <button class="btn">Inscribir</button>
+            </form>
+            {% if c.cupos %}
+              <div class="text-muted" style="font-size:12px;">
+                Disp: {{ c.cupos_disponibles }}
+              </div>
+            {% endif %}
+          {% else %}
+            <span class="text-muted" style="font-size:12px;">
+              Selecciona un alumno para inscribir.
+            </span>
+          {% endif %}
+        </td>
+        {# ============================================================ #}
       </tr>
       {% endfor %}
     </tbody>
   </table>
   {% else %}
-    <p>No hay cursos creados.</p>
+    <p class="text-muted">No hay cursos creados.</p>
   {% endif %}
 {% endblock %}
