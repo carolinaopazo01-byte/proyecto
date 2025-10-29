@@ -1,19 +1,20 @@
-# applications/apoderado/views.py
-from datetime import timedelta
+from datetime import timedelta, date
 
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
-from .utils import get_model
 from django.apps import apps
+
+from .utils import get_model
 from .utils import (
     hijos_de_apoderado, porcentaje_asistencia_semana, proxima_clase_de,
     proximas_citas_para, curso_actual_de
 )
 
-from applications.core.models import AsistenciaAlumno  # si no existe, no rompe el dashboard
-from applications.apoderado.utils import hijos_de_apoderado
+from applications.core.models import Comunicado, Estudiante
+from applications.atleta.models import Clase, AsistenciaAtleta
+###########################
 
 @login_required
 def dashboard(request):
@@ -227,3 +228,43 @@ def alumno_detalle(request, pk):
             "planificaciones": planifs,
         },
     )
+
+@login_required
+def dashboard_apoderado(request):
+    user = request.user
+    atletas = Estudiante.objects.filter(apoderado__usuario=user).select_related("curso", "curso__profesor")
+
+    # % asistencia promedio
+    asistencia_pct = None
+    if atletas.exists():
+        total_registros = AsistenciaAtleta.objects.filter(atleta__in=atletas).count()
+        presentes = AsistenciaAtleta.objects.filter(atleta__in=atletas, presente=True).count()
+        asistencia_pct = round((presentes / total_registros) * 100, 1) if total_registros else None
+
+    # próxima clase
+    prox_clase = (
+        Clase.objects.filter(
+            sede_deporte__deporte__in=[a.curso.disciplina for a in atletas],
+            fecha__gte=timezone.localdate()
+        )
+        .select_related("sede_deporte__sede", "profesor")
+        .order_by("fecha", "hora_inicio")
+        .first()
+    )
+
+    # próximas citas del equipo multidisciplinario (si las manejas)
+    prox_citas = 0  # puedes reemplazar con tu modelo de citas si existe
+
+    # comunicados dirigidos a apoderados o todos
+    comunicados = (
+        Comunicado.objects.filter(dirigido_a__in=["APODERADOS", "TODOS"])
+        .order_by("-creado")[:5]
+    )
+
+    return render(request, "apoderado/dashboard.html", {
+        "atletas": atletas,
+        "asistencia_pct": asistencia_pct,
+        "prox_clase": prox_clase,
+        "prox_citas": prox_citas,
+        "comunicados": comunicados,
+    })

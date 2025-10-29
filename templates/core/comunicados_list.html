@@ -3,29 +3,41 @@
 {% block header %}Listado de Comunicados{% endblock %}
 
 {% block content %}
-  {% if request.user.tipo_usuario in "ADMIN,COORD,PROF,PMUL" %}
+  {# Botón crear: reemplazo "in 'ADMIN,COORD,PROF,PMUL'" por comparaciones válidas #}
+  {% if request.user.tipo_usuario == "ADMIN" or request.user.tipo_usuario == "COORD" or request.user.tipo_usuario == "PROF" or request.user.tipo_usuario == "PMUL" %}
     <p><a class="btn" href="{% url 'core:comunicado_create' %}">➕ Nuevo comunicado</a></p>
   {% endif %}
 
   {% if data %}
     <ul style="list-style:none; padding:0; display:grid; gap:12px;">
       {% for c in data %}
-        <li style="border:1px solid #ddd; border-radius:8px; padding:12px;">
-          <h3 style="margin:0 0 6px 0;">{{ c.titulo }}</h3>
-          <small>por {{ c.autor.username }} — {{ c.creado|date:"d/m/Y H:i" }}</small>
-          <p style="margin-top:8px; white-space:pre-wrap;">{{ c.cuerpo }}</p>
+        <li class="card p-3" style="border:1px solid #e5e7eb; border-radius:12px;">
+          <div class="d-flex justify-between flex-wrap">
+            <h3 class="mb-0" style="margin:0 0 6px 0;">{{ c.titulo }}</h3>
+            <span class="badge text-bg-warning" style="align-self:center;">
+              Dirigido a: {{ c.get_dirigido_a_display|default:c.dirigido_a|default:"Todos" }}
+            </span>
+          </div>
 
-          {% if request.user == c.autor or request.user.tipo_usuario in "ADMIN,COORD" %}
+          <small class="text-muted">
+            por {{ c.autor.username|default:c.autor }} — {{ c.creado|date:"d/m/Y H:i" }}
+          </small>
+
+          {% if c.cuerpo %}
+            <p style="margin-top:8px; white-space:pre-wrap;">{{ c.cuerpo }}</p>
+          {% endif %}
+
+          {% if request.user == c.autor or request.user.tipo_usuario == "ADMIN" or request.user.tipo_usuario == "COORD" %}
             <form method="post" action="{% url 'core:comunicado_delete' c.id %}" style="display:inline;">
               {% csrf_token %}
-              <a class="btn" href="{% url 'core:comunicado_edit' c.id %}">✏️ Editar</a>
-              <button class="btn" type="submit" style="background:#d9534f; color:white;">🗑️ Eliminar</button>
+              <a class="btn btn-outline-primary" href="{% url 'core:comunicado_edit' c.id %}">✏️ Editar</a>
+              <button class="btn btn-danger" type="submit">🗑️ Eliminar</button>
             </form>
           {% endif %}
         </li>
       {% endfor %}
     </ul>
   {% else %}
-    <p>No hay comunicados aún.</p>
+    <div class="alert alert-info">No hay comunicados aún.</div>
   {% endif %}
 {% endblock %}

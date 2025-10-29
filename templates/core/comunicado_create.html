@@ -1,29 +1,41 @@
 {% extends "base.html" %}
-{% block title %}Nuevo Comunicado{% endblock %}
-{% block header %}Crear Comunicado{% endblock %}
+{% block title %}Nuevo comunicado{% endblock %}
+{% block header %}Crear comunicado{% endblock %}
 
 {% block content %}
-  {% if error %}
-    <p style="color:#b00020;">{{ error }}</p>
-  {% endif %}
+  {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
 
-  <form method="post">
+  <form method="post" class="card p-3" style="max-width:720px">
     {% csrf_token %}
-    <div style="display:flex; flex-direction:column; gap:10px; max-width:700px;">
-      <label>
-        Título<br>
-        <input type="text" name="titulo" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;">
-      </label>
 
-      <label>
-        Cuerpo<br>
-        <textarea name="cuerpo" rows="6" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></textarea>
-      </label>
+    <label for="id_titulo"><b>Título</b></label>
+    <input id="id_titulo" name="titulo" type="text" class="form-control"
+           style="width:100%;padding:8px;margin:6px 0 12px 0"
+           value="{{ titulo|default:'' }}" required>
 
-      <div style="display:flex; gap:10px; margin-top:8px;">
-        <button class="btn" type="submit">Guardar</button>
-        <a class="btn" href="{% url 'core:comunicados_list' %}">Cancelar</a>
-      </div>
+    <!-- 👇 AQUÍ va el select de 'Dirigido a' -->
+    <label for="id_dirigido_a"><b>Dirigido a</b></label>
+    <select id="id_dirigido_a" name="dirigido_a" class="form-control" required
+            style="width:100%;padding:8px;margin:6px 0 12px 0">
+      {% with da=dirigido_a|default:"TODOS" %}
+        <option value="TODOS"           {% if da == "TODOS" %}selected{% endif %}>Todos</option>
+        <option value="PROFESORES"      {% if da == "PROFESORES" %}selected{% endif %}>Profesores</option>
+        <option value="ATLETAS"         {% if da == "ATLETAS" %}selected{% endif %}>Atletas</option>
+        <option value="APODERADOS"      {% if da == "APODERADOS" %}selected{% endif %}>Apoderados</option>
+        <option value="MULTIDISCIPLINARIO" {% if da == "MULTIDISCIPLINARIO" %}selected{% endif %}>Equipo Multidisciplinario</option>
+        <option value="COORDINADORES"   {% if da == "COORDINADORES" %}selected{% endif %}>Coordinadores</option>
+        <option value="ADMINISTRADORES" {% if da == "ADMINISTRADORES" %}selected{% endif %}>Administradores</option>
+      {% endwith %}
+    </select>
+
+    <label for="id_cuerpo"><b>Cuerpo</b></label>
+    <textarea id="id_cuerpo" name="cuerpo" rows="6" class="form-control"
+              style="width:100%;padding:8px;margin:6px 0 12px 0"
+              required>{{ cuerpo|default:'' }}</textarea>
+
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary" type="submit">💾 Guardar</button>
+      <a class="btn btn-secondary" href="{% url 'core:comunicados_list' %}">↩️ Volver</a>
     </div>
   </form>
 {% endblock %}

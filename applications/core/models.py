@@ -63,12 +63,25 @@ class Comunicado(models.Model):
     autor = models.ForeignKey(Usuario, on_delete=models.PROTECT)
     creado = models.DateTimeField(auto_now_add=True)
 
+    dirigido_a = models.CharField(
+        max_length=50,
+        choices=[
+            ("TODOS", "Todos"),
+            ("PROFESORES", "Profesores"),
+            ("ATLETAS", "Atletas"),
+            ("APODERADOS", "Apoderados"),
+            ("MULTIDISCIPLINARIO", "Equipo Multidisciplinario"),
+            ("COORDINADORES", "Coordinadores"),
+            ("ADMINISTRADORES", "Administradores"),
+        ],
+        default="TODOS",
+    )
+
     class Meta:
         ordering = ["-creado"]
 
     def __str__(self):
-        return self.titulo
-
+        return f"{self.titulo} ({self.get_dirigido_a_display()})"
 
 class Curso(models.Model):
     class Programa(models.TextChoices):

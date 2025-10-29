@@ -7,9 +7,8 @@ from django.forms import inlineformset_factory
 from django.utils import timezone
 from django.db import models  # <-- necesario para models.Q
 from django.db.models import Q
-from .models import Sede
 
-#from .models import Planificacion, Curso
+from .models import Sede, Comunicado
 
 from .models import (
     Sede,
@@ -364,4 +363,11 @@ class DeporteForm(forms.ModelForm):
             "nombre": forms.TextInput(attrs={"class": "form-control"}),
             "categoria": forms.TextInput(attrs={"class": "form-control"}),
             "equipamiento": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+        }
+class ComunicadoForm(forms.ModelForm):
+    class Meta:
+        model = Comunicado
+        fields = ['titulo', 'cuerpo', 'dirigido_a', 'autor']
+        widgets = {
+            'dirigido_a': forms.Select(attrs={'class': 'form-control'}),
         }

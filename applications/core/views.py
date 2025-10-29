@@ -248,36 +248,60 @@ def comunicados_list(request):
     data = Comunicado.objects.all().order_by("-creado")[:50]
     return render(request, "core/comunicados_list.html", {"data": data})
 
-
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF, Usuario.Tipo.PMUL)
 @require_http_methods(["GET", "POST"])
 def comunicado_create(request):
     if request.method == "POST":
         titulo = (request.POST.get("titulo") or "").strip()
         cuerpo = (request.POST.get("cuerpo") or "").strip()
+        dirigido_a = (request.POST.get("dirigido_a") or "TODOS").strip()  # nuevo
+
         if titulo and cuerpo:
-            Comunicado.objects.create(titulo=titulo, cuerpo=cuerpo, autor=request.user)
+            # Si tu modelo NO tiene el campo, quita 'dirigido_a=dirigido_a'
+            Comunicado.objects.create(
+                titulo=titulo,
+                cuerpo=cuerpo,
+                autor=request.user,
+                dirigido_a=dirigido_a  # <- requiere campo en el modelo
+            )
             return redirect("core:comunicados_list")
-        return render(request, "core/comunicado_create.html", {"error": "Completa título y cuerpo."})
-    return render(request, "core/comunicado_create.html")
+
+        return render(
+            request, "core/comunicado_create.html",
+            {"error": "Completa título y cuerpo.", "dirigido_a": dirigido_a}
+        )
+
+    # valores por defecto para el form
+    return render(request, "core/comunicado_create.html", {"dirigido_a": "TODOS"})
 
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF, Usuario.Tipo.PMUL)
 @require_http_methods(["GET", "POST"])
 def comunicado_edit(request, comunicado_id):
     com = get_object_or_404(Comunicado, id=comunicado_id)
+
     if request.user != com.autor and request.user.tipo_usuario not in [Usuario.Tipo.ADMIN, Usuario.Tipo.COORD]:
         return HttpResponse("No tienes permisos para editar este comunicado.", status=403)
+
     if request.method == "POST":
         titulo = (request.POST.get("titulo") or "").strip()
         cuerpo = (request.POST.get("cuerpo") or "").strip()
+        dirigido_a = (request.POST.get("dirigido_a") or com.dirigido_a or "TODOS").strip()  # nuevo
+
         if titulo and cuerpo:
-            com.titulo, com.cuerpo = titulo, cuerpo
+            com.titulo = titulo
+            com.cuerpo = cuerpo
+            # Si tu modelo NO tiene el campo, comenta esta línea:
+            com.dirigido_a = dirigido_a
             com.save()
             return redirect("core:comunicados_list")
-        return render(request, "core/comunicado_edit.html", {"comunicado": com, "error": "Completa título y cuerpo."})
-    return render(request, "core/comunicado_edit.html", {"comunicado": com})
 
+        return render(
+            request, "core/comunicado_edit.html",
+            {"comunicado": com, "error": "Completa título y cuerpo.", "dirigido_a": dirigido_a}
+        )
+
+    return render(request, "core/comunicado_edit.html", {"comunicado": com, "dirigido_a": getattr(com, "dirigido_a", "TODOS")})
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF, Usuario.Tipo.PMUL)
 @require_http_methods(["POST"])
