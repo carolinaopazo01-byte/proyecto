@@ -4,17 +4,19 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.db.models import Q
 from django.views.decorators.http import require_http_methods
-from django.contrib import messages  # opcional, por si luego quieres usar messages.*
-from django.contrib.auth.decorators import login_required  # para whoami
+from django.contrib import messages  # opcional
+from django.contrib.auth.decorators import login_required
 
 from .models import Usuario
 from .utils import normalizar_rut
 from .forms import UsuarioCreateForm, UsuarioUpdateForm
 from applications.usuarios.utils import role_required
 
+# 👇 Import correcto según tu estructura
+from applications.core.models import Comunicado
+
 
 def _redirigir_por_tipo(user: Usuario):
-    """Enruta al panel según el tipo de usuario."""
     t = user.tipo_usuario
     if t == Usuario.Tipo.ADMIN:
         return redirect("usuarios:panel_admin")
@@ -31,39 +33,26 @@ def _redirigir_por_tipo(user: Usuario):
 
 @require_http_methods(["GET", "POST"])
 def login_rut(request):
-    """
-    Autenticación por RUT + password.
-    - Construye username con solo dígitos (123456789) y, si falla, prueba con guion (12345678-9).
-    - Si viene `next`, redirige a `next` después de autenticar.
-    - Si no hay `next`, redirige según el tipo de usuario.
-    """
     if request.method == "POST":
         rut_ingresado = request.POST.get("rut") or ""
         password = request.POST.get("password") or ""
         next_url = request.POST.get("next") or request.GET.get("next") or ""
 
-        rut_norm = normalizar_rut(rut_ingresado)  # ej: "12345678-9"
-        username = rut_norm.replace(".", "").replace("-", "")  # ej: "123456789"
+        rut_norm = normalizar_rut(rut_ingresado)           # "12345678-9"
+        username = rut_norm.replace(".", "").replace("-", "")  # "123456789"
 
-        # 1) Intento con solo dígitos
         user = authenticate(request, username=username, password=password)
         if not user:
-            # 2) Intento alternativo con guion por si el username quedó así en BD
             user = authenticate(request, username=rut_norm, password=password)
 
         if not user:
             return render(request, "usuarios/login.html", {"error": "RUT o contraseña incorrectos"})
-
         if not user.is_active:
             return render(request, "usuarios/login.html", {"error": "Usuario inactivo"})
 
         login(request, user)
-
-        # Respeta 'next' si venía en la URL o en el form
         if next_url:
             return redirect(next_url)
-
-        # Sin next: envía al panel correspondiente
         return _redirigir_por_tipo(user)
 
     return render(request, "usuarios/login.html")
@@ -77,7 +66,23 @@ def logout_view(request):
 # =================== Paneles ===================
 @role_required(Usuario.Tipo.ADMIN)
 def panel_admin(request):
-    return render(request, "usuarios/panel_admin.html")
+    """
+    Muestra el panel admin y pasa comunicados para renderizarlos
+    en la pantalla principal (include base/includes/comunicados_online.html).
+    """
+    # Ordena por 'creado' si existe; fallback por id
+    if hasattr(Comunicado, "creado"):
+        comunicados = Comunicado.objects.order_by("-creado", "-id")[:8]
+    elif hasattr(Comunicado, "fecha"):
+        comunicados = Comunicado.objects.order_by("-fecha", "-id")[:8]
+    elif hasattr(Comunicado, "created_at"):
+        comunicados = Comunicado.objects.order_by("-created_at", "-id")[:8]
+    else:
+        comunicados = Comunicado.objects.order_by("-id")[:8]
+
+    return render(request, "usuarios/panel_admin.html", {
+        "comunicados": comunicados,
+    })
 
 
 @role_required(Usuario.Tipo.COORD)
@@ -87,7 +92,7 @@ def panel_coordinador(request):
 
 @role_required(Usuario.Tipo.PROF)
 def panel_profesor(request):
-    return render(request, "profesor/panel_profesor.html")
+    return render(request, "usuarios/panel_profesor.html")
 
 
 @role_required(Usuario.Tipo.APOD)
@@ -130,16 +135,15 @@ def usuarios_list(request):
     elif estado == "inact":
         qs = qs.filter(is_active=False)
 
-    # Export CSV (Excel-friendly UTF-8 con BOM)
     if request.GET.get("export") == "1":
         resp = HttpResponse(content_type="text/csv; charset=utf-8")
         resp["Content-Disposition"] = 'attachment; filename="usuarios.csv"'
-        resp.write("\ufeff")  # BOM
+        resp.write("\ufeff")
         headers = ["RUT", "Nombre", "Usuario", "Rol", "Email", "Teléfono", "Estado"]
         resp.write(",".join(headers) + "\n")
         for u in qs:
             nombre = f"{u.first_name} {u.last_name}".strip()
-            estado_txt = "Activo" if u.is_active else "Inactivo"  # ← aquí el fix
+            estado_txt = "Activo" if u.is_active else "Inactivo"
             fila = [
                 u.rut,
                 nombre,
@@ -152,13 +156,7 @@ def usuarios_list(request):
             resp.write(",".join('"%s"' % (s.replace('"', '""')) for s in fila) + "\n")
         return resp
 
-    ctx = {
-        "items": qs,
-        "q": q,
-        "rol": rol,
-        "estado": estado,
-        "roles": Usuario.Tipo.choices,
-    }
+    ctx = {"items": qs, "q": q, "rol": rol, "estado": estado, "roles": Usuario.Tipo.choices}
     return render(request, "usuarios/usuarios_list.html", ctx)
 
 
@@ -211,13 +209,3 @@ def usuario_toggle_active(request, usuario_id: int):
 def usuario_delete(request, usuario_id: int):
     get_object_or_404(Usuario, pk=usuario_id).delete()
     return redirect("usuarios:usuarios_list")
-
-
-# ====================== Debug ======================
-@login_required
-def whoami(request):
-    return HttpResponse(
-        f"auth={request.user.is_authenticated}, "
-        f"user={request.user.username}, "
-        f"rol={getattr(request.user,'tipo_usuario',None)}"
-    )

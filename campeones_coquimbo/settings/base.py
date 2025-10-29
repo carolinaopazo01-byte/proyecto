@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     'applications.evaluaciones',
     'applications.pmul.apps.PmulConfig',
     'applications.profesor',
+    'django.contrib.humanize',
 ]
 
 MIDDLEWARE = [

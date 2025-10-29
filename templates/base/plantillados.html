@@ -1,0 +1,266 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <!-- Favicon -->
+  <link rel="icon" href="{% static 'img/logo/mi_logo.png' %}">
+  <title>{% block title %}CPC - Dashboard (Atleta){% endblock %}</title>
+
+  <!-- CSS global -->
+  <link href="{% static 'vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet" type="text/css">
+  <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet" type="text/css">
+
+  <!-- Fuente -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <link href="{% static 'css/ruang-admin.min.css' %}" rel="stylesheet">
+  <link href="{% static 'css/panel.css' %}" rel="stylesheet">
+  <link href="{% static 'css/cpc-uniform.css' %}" rel="stylesheet">
+
+  {% block extra_css %}{% endblock %}
+
+  <style>
+    /* ===== Paleta ATLETA (verde) ===== */
+    :root{
+      --ath-green:    #0E9F6E;   /* principal */
+      --ath-green-d:  #0B8A5F;   /* hover */
+      --ath-green-2:  #087054;   /* profundo / footer */
+      --ath-mint:     #E8FFF1;   /* claros */
+      --ath-sea:      #A1BFAF;   /* bordes sutiles */
+
+      --ring:         rgba(14,159,110,.28);
+      --hover-soft:   rgba(14,159,110,.08);
+    }
+
+    /* Tipografía */
+    html, body{
+      font-family:"Manrope", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+      -webkit-text-size-adjust:100%;
+      color:#111; line-height:1.5;
+    }
+    a{-webkit-tap-highlight-color:rgba(0,0,0,0)}
+    h1,h2,h3,h4,h5,h6{font-weight:800;letter-spacing:.2px}
+
+    /* Topbar blanco */
+    .bg-navbar{
+      background:#ffffff !important;
+      border-bottom:1px solid var(--ath-sea);
+    }
+    .bg-navbar .nav-link,
+    .bg-navbar .navbar-brand,
+    .bg-navbar .text-gray-600{
+      color:#334155 !important;
+      font-weight:700;
+    }
+    #sidebarToggleTop{ color:#64748b; }
+
+    /* Footer en gradiente verde */
+    .sticky-footer{
+      background: linear-gradient(90deg, var(--ath-green-2) 0%, var(--ath-green) 100%) !important;
+      color:#fff !important;
+    }
+    .sticky-footer .text-muted,
+    .sticky-footer span,
+    .sticky-footer a{
+      color:#ffffff !important; opacity:.95;
+    }
+
+    /* Sidebar blanco con acentos verdes */
+    .sidebar { background:#ffffff !important; border-right:1px solid #eef2f7; }
+    .sidebar .nav-item .nav-link { color:#334155; font-weight:700; }
+    .sidebar .nav-item .nav-link i { color:#64748b; }
+    .sidebar .nav-item .nav-link:hover{
+      background-color: var(--hover-soft) !important;
+      color: var(--ath-green) !important;
+    }
+    .sidebar .nav-item .nav-link:hover i{ color: var(--ath-green) !important; }
+    .sidebar .nav-item.active .nav-link{ color: var(--ath-green) !important; font-weight:800; }
+    .sidebar .nav-item.active .nav-link i{ color: var(--ath-green) !important; }
+
+    /* Logo */
+    .sidebar .sidebar-brand{
+      background:#ffffff !important;
+      padding-top:.85rem; padding-bottom:.85rem;
+      border-bottom:1px solid #eef2f7;
+    }
+    .sidebar .sidebar-brand::before,
+    .sidebar .sidebar-brand::after{ display:none !important; }
+    .sidebar-brand-icon{ background:transparent !important; border:none !important; box-shadow:none !important; }
+    .sidebar-brand-icon img{
+      width:auto !important; height:40px !important; object-fit:contain !important; display:block;
+    }
+
+    /* Formularios: foco anillo verde */
+    .form-control:focus, .custom-select:focus, .form-select:focus{
+      border-color: var(--ath-green) !important;
+      box-shadow: 0 0 0 .2rem var(--ring) !important;
+      outline:none;
+    }
+
+    /* Botón primario (verde atleta) */
+    .btn-primary{
+      background-color: var(--ath-green) !important;
+      border-color: var(--ath-green) !important;
+      font-weight:700; color:#fff !important;
+    }
+    .btn-primary:hover, .btn-primary:focus{
+      background-color: var(--ath-green-d) !important;
+      border-color: var(--ath-green-d) !important;
+      color:#fff !important;
+    }
+
+    /* Badges */
+    .badge-primary{ background-color: var(--ath-green); }
+
+    /* Tarjetas */
+    .card{ border:1px solid #eef2f7; border-radius:.75rem; }
+    .card-header{ background:#F6FFFA; border-bottom:1px solid #eef2f7; font-weight:800; }
+
+    /* Tablas: scroll horizontal móvil */
+    .table-wrap{ width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .table-wrap::-webkit-scrollbar{ height:8px; }
+    .table-wrap::-webkit-scrollbar-thumb{ background:#e5e7eb; border-radius:8px; }
+
+    /* Responsive */
+    @media (max-width: 991.98px){
+      .topbar .navbar-nav{ align-items:center; }
+    }
+    @media (max-width: 575.98px){
+      .img-profile{ width:32px !important; height:32px !important; }
+      .card-header{ font-size:.95rem; }
+      .btn, .form-control{ font-size:.925rem; }
+    }
+  </style>
+</head>
+
+<body id="page-top">
+<div id="wrapper">
+
+  <!-- Sidebar -->
+  <ul class="navbar-nav sidebar sidebar-light accordion" id="accordionSidebar">
+    <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{% url 'core:home' %}">
+      <div class="sidebar-brand-icon">
+        <img src="{% static 'img/logo/mi_logo.png' %}" alt="Logo">
+      </div>
+    </a>
+
+    <hr class="sidebar-divider my-0">
+
+    <!-- Mi Perfil -->
+    <li class="nav-item">
+      <a class="nav-link" href="#">
+        <i class="fas fa-user-circle"></i>
+        <span>Mi Perfil</span>
+      </a>
+    </li>
+
+    <!-- Notificaciones -->
+    <li class="nav-item">
+      <a class="nav-link" href="#">
+        <i class="fas fa-bell"></i>
+        <span>Notificaciones</span>
+      </a>
+    </li>
+
+    <!-- Eventos -->
+    <li class="nav-item">
+      <a class="nav-link" href="#">
+        <i class="fas fa-calendar-alt"></i>
+        <span>Eventos</span>
+      </a>
+    </li>
+
+    <!-- Cerrar sesión -->
+    <li class="nav-item">
+      <a class="nav-link text-danger" href="{% url 'usuarios:logout' %}">
+        <i class="fas fa-sign-out-alt"></i>
+        <span>Cerrar sesión</span>
+      </a>
+    </li>
+
+    <hr class="sidebar-divider">
+    <div class="version text-center small">© {{ now|date:"Y" }}</div>
+  </ul>
+  <!-- /Sidebar -->
+
+  <div id="content-wrapper" class="d-flex flex-column">
+    <div id="content">
+
+      <!-- Topbar (blanco) -->
+      <nav class="navbar navbar-expand navbar-light bg-navbar topbar mb-4 static-top shadow-sm">
+        <button id="sidebarToggleTop" class="btn btn-link rounded-circle mr-3" aria-label="Mostrar/Ocultar menú">
+          <i class="fa fa-bars"></i>
+        </button>
+
+        <!-- Botón Atrás (opcional) -->
+        <a id="btnBack"
+           href="#"
+           class="btn btn-light btn-sm ml-1"
+           data-fallback="{% url 'core:home' %}"
+           aria-label="Volver a la página anterior">
+          <i class="fas fa-arrow-left" aria-hidden="true"></i>
+          <span class="d-none d-sm-inline">Atrás</span>
+        </a>
+
+        <ul class="navbar-nav ml-auto">
+          <li class="nav-item dropdown no-arrow">
+            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown">
+              <span class="mr-2 d-none d-lg-inline text-gray-600 small">
+                {{ request.user.get_full_name|default:request.user.username }}
+              </span>
+              <img class="img-profile rounded-circle" src="{% static 'img/logo/mi_logo.png' %}" style="width:35px;height:35px;">
+            </a>
+          </li>
+        </ul>
+      </nav>
+      <!-- /Topbar -->
+
+      <!-- Contenido -->
+      <div class="container-fluid cpc-safe cpc-gutters" id="container-wrapper">
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="sticky-footer shadow-sm">
+      <div class="container my-auto text-center">
+        <span>Desarrollado por <b>Campeones Para Coquimbo</b></span>
+      </div>
+    </footer>
+    <!-- /Footer -->
+
+  </div>
+</div>
+
+<!-- Scroll to Top -->
+<a class="scroll-to-top rounded" href="#page-top" aria-label="Volver arriba"><i class="fas fa-angle-up"></i></a>
+
+<!-- JS global -->
+<script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
+<script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'vendor/jquery-easing/jquery.easing.min.js' %}"></script>
+<script src="{% static 'js/ruang-admin.min.js' %}"></script>
+
+<!-- Lógica “Atrás” -->
+<script>
+  (function(){
+    var back = document.getElementById('btnBack');
+    if (back){
+      back.addEventListener('click', function(e){
+        e.preventDefault();
+        if (window.history.length > 1){ window.history.back(); }
+        else { window.location.href = back.getAttribute('data-fallback') || '/'; }
+      });
+    }
+  })();
+</script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -17,7 +17,7 @@ urlpatterns = [
     path("panel/apoderado/", views.panel_apoderado, name="panel_apoderado"),
     path("panel/profesional/", views.panel_prof_multidisciplinario, name="panel_prof_multidisciplinario"),
     path("panel/atleta/", views.panel_atleta, name="panel_atleta"),
-path("debug/whoami/", views.whoami, name="whoami"),
+
 
 
     # Recuperar contraseña (password reset)

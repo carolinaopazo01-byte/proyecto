@@ -1,13 +1,18 @@
 # applications/core/models.py
 from django.db import models
 from django.conf import settings
+from django.contrib.auth.models import Group  # grupos opcionales (mismo nombre que el código)
 from datetime import date
-from django.utils.timezone import localdate
-from django.utils import timezone  # ← agregado para el default temporal
+from django.utils import timezone  # para defaults y now()
 
 Usuario = settings.AUTH_USER_MODEL
 
+# ====== Códigos de audiencia por tipo de usuario ======
+# (PROF = Profesor, PMUL = Equipo Multi, ATLE = Alumno/Atleta, APOD = Apoderado)
+AUDIENCIA_CODIGOS = ["PROF", "PMUL", "ATLE", "APOD"]
 
+
+# ===================== SEDES / DEPORTES =====================
 class Sede(models.Model):
     nombre = models.CharField(max_length=200)
     comuna = models.CharField(max_length=120, blank=True)
@@ -15,7 +20,7 @@ class Sede(models.Model):
 
     latitud = models.FloatField(null=True, blank=True)
     longitud = models.FloatField(null=True, blank=True)
-    radio_metros = models.PositiveIntegerField(default=150)  # radio de validación
+    radio_metros = models.PositiveIntegerField(default=150)  # radio de validación (geofencing)
 
     capacidad = models.PositiveIntegerField(default=0, blank=True)
     activa = models.BooleanField(default=True)
@@ -23,6 +28,7 @@ class Sede(models.Model):
 
     def __str__(self):
         return self.nombre
+
 
 class Deporte(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
@@ -58,11 +64,40 @@ class Evento(models.Model):
         return f"{self.nombre} ({self.fecha})"
 
 
+# ===================== COMUNICADOS =====================
+class ComunicadoQuerySet(models.QuerySet):
+    def for_user(self, user):
+        """
+        Visibilidad:
+        - is_superuser, ADMIN y COORD ven todo.
+        - Resto: ven si su tipo_usuario (p.ej. 'PROF') está en audiencia_codigos
+          o si pertenece a un Group con el mismo nombre del código (PROF/PMUL/ATLE/APOD).
+        """
+        tu = getattr(user, "tipo_usuario", None)
+        if getattr(user, "is_superuser", False) or tu in ("ADMIN", "COORD"):
+            return self
+
+        q_tu = models.Q(audiencia_codigos__icontains=tu) if tu else models.Q(pk__in=[])
+        q_grp = models.Q(audiencia_roles__in=Group.objects.filter(user=user, name__in=AUDIENCIA_CODIGOS))
+
+        return self.filter(q_tu | q_grp).distinct()
+
+
 class Comunicado(models.Model):
     titulo = models.CharField(max_length=200)
     cuerpo = models.TextField()
     autor = models.ForeignKey(Usuario, on_delete=models.PROTECT)
     creado = models.DateTimeField(auto_now_add=True)
+
+    # CSV de códigos de audiencia seleccionados: p.ej. "PROF,ATLE"
+    audiencia_codigos = models.CharField(max_length=100, default="", blank=True)
+
+    # Soporte opcional por grupos con el MISMO nombre del código (PROF/PMUL/ATLE/APOD)
+    audiencia_roles = models.ManyToManyField(
+        Group, blank=True, related_name="comunicados_dirigidos"
+    )
+
+    objects = ComunicadoQuerySet.as_manager()
 
     class Meta:
         ordering = ["-creado"]
@@ -70,17 +105,36 @@ class Comunicado(models.Model):
     def __str__(self):
         return self.titulo
 
+    # Helpers de audiencia
+    def set_audiencia_codigos(self, codigos):
+        cods = [c for c in (codigos or []) if c in AUDIENCIA_CODIGOS]
+        self.audiencia_codigos = ",".join(sorted(set(cods)))
 
+    def get_audiencia_codigos(self):
+        if not (self.audiencia_codigos or "").strip():
+            return []
+        return [c for c in self.audiencia_codigos.split(",") if c]
+
+    def visible_para(self, user) -> bool:
+        tu = getattr(user, "tipo_usuario", None)
+        if getattr(user, "is_superuser", False) or tu in ("ADMIN", "COORD"):
+            return True
+        if tu and tu in self.get_audiencia_codigos():
+            return True
+        return self.audiencia_roles.filter(user=user, name__in=AUDIENCIA_CODIGOS).exists()
+
+
+# ===================== CURSOS =====================
 class Curso(models.Model):
     class Programa(models.TextChoices):
         FORMATIVO = "FORM", "Formativo"
         ALTO_REND = "ALTO", "Alto rendimiento"
 
     class Estado(models.TextChoices):
-        BORRADOR   = "BOR", "Borrador"
-        PUBLICADO  = "PUB", "Publicado"
-        CERRADAS   = "CER", "Inscripciones cerradas"
-        ARCHIVADO  = "ARC", "Archivado"
+        BORRADOR = "BOR", "Borrador"
+        PUBLICADO = "PUB", "Publicado"
+        CERRADAS = "CER", "Inscripciones cerradas"
+        ARCHIVADO = "ARC", "Archivado"
 
     # -------- Identificación --------
     nombre = models.CharField(max_length=120)
@@ -119,7 +173,6 @@ class Curso(models.Model):
     estado = models.CharField(max_length=3, choices=Estado.choices, default=Estado.BORRADOR)
 
     # -------- Compatibilidad (antiguos) --------
-    # campo de texto antiguo; ya no se usa pero lo mantenemos por compatibilidad
     horario = models.CharField(
         max_length=120,
         blank=True,
@@ -141,7 +194,7 @@ class Curso(models.Model):
     def __str__(self):
         return f"{self.nombre} - {self.get_programa_display()} - {self.disciplina}"
 
-    # >>> helper para mostrar horarios en las tablas
+    # helper para mostrar horarios en listados
     def horarios_str(self) -> str:
         qs = self.horarios.all().order_by("dia", "hora_inicio")
         if not qs.exists():
@@ -154,13 +207,13 @@ class Curso(models.Model):
 
 class CursoHorario(models.Model):
     class Dia(models.IntegerChoices):
-        LUNES     = 0, "Lunes"
-        MARTES    = 1, "Martes"
+        LUNES = 0, "Lunes"
+        MARTES = 1, "Martes"
         MIERCOLES = 2, "Miércoles"
-        JUEVES    = 3, "Jueves"
-        VIERNES   = 4, "Viernes"
-        SABADO    = 5, "Sábado"
-        DOMINGO   = 6, "Domingo"
+        JUEVES = 3, "Jueves"
+        VIERNES = 4, "Viernes"
+        SABADO = 5, "Sábado"
+        DOMINGO = 6, "Domingo"
 
     curso = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name="horarios")
     dia = models.IntegerField(choices=Dia.choices)
@@ -174,16 +227,21 @@ class CursoHorario(models.Model):
         return f"{self.curso.nombre}: {self.get_dia_display()} {self.hora_inicio}-{self.hora_fin}"
 
 
+# ===================== PLANIFICACIONES =====================
 class Planificacion(models.Model):
-    curso  = models.ForeignKey('core.Curso', on_delete=models.CASCADE,
-                               related_name='planificaciones', null=True, blank=True)
-    semana = models.DateField(null=True, blank=True, help_text='Fecha del lunes de la semana')
+    curso = models.ForeignKey(
+        "core.Curso",
+        on_delete=models.CASCADE,
+        related_name="planificaciones",
+        null=True,
+        blank=True,
+    )
+    semana = models.DateField(null=True, blank=True, help_text="Fecha del lunes de la semana")
     semana_iso = models.CharField(max_length=10, blank=True, default="", db_index=True)
     archivo = models.FileField(upload_to="planificaciones/", blank=True, null=True)
     comentarios = models.TextField(blank=True, null=True)
     publica = models.BooleanField(default=False)
-    autor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
-                              on_delete=models.SET_NULL)
+    autor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
     creado = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -223,6 +281,7 @@ class PlanificacionVersion(models.Model):
         return f"Versión {self.id} de {self.planificacion}"
 
 
+# ===================== ASISTENCIAS (placeholders) =====================
 class AsistenciaClase(models.Model):
     # placeholder hasta integrar con tus clases reales
     curso_id = models.IntegerField()
@@ -238,6 +297,7 @@ class AsistenciaAlumno(models.Model):
     justificado = models.BooleanField(default=False)
 
 
+# ===================== ESTUDIANTE =====================
 class Estudiante(models.Model):
     rut = models.CharField(max_length=12, unique=True)
     nombres = models.CharField(max_length=120)
@@ -254,16 +314,16 @@ class Estudiante(models.Model):
 
     apoderado_nombre = models.CharField(max_length=200, blank=True, default="")
     apoderado_telefono = models.CharField(max_length=30, blank=True, default="")
-    apoderado_rut = models.CharField(max_length=12, blank=True, default="")  # 👈 NUEVO
+    apoderado_rut = models.CharField(max_length=12, blank=True, default="")
 
     pertenece_organizacion = models.BooleanField(default=False)
     club_nombre = models.CharField(max_length=120, blank=True, default="")
     logro_nacional = models.BooleanField(default=False)
     logro_internacional = models.BooleanField(default=False)
 
-    # ← TEMPORAL: para llenar filas existentes sin NULL
+    # metadatos
     creado = models.DateTimeField(default=timezone.now, null=True, blank=True)
-    modificado = models.DateTimeField(auto_now=True)  # opcional, pero útil
+    modificado = models.DateTimeField(auto_now=True)
     categoria_competida = models.CharField(max_length=80, blank=True, default="")
     puntaje_o_logro = models.CharField(max_length=120, blank=True, default="")
 

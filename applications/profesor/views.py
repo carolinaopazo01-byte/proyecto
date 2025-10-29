@@ -1,39 +1,43 @@
 # applications/profesor/views.py
-from datetime import datetime, timedelta
+from datetime import datetime
 from collections import defaultdict
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from django.views.decorators.http import require_http_methods
-from django.http import HttpResponseForbidden
-from django.utils import timezone
-from django.contrib import messages
-
+from math import radians, sin, cos, asin, sqrt
 from io import BytesIO
-from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
+
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse, HttpResponseForbidden
+from django.shortcuts import render, get_object_or_404
+from django.utils import timezone
+from django.views.decorators.http import require_http_methods
+
 import qrcode
 from qrcode.constants import ERROR_CORRECT_M
 
-from applications.core.models import Sede
+from applications.core.models import Sede, Curso
 from .models import AsistenciaProfesor
-from applications.core.models import Curso
+
 
 def _es_prof(user) -> bool:
+    """Retorna True si el usuario es de tipo PROF."""
     return (getattr(user, "tipo_usuario", "") or "").upper() == "PROF"
 
-# -------- utilidades geolocalización --------
-from math import radians, sin, cos, asin, sqrt
 
+# -------- utilidades geolocalización --------
 def _haversine_m(lat1, lon1, lat2, lon2) -> float:
+    """Distancia en metros entre (lat1, lon1) y (lat2, lon2)."""
     R = 6371000.0
     dlat = radians(lat2 - lat1)
     dlon = radians(lon2 - lon1)
-    a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
+    a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
     c = 2 * asin(sqrt(a))
     return R * c
 
+
 def _nearest_sede(lat, lng):
-    """Devuelve (sede, distancia_m) más cercana con coordenadas válidas, o (None, None)."""
+    """
+    Devuelve (sede, distancia_m) más cercana con coordenadas válidas, o (None, None)
+    si no hay sedes con lat/lng.
+    """
     qs = Sede.objects.exclude(latitud__isnull=True).exclude(longitud__isnull=True)
     best, best_d = None, None
     for s in qs:
@@ -65,7 +69,7 @@ def mi_asistencia_qr(request):
     mensaje, ok = None, False
 
     if request.method == "POST":
-        action  = (request.POST.get("action") or "").strip()       # 'entrada'|'salida'
+        action = (request.POST.get("action") or "").strip()       # 'entrada'|'salida'
         qr_text = (request.POST.get("qr_text") or "").strip()
         lat_str = request.POST.get("geo_lat")
         lng_str = request.POST.get("geo_lng")
@@ -94,11 +98,13 @@ def mi_asistencia_qr(request):
         if not sede:
             mensaje = mensaje or "QR inválido o ubicación no válida."
         else:
-            hoy   = timezone.localdate()
+            hoy = timezone.localdate()
             ahora = timezone.localtime().time()
-            tipo  = (AsistenciaProfesor.Tipo.ENTRADA
-                     if action == "entrada"
-                     else AsistenciaProfesor.Tipo.SALIDA)
+            tipo = (
+                AsistenciaProfesor.Tipo.ENTRADA
+                if action == "entrada"
+                else AsistenciaProfesor.Tipo.SALIDA
+            )
 
             # evita duplicados del mismo día
             ya_existe = AsistenciaProfesor.objects.filter(
@@ -141,23 +147,29 @@ def mi_asistencia_qr(request):
         "ok":             ok,
     })
 
+
 @login_required
 def mi_historial_asistencia(request):
     if not _es_prof(request.user):
         return HttpResponseForbidden("Solo profesores.")
 
-    qs = (AsistenciaProfesor.objects
-          .select_related("sede")
-          .filter(usuario=request.user)
-          .order_by("-fecha", "-hora"))
+    qs = (
+        AsistenciaProfesor.objects
+        .select_related("sede")
+        .filter(usuario=request.user)
+        .order_by("-fecha", "-hora")
+    )
 
     # filtros opcionales
     f_ini = request.GET.get("ini")
     f_fin = request.GET.get("fin")
     sede  = request.GET.get("sede")
-    if f_ini: qs = qs.filter(fecha__gte=f_ini)
-    if f_fin: qs = qs.filter(fecha__lte=f_fin)
-    if sede:  qs = qs.filter(sede_id=sede)
+    if f_ini:
+        qs = qs.filter(fecha__gte=f_ini)
+    if f_fin:
+        qs = qs.filter(fecha__lte=f_fin)
+    if sede:
+        qs = qs.filter(sede_id=sede)
 
     # horas trabajadas por día (si hay ENT y SAL)
     by_day = defaultdict(list)
@@ -166,8 +178,8 @@ def mi_historial_asistencia(request):
 
     horas_dia = {}
     for d, items in by_day.items():
-        ent = next((i for i in items if i.tipo == "ENT"), None)
-        sal = next((i for i in items if i.tipo == "SAL"), None)
+        ent = next((i for i in items if i.tipo == AsistenciaProfesor.Tipo.ENTRADA), None)
+        sal = next((i for i in items if i.tipo == AsistenciaProfesor.Tipo.SALIDA), None)
         if ent and sal:
             t1 = datetime.combine(d, ent.hora)
             t2 = datetime.combine(d, sal.hora)
@@ -186,6 +198,7 @@ def mi_historial_asistencia(request):
         "sede_sel": int(sede) if sede else None,
     })
 
+
 @login_required
 def sedes_qr_list(request):
     if not _es_prof(request.user):
@@ -203,8 +216,12 @@ def qr_sede_png(request, sede_id: int):
     size = int(request.GET.get("s", 12))  # escala
 
     payload = f"SEDE:{sede.id}"
-    qr = qrcode.QRCode(version=None, error_correction=ERROR_CORRECT_M,
-                       box_size=max(6, min(size, 30)), border=2)
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=ERROR_CORRECT_M,
+        box_size=max(6, min(size, 30)),
+        border=2,
+    )
     qr.add_data(payload)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
@@ -216,6 +233,7 @@ def qr_sede_png(request, sede_id: int):
     resp = HttpResponse(buf.getvalue(), content_type="image/png")
     resp["Content-Disposition"] = f'inline; filename="qr_sede_{sede.id}.png"'
     return resp
+
 
 @login_required
 def placard_sede_qr(request, sede_id: int):
