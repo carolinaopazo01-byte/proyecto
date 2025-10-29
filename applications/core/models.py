@@ -364,7 +364,6 @@ class Estudiante(models.Model):
         default="NINGUNA",
         verbose_name="Previsión de salud"
     )
-
     apoderado_nombre = models.CharField(max_length=200, blank=True, default="")
     apoderado_telefono = models.CharField(max_length=30, blank=True, default="")
     apoderado_rut = models.CharField(max_length=12, blank=True, default="")

@@ -3,7 +3,6 @@
 {% block header %}{% if is_edit %}Editar estudiante{% else %}Crear estudiante{% endif %}{% endblock %}
 
 {% block content %}
-
 <form method="post" novalidate>
   {% csrf_token %}
 
@@ -16,8 +15,19 @@
     </div>
   {% endif %}
 
+  {# ================== SELECTOR DE PROGRAMA ================== #}
+  <div class="card p-3 mb-3">
+    <div class="h6 mb-2">Tipo de programa</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button type="button" class="btn" id="btn-form">Formativo</button>
+      <button type="button" class="btn btn-light" id="btn-alto">Alto Rendimiento</button>
+    </div>
+    <input type="hidden" id="id_postula_programa" value="FORM"> {# UI only: FORM / ALTO #}
+    <small class="text-muted">Elige “Formativo” para inscripción simple o “Alto Rendimiento” para solicitar datos adicionales.</small>
+  </div>
+
   <!-- ========== 1) Identificación del/la atleta ========== -->
-  <fieldset class="card mb-3 p-3">
+  <fieldset id="sec-ident" class="card mb-3 p-3">
     <legend class="h5">1. Identificación del/la atleta</legend>
 
     <div class="row g-3">
@@ -64,31 +74,34 @@
         {% for e in form.comuna.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
       </div>
 
-   <div class="col-md-6">
-  <label class="form-label">Teléfono</label>
-  {{ form.telefono }}
-</div>
+      <div class="col-md-6">
+        <label class="form-label">Teléfono</label>
+        {{ form.telefono }}
+        {% for e in form.telefono.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+      </div>
 
-<div class="col-md-6">
-  <label class="form-label">Email</label>
-  {{ form.email }}
-</div>
-    <div class="col-md-6">
-  <label class="form-label">Número de emergencia</label>
-  {{ form.n_emergencia }}
-  {% for e in form.n_emergencia.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
-</div>
+      <div class="col-md-6">
+        <label class="form-label">Email</label>
+        {{ form.email }}
+        {% for e in form.email.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+      </div>
 
-<div class="col-md-6">
-  <label class="form-label">Previsión de salud</label>
-  {{ form.prevision }}
-</div>
+      <div class="col-md-6">
+        <label class="form-label">Número de emergencia</label>
+        {{ form.n_emergencia }}
+        {% for e in form.n_emergencia.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Previsión de salud</label>
+        {{ form.prevision }}
+      </div>
 
     </div>
   </fieldset>
 
   <!-- ========== 2) Tutor/a y/o representante legal ========== -->
-  <fieldset class="card mb-3 p-3">
+  <fieldset id="sec-tutor" class="card mb-3 p-3">
     <legend class="h5">2. Identificación del/la tutor/a y/o representante legal (completar sólo si es menor de edad)</legend>
 
     <div class="row g-3">
@@ -107,8 +120,12 @@
   </fieldset>
 
   <!-- ========== 3) Información deportiva del/la atleta ========== -->
-  <fieldset class="card mb-3 p-3">
+  <fieldset id="sec-deportiva" class="card mb-3 p-3">
     <legend class="h5">3. Información deportiva del/la atleta</legend>
+
+    <div class="mb-2 text-muted">
+      <b>Deporte que practica:</b> <span id="deporte-practica">—</span>
+    </div>
 
     <div class="row g-3">
       <div class="col-md-6 d-flex align-items-center gap-2">
@@ -146,11 +163,17 @@
         {{ form.puntaje_o_logro }}
         {% for e in form.puntaje_o_logro.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
       </div>
+
+      <!-- Motivación: campo de UI (no BD) para AR -->
+      <div class="col-12">
+        <label class="form-label">Motivación del deportista para postular a la beca</label>
+        <textarea name="motivacion_beca" id="id_motivacion_beca" rows="3" class="form-control"></textarea>
+      </div>
     </div>
   </fieldset>
 
   <!-- Curso / estado -->
-  <fieldset class="card mb-3 p-3">
+  <fieldset id="sec-curso" class="card mb-3 p-3">
     <legend class="h6 mb-2">Curso y estado</legend>
     <div class="row g-3">
       <div class="col-md-6">
@@ -171,9 +194,53 @@
   </div>
 </form>
 
-<!-- ===== JS: edad en vivo + mostrar/ocultar club + formateo RUT ===== -->
+<!-- ===== JS: selector FORM/ALTO + edad en vivo + club + RUT + deporte desde curso ===== -->
 <script>
   (function () {
+    // --- UI: FORM vs ALTO ---
+    const $btnForm = document.getElementById('btn-form');
+    const $btnAlto = document.getElementById('btn-alto');
+    const $mode = document.getElementById('id_postula_programa');
+
+    const $secIdent = document.getElementById('sec-ident');
+    const $secTutor = document.getElementById('sec-tutor');
+    const $secDep   = document.getElementById('sec-deportiva');
+    const $secCurso = document.getElementById('sec-curso');
+
+    // En AR estos campos serán obligatorios
+    const AR_REQUIRED = ['id_categoria_competida', 'id_puntaje_o_logro', 'id_motivacion_beca'];
+
+    function setRequired(ids, on) {
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          if (on) el.setAttribute('required','required');
+          else el.removeAttribute('required');
+        }
+      });
+    }
+    function switchMode(mode) {
+      $mode.value = mode; // FORM / ALTO
+      if (mode === 'FORM') {
+        $secIdent.style.display = '';
+        $secTutor.style.display = 'none';
+        $secDep.style.display   = 'none';
+        $secCurso.style.display = '';
+        setRequired(AR_REQUIRED, false);
+      } else {
+        $secIdent.style.display = '';
+        $secTutor.style.display = '';
+        $secDep.style.display   = '';
+        $secCurso.style.display = '';
+        setRequired(AR_REQUIRED, true);
+      }
+      $btnForm.classList.toggle('btn-light', mode !== 'FORM');
+      $btnAlto.classList.toggle('btn-light', mode !== 'ALTO');
+    }
+    $btnForm.addEventListener('click', () => switchMode('FORM'));
+    $btnAlto.addEventListener('click', () => switchMode('ALTO'));
+    switchMode('FORM'); // estado inicial
+
     // ---- Edad en vivo ----
     const fnac = document.getElementById("id_fecha_nacimiento");
     const edadOut = document.getElementById("id_edad_preview");
@@ -221,6 +288,17 @@
         inputRut.selectionStart = inputRut.selectionEnd = inputRut.value.length;
       });
     }
+
+    // ---- “Deporte que practica” desde el curso elegido ----
+    const $curso = document.getElementById('id_curso');
+    const $deporte = document.getElementById('deporte-practica');
+    const DISCIPLINA_MAP = {
+      {% for c in form.fields.curso.queryset %}
+        "{{ c.pk }}": "{{ c.disciplina.nombre|escapejs }}",
+      {% endfor %}
+    };
+    function updateDeporte(){ $deporte.textContent = DISCIPLINA_MAP[$curso.value] || '—'; }
+    if ($curso) { $curso.addEventListener('change', updateDeporte); updateDeporte(); }
   })();
 </script>
 
