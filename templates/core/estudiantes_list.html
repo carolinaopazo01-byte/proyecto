@@ -26,6 +26,7 @@
           <th>Comuna</th>
           <th>Teléfono</th>
           <th>Email</th>
+            <th>Previsión</th>
           <th>Organización</th>
           <th>Club</th>
           <th>Logros</th>
@@ -46,6 +47,7 @@
           <td>{{ e.comuna }}</td>
           <td>{{ e.telefono }}</td>
           <td>{{ e.email }}</td>
+        <td>{{ e.get_prevision_display }}</td>
           <td>{{ e.pertenece_organizacion|yesno:"Sí,No" }}</td>
           <td>{{ e.club_nombre }}</td>
           <td>

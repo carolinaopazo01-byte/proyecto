@@ -3,8 +3,20 @@
 {% block header %}Ficha clínica{% endblock %}
 {% block content %}
 <div class="card p-3" style="max-width:900px;">
+
+  <!-- Bloque de cabecera -->
   <p><b>Fecha:</b> {{ f.fecha|date:"d/m/Y" }}</p>
-  <p><b>Atleta:</b> {{ f.paciente.nombres }} {{ f.paciente.apellidos }}</p>
+
+  <!-- Datos del paciente con previsión -->
+  <div class="mb-2" style="padding:10px;border:1px solid #eee;border-radius:8px;background:#fafafa;">
+    <div><b>Atleta:</b> {{ f.paciente.nombres }} {{ f.paciente.apellidos }}</div>
+    <div><b>RUT:</b> {{ f.paciente.rut }}</div>
+    <div><b>Previsión:</b> {{ f.paciente.get_prevision_display|default:"—" }}</div> <!-- 👈 NUEVO -->
+    <div><b>Contacto:</b> {{ f.paciente.email|default:"—" }} · {{ f.paciente.telefono|default:"—" }}</div>
+    <div><b>Dirección:</b> {{ f.paciente.direccion|default:"—" }}, {{ f.paciente.comuna|default:"—" }}</div>
+    <div><b>N° Emergencia:</b> {{ f.paciente.n_emergencia|default:"—" }}</div>
+  </div>
+
   <p><b>Profesional:</b> {{ f.profesional.username }} · {{ f.get_especialidad_display }}</p>
   <p><b>Motivo:</b> {{ f.motivo|default:"—" }}</p>
   <p><b>Observaciones:</b><br>{{ f.observaciones|linebreaks }}</p>

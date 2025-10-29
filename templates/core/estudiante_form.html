@@ -64,17 +64,26 @@
         {% for e in form.comuna.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
       </div>
 
-      <div class="col-md-6">
-        <label class="form-label">Teléfono</label>
-        {{ form.telefono }}
-        {% for e in form.telefono.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
-      </div>
+   <div class="col-md-6">
+  <label class="form-label">Teléfono</label>
+  {{ form.telefono }}
+</div>
 
-      <div class="col-md-6">
-        <label class="form-label">Email</label>
-        {{ form.email }}
-        {% for e in form.email.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
-      </div>
+<div class="col-md-6">
+  <label class="form-label">Email</label>
+  {{ form.email }}
+</div>
+    <div class="col-md-6">
+  <label class="form-label">Número de emergencia</label>
+  {{ form.n_emergencia }}
+  {% for e in form.n_emergencia.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+</div>
+
+<div class="col-md-6">
+  <label class="form-label">Previsión de salud</label>
+  {{ form.prevision }}
+</div>
+
     </div>
   </fieldset>
 

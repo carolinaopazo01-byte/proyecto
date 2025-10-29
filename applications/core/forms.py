@@ -219,6 +219,8 @@ class EstudianteForm(forms.ModelForm):
             "comuna",
             "telefono",
             "email",
+            "n_emergencia",
+            "prevision",
             # 2) Tutor (si es menor de edad)
             "apoderado_nombre",
             "apoderado_telefono",
@@ -251,6 +253,7 @@ class EstudianteForm(forms.ModelForm):
             "logro_internacional": "Logro internacional",
             "categoria_competida": "Categoría en la cual compitió",
             "puntaje_o_logro": "Puntaje o logro obtenido",
+            "prevision": "Previsión de salud",
         }
 
     # ---------- RUT ----------

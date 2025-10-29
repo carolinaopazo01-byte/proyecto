@@ -12,6 +12,12 @@
       · Profesor: {{ alumno.curso.profesor.get_full_name|default:alumno.curso.profesor.username }}
     {% endif %}
   </div>
+
+<div class="mt-1">
+  <b>Previsión:</b> {{ alumno.get_prevision_display|default:"—" }}
+</div>
+<div>
+  <b>N° Emergencia:</b> {{ alumno.n_emergencia|default:"—" }}
 </div>
 
 <div class="mb-3" style="display:flex;gap:8px;flex-wrap:wrap">

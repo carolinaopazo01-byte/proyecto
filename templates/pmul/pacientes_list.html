@@ -11,18 +11,30 @@
 </form>
 
 <table class="table table-striped">
-  <thead><tr><th>RUT</th><th>Nombre</th><th>Email</th><th>Curso</th><th></th></tr></thead>
+  <thead>
+    <tr>
+      <th>RUT</th>
+      <th>Nombre</th>
+      <th>Email</th>
+        <th>N° Emergencia</th>
+      <th>Curso</th>
+      <th>Previsión</th>
+      <th></th>
+    </tr>
+  </thead>
   <tbody>
     {% for p in items %}
       <tr>
         <td>{{ p.rut }}</td>
         <td>{{ p.nombres }} {{ p.apellidos }}</td>
         <td>{{ p.email }}</td>
+        <td>{{ p.n_emergencia|default:"—" }}</td>
         <td>{{ p.curso|default:"—" }}</td>
+        <td>{{ p.get_prevision_display|default:"—" }}</td> <!-- 👈 NUEVO -->
         <td><a class="btn" href="{% url 'pmul:ficha_create' p.id %}">Nueva ficha</a></td>
       </tr>
     {% empty %}
-      <tr><td colspan="5">Sin resultados.</td></tr>
+      <tr><td colspan="6">Sin resultados.</td></tr>
     {% endfor %}
   </tbody>
 </table>
