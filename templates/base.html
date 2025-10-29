@@ -101,7 +101,6 @@
 
             {# Equipo Multidisciplinario (PMUL y variantes) #}
             {% if t == 'PMUL' or t == 'EMUL' or t == 'MULTI' or t == 'PROF_MULTIDISCIPLINARIO' or t == 'PROFESIONAL_MULTIDISCIPLINARIO' or t == 'PROFESIONAL' or t == 'EQUIPO_MULTIDISCIPLINARIO' %}
-              {# si tienes una vista de panel para PMUL, cámbiala aquí; por ahora apunto al listado de slots #}
               <a href="{% url 'pmul:slots_list' %}">Equipo Multidisciplinario</a>
             {% endif %}
 
@@ -113,8 +112,8 @@
               <a href="{% url 'usuarios:panel_coordinador' %}">Panel Coordinador</a>
             {% endif %}
 
-           {% if t == 'PROF' %}
-             <a href="{% url 'usuarios:panel_profesor' %}">Panel Profesor</a>
+            {% if t == 'PROF' %}
+              <a href="{% url 'usuarios:panel_profesor' %}">Panel Profesor</a>
             {% endif %}
 
             {% if t == 'ATLE' %}
@@ -124,10 +123,12 @@
 
           <a href="{% url 'usuarios:logout' %}">Salir</a>
         {% else %}
+          {# --- ENLACE NUEVO: REGISTRO EN LÍNEA (público) --- #}
+          <a href="{% url 'core:registro_publico' %}">Registro en línea</a>
           <a href="{% url 'usuarios:login_rut' %}">🔐 Iniciar sesión</a>
         {% endif %}
 
-        {# Informativas públicas #}
+        {# Informativas públicas, visibles siempre #}
         <a href="{% url 'core:comunicados_list' %}">Comunicados</a>
         <a href="{% url 'core:quienes' %}">Conócenos</a>
         <a href="{% url 'core:procesos' %}">Procesos de inscripción</a>

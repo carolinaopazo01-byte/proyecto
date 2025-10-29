@@ -5,12 +5,14 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_http_methods
 from django.db.models import Q, Count
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.core.mail import send_mail
+from django.conf import settings
 
-from .models import Comunicado, Curso, Sede, Estudiante, Planificacion, Deporte, PlanificacionVersion, InscripcionCurso
+from .models import Comunicado, Curso, Sede, Estudiante, Planificacion, Deporte, PlanificacionVersion, InscripcionCurso, PostulacionEstudiante
 #from .forms import PlanificacionForm, DeporteForm, PlanificacionUploadForm
-from .forms import DeporteForm, PlanificacionUploadForm
-# Control de acceso por rol
+from .forms import DeporteForm, PlanificacionUploadForm, RegistroPublicoForm
+
 from applications.usuarios.utils import role_required
 from applications.usuarios.models import Usuario
 from applications.atleta.models import Clase, AsistenciaAtleta
@@ -936,3 +938,74 @@ def inscribir_en_curso(request, estudiante_id, curso_id):
         except Exception as e:
             messages.error(request, f"No se pudo inscribir: {e}")
     return redirect(request.META.get("HTTP_REFERER", "core:cursos_list"))
+
+def _emails_admin_coordinador():
+    # Ajusta a tu User: campo tipo_usuario ('ADMIN', 'COOR'). Si usas grupos, cambia aquí.
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    qs = User.objects.filter(tipo_usuario__in=["ADMIN", "COOR"]).values_list("email", flat=True)
+    dest = [e for e in qs if e]
+    # fallback: ADMINS en settings si lo usas
+    dest += [e for _, e in getattr(settings, "ADMINS", [])]
+    # sin duplicados
+    return list(dict.fromkeys(dest))
+
+# ---------- Público: nueva postulación ----------
+def registro_publico(request):
+    if request.method == "POST":
+        form = RegistroPublicoForm(request.POST)
+        if form.is_valid():
+            post = form.save(commit=True)  # queda PENDIENTE por defecto
+            # Aviso por email
+            try:
+                send_mail(
+                    subject="Nueva postulación de estudiante",
+                    message=f"Se recibió una nueva postulación de {post.nombres} {post.apellidos} ({post.get_programa_display()}).\n\n"
+                            f"Revisar en el panel interno.",
+                    from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+                    recipient_list=_emails_admin_coordinador(),
+                    fail_silently=True,
+                )
+            except Exception:
+                pass
+            messages.success(request, "Tu solicitud fue enviada. Te contactaremos pronto.")
+            return redirect("core:registro_gracias")
+    else:
+        form = RegistroPublicoForm()
+    return render(request, "core/registro_form.html", {"form": form})
+
+def registro_gracias(request):
+    return render(request, "core/registro_gracias.html")
+
+# ---------- Interno: revisar / aprobar / rechazar ----------
+def _es_admin_o_coor(user):
+    return getattr(user, "tipo_usuario", "") in ("ADMIN", "COOR") or user.is_superuser
+
+@user_passes_test(_es_admin_o_coor)
+def registro_list(request):
+    items = PostulacionEstudiante.objects.all()
+    return render(request, "core/registro_list.html", {"items": items})
+
+@user_passes_test(_es_admin_o_coor)
+def registro_detail(request, pk):
+    p = get_object_or_404(PostulacionEstudiante, pk=pk)
+    return render(request, "core/registro_detail.html", {"p": p})
+
+@user_passes_test(_es_admin_o_coor)
+def registro_aprobar(request, pk):
+    p = get_object_or_404(PostulacionEstudiante, pk=pk)
+    if request.method == "POST":
+        est = p.aprobar()
+        messages.success(request, f"Postulación aprobada. Estudiante creado: {est.nombres} {est.apellidos}.")
+        return redirect("core:registro_detail", pk=p.pk)
+    return redirect("core:registro_detail", pk=pk)
+
+@user_passes_test(_es_admin_o_coor)
+def registro_rechazar(request, pk):
+    p = get_object_or_404(PostulacionEstudiante, pk=pk)
+    if request.method == "POST":
+        p.estado = PostulacionEstudiante.Estado.RECHAZADA
+        p.save(update_fields=["estado"])
+        messages.info(request, "Postulación rechazada.")
+        return redirect("core:registro_detail", pk=p.pk)
+    return redirect("core:registro_detail", pk=pk)

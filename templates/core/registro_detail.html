@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Postulación{% endblock %}
+{% block header %}Postulación de {{ p.nombres }} {{ p.apellidos }}{% endblock %}
+{% block content %}
+<div class="card p-3" style="max-width:900px">
+  <p><b>Programa:</b> {{ p.get_programa_display }}</p>
+  <p><b>Estado:</b> {{ p.get_estado_display }}</p>
+  <p><b>RUT:</b> {{ p.rut }}</p>
+  <p><b>Fecha nac.:</b> {{ p.fecha_nacimiento|date:"d/m/Y" }}</p>
+  <p><b>Contacto:</b> {{ p.email|default:"—" }} · {{ p.telefono|default:"—" }}</p>
+  <p><b>N° emergencia:</b> {{ p.n_emergencia|default:"—" }}</p>
+  <p><b>Previsión:</b> {{ p.get_prevision_display }}</p>
+  <p><b>Dirección:</b> {{ p.direccion|default:"—" }}, {{ p.comuna|default:"—" }}</p>
+
+  <hr>
+  <h5>Información deportiva</h5>
+  <p><b>Organización:</b> {% if p.pertenece_organizacion %}Sí{% else %}No{% endif %} {{ p.club_nombre|default:"" }}</p>
+  <p><b>Logros:</b> {% if p.logro_nacional %}Nacional{% endif %} {% if p.logro_internacional %}Internacional{% endif %}</p>
+  <p><b>Categoría:</b> {{ p.categoria_competida|default:"—" }}</p>
+  <p><b>Puntaje/Logro:</b> {{ p.puntaje_o_logro|default:"—" }}</p>
+  <p><b>Motivación:</b><br>{{ p.motivacion_beca|linebreaks|default:"—" }}</p>
+
+  <hr>
+  <h5>Curso</h5>
+  <p><b>Curso:</b> {{ p.curso|default:"—" }} · <b>Activo:</b> {% if p.activo %}Sí{% else %}No{% endif %}</p>
+
+  {% if p.estado == "PEND" %}
+    <form method="post" action="{% url 'core:registro_aprobar' p.id %}" style="display:inline">{% csrf_token %}<button class="btn">Aprobar</button></form>
+    <form method="post" action="{% url 'core:registro_rechazar' p.id %}" style="display:inline;margin-left:6px">{% csrf_token %}<button class="btn btn-light">Rechazar</button></form>
+  {% elif p.estado == "APRO" and p.estudiante_creado %}
+    <p class="text-success">Aprobada. Estudiante creado: <b>{{ p.estudiante_creado.nombres }} {{ p.estudiante_creado.apellidos }}</b></p>
+  {% else %}
+    <p class="text-muted">Postulación {{ p.get_estado_display }}.</p>
+  {% endif %}
+</div>
+{% endblock %}

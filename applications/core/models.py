@@ -1,10 +1,14 @@
 # applications/core/models.py
 from django.db import models
 from django.conf import settings
-from datetime import date
 from django.utils.timezone import localdate
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from django.contrib.auth import get_user_model
+
+from datetime import date
+
+####################3
 
 Usuario = settings.AUTH_USER_MODEL
 
@@ -399,3 +403,94 @@ class Estudiante(models.Model):
         if self.pertenece_organizacion and not self.club_nombre:
             pass
         super().save(*args, **kwargs)
+
+class PostulacionEstudiante(models.Model):
+    class Programa(models.TextChoices):
+        FORM = "FORM", "Formativo"
+        ALTO = "ALTO", "Alto Rendimiento"
+
+    class Estado(models.TextChoices):
+        PENDIENTE = "PEND", "Pendiente"
+        APROBADA  = "APRO", "Aprobada"
+        RECHAZADA = "RECH", "Rechazada"
+
+    # Copiamos los campos relevantes de Estudiante
+    programa = models.CharField(max_length=4, choices=Programa.choices, default=Programa.FORM)
+    rut = models.CharField(max_length=12)
+    nombres = models.CharField(max_length=120)
+    apellidos = models.CharField(max_length=120)
+    fecha_nacimiento = models.DateField(null=True, blank=True)
+    direccion = models.CharField(max_length=150, blank=True, null=True)
+    comuna = models.CharField(max_length=80, blank=True, null=True)
+    telefono = models.CharField(max_length=20, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    n_emergencia = models.CharField(max_length=30, blank=True)
+
+    PREVISION_CHOICES = [
+        ("FONASA", "Fonasa"),
+        ("ISAPRE", "Isapre"),
+        ("NINGUNA", "Ninguna"),
+    ]
+    prevision = models.CharField(max_length=20, choices=PREVISION_CHOICES, default="NINGUNA")
+
+    # Tutor (si menor de edad)
+    apoderado_nombre = models.CharField(max_length=200, blank=True, default="")
+    apoderado_telefono = models.CharField(max_length=30, blank=True, default="")
+
+    # Info deportiva (relevante en ALTO)
+    pertenece_organizacion = models.BooleanField(default=False)
+    club_nombre = models.CharField(max_length=120, blank=True, default="")
+    logro_nacional = models.BooleanField(default=False)
+    logro_internacional = models.BooleanField(default=False)
+    categoria_competida = models.CharField(max_length=80, blank=True, default="")
+    puntaje_o_logro = models.CharField(max_length=120, blank=True, default="")
+    motivacion_beca = models.TextField(blank=True, default="")
+
+    # Curso y estado
+    curso = models.ForeignKey("core.Curso", on_delete=models.SET_NULL, blank=True, null=True)
+    activo = models.BooleanField(default=True)
+
+    # Control
+    estado = models.CharField(max_length=4, choices=Estado.choices, default=Estado.PENDIENTE, db_index=True)
+    estudiante_creado = models.ForeignKey("core.Estudiante", on_delete=models.SET_NULL, null=True, blank=True, related_name="postulaciones")
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-creado"]
+
+    def __str__(self):
+        return f"Postulación {self.nombres} {self.apellidos} ({self.get_programa_display()})"
+
+    # --- Aprobar: crea Estudiante con estos datos ---
+    def aprobar(self):
+        if self.estado == self.Estado.APROBADA and self.estudiante_creado_id:
+            return self.estudiante_creado  # ya creada
+        # Evitar RUT duplicado si ya existe un Estudiante
+        est, created = Estudiante.objects.get_or_create(
+            rut=self.rut,
+            defaults=dict(
+                nombres=self.nombres,
+                apellidos=self.apellidos,
+                fecha_nacimiento=self.fecha_nacimiento,
+                direccion=self.direccion,
+                comuna=self.comuna,
+                telefono=self.telefono,
+                email=self.email,
+                n_emergencia=self.n_emergencia,
+                prevision=self.prevision,
+                apoderado_nombre=self.apoderado_nombre,
+                apoderado_telefono=self.apoderado_telefono,
+                pertenece_organizacion=self.pertenece_organizacion,
+                club_nombre=self.club_nombre,
+                logro_nacional=self.logro_nacional,
+                logro_internacional=self.logro_internacional,
+                categoria_competida=self.categoria_competida,
+                puntaje_o_logro=self.puntaje_o_logro,
+                curso=self.curso,
+                activo=self.activo,
+            ),
+        )
+        self.estudiante_creado = est
+        self.estado = self.Estado.APROBADA
+        self.save(update_fields=["estudiante_creado", "estado"])
+        return est

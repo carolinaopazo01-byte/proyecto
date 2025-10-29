@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}Registro en línea{% endblock %}
+{% block header %}Registro en línea{% endblock %}
+
+{% block content %}
+<form method="post" class="card p-3" style="max-width:900px">
+  {% csrf_token %}
+
+  <!-- Selector de programa -->
+  <div class="mb-2">
+    <div class="h6 mb-1">Tipo de programa</div>
+    {{ form.programa }}
+    <small class="text-muted">Selecciona Formativo o Alto Rendimiento.</small>
+  </div>
+
+  <!-- 1) Identificación -->
+  <fieldset id="sec-ident" class="mb-3">
+    <legend>1. Identificación del/la atleta</legend>
+    <div class="row g-2">
+      <div class="col-md-6"><label class="form-label">Nombres</label>{{ form.nombres }}</div>
+      <div class="col-md-6"><label class="form-label">Apellidos</label>{{ form.apellidos }}</div>
+
+      <div class="col-md-4">
+        <label class="form-label">Fecha de nacimiento</label>
+        {{ form.fecha_nacimiento }}  {# ← ya viene con type="date" #}
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Edad</label>
+        <input id="id_edad_preview" class="form-control" type="number" readonly />
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">RUT</label>
+        {{ form.rut }}
+      </div>
+
+      <div class="col-md-8"><label class="form-label">Dirección</label>{{ form.direccion }}</div>
+      <div class="col-md-4"><label class="form-label">Comuna</label>{{ form.comuna }}</div>
+      <div class="col-md-4"><label class="form-label">Teléfono</label>{{ form.telefono }}</div>
+      <div class="col-md-4"><label class="form-label">Email</label>{{ form.email }}</div>
+      <div class="col-md-4"><label class="form-label">Número de emergencia</label>{{ form.n_emergencia }}</div>
+      <div class="col-md-4"><label class="form-label">Previsión de salud</label>{{ form.prevision }}</div>
+    </div>
+  </fieldset>
+
+  <!-- 2) Tutor -->
+  <fieldset id="sec-tutor" class="mb-3">
+    <legend>2. Tutor/a (si es menor de edad)</legend>
+    <div class="row g-2">
+      <div class="col-md-8"><label class="form-label">Nombre completo</label>{{ form.apoderado_nombre }}</div>
+      <div class="col-md-4"><label class="form-label">Teléfono</label>{{ form.apoderado_telefono }}</div>
+      <div class="col-md-6"><label class="form-label">Correo electrónico del/la tutor(a)</label>{{ form.apoderado_email }}</div>
+      <div class="col-md-6"><label class="form-label">Fecha de nacimiento del/la tutor(a)</label>{{ form.apoderado_fecha_nacimiento }}</div>
+    </div>
+  </fieldset>
+
+  <!-- 3) Información deportiva -->
+  <fieldset id="sec-dep" class="mb-3">
+    <legend>3. Información deportiva</legend>
+
+    <div id="ar-block">
+      <div class="row g-2">
+        <div class="col-12 d-flex align-items-center gap-2">
+          <label class="form-label mb-0">{{ form.pertenece_organizacion.label }}</label>{{ form.pertenece_organizacion }}
+        </div>
+        <div class="col-md-6"><label class="form-label">Nombre organización/club</label>{{ form.club_nombre }}</div>
+        <div class="col-md-6"><label class="form-label">Categoría en la cual compite</label>{{ form.categoria_competida }}</div>
+        <div class="col-md-6"><label class="form-label">Puntaje o logro obtenido</label>{{ form.puntaje_o_logro }}</div>
+        <div class="col-md-3"><label class="form-label">Logro nacional</label>{{ form.logro_nacional }}</div>
+        <div class="col-md-3"><label class="form-label">Logro internacional</label>{{ form.logro_internacional }}</div>
+      </div>
+      <hr>
+    </div>
+
+    <div class="row g-2">
+      <div class="col-12">
+        <label class="form-label">{{ form.motivacion_beca.label }}</label>
+        {{ form.motivacion_beca }}
+      </div>
+    </div>
+  </fieldset>
+
+  <!-- Curso -->
+  <fieldset id="sec-curso" class="mb-3">
+    <legend>Curso y sede al cual postula</legend>
+    <div class="row g-2">
+      <div class="col-md-6"><label class="form-label">{{ form.curso.label }}</label>{{ form.curso }}</div>
+    </div>
+  </fieldset>
+
+  <div class="d-flex gap-2">
+    <button class="btn" type="submit">Enviar solicitud</button>
+    <a class="btn btn-light" href="{% url 'core:home' %}">Cancelar</a>
+  </div>
+</form>
+
+<script>
+  (function(){
+    // ---- Toggle Formativo / Alto Rendimiento ----
+    const selPrograma = document.getElementById('id_programa');
+    const arBlock = document.getElementById('ar-block');
+    const REQ_ALTO = ['id_categoria_competida', 'id_puntaje_o_logro', 'id_motivacion_beca'];
+
+    function setRequired(ids, on){
+      ids.forEach(id=>{
+        const el = document.getElementById(id);
+        if(!el) return;
+        if(on) el.setAttribute('required','required');
+        else el.removeAttribute('required');
+      });
+    }
+    function toggleByPrograma(){
+      const mode = selPrograma ? selPrograma.value : 'FORM';
+      if(mode === 'FORM'){
+        if(arBlock) arBlock.style.display = 'none';
+        // Si quieres que motivación sea obligatoria incluso en FORM, descomenta la línea siguiente:
+        // document.getElementById('id_motivacion_beca')?.setAttribute('required','required');
+        setRequired(REQ_ALTO, false);
+      }else{
+        if(arBlock) arBlock.style.display = '';
+        setRequired(REQ_ALTO, true);
+      }
+    }
+    selPrograma?.addEventListener('change', toggleByPrograma);
+    toggleByPrograma();
+
+    // ---- Edad en vivo (atleta) ----
+    const fnac = document.getElementById("id_fecha_nacimiento");
+    const edadOut = document.getElementById("id_edad_preview");
+    function calcEdad() {
+      if (!fnac || !fnac.value) { if (edadOut) edadOut.value = ""; return; }
+      const d = new Date(fnac.value);
+      if (isNaN(d)) { if (edadOut) edadOut.value = ""; return; }
+      const hoy = new Date();
+      let edad = hoy.getFullYear() - d.getFullYear();
+      const m = hoy.getMonth() - d.getMonth();
+      if (m < 0 || (m === 0 && hoy.getDate() < d.getDate())) edad--;
+      if (edadOut) edadOut.value = edad >= 0 ? edad : "";
+    }
+    fnac?.addEventListener("change", calcEdad);
+    calcEdad();
+
+    // ---- Formateo de RUT (puntos y guion) ----
+    const inputRut = document.getElementById("id_rut");
+    if (inputRut) {
+      function limpiarRut(v){ return v.replace(/[.\s]/g,'').replace(/-/g,'').toUpperCase(); }
+      function formatear(v){
+        v = limpiarRut(v);
+        if (!v) return '';
+        const dv = v.slice(-1), base = v.slice(0, -1);
+        let out = '', cont = 0;
+        for (let i = base.length - 1; i >= 0; i--) {
+          out = base[i] + out; cont++;
+          if (cont === 3 && i !== 0) { out = '.' + out; cont = 0; }
+        }
+        return out + '-' + dv;
+      }
+      inputRut.addEventListener('input', () => {
+        const before = inputRut.value;
+        inputRut.value = formatear(before);
+        inputRut.selectionStart = inputRut.selectionEnd = inputRut.value.length;
+      });
+    }
+  })();
+</script>
+{% endblock %}
