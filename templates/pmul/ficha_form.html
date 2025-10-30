@@ -1,207 +1,46 @@
-{% extends "base/plantilla.html" %}
-{% block title %}Nueva ficha{% endblock %}
-{% block header %}Nueva ficha{% endblock %}
-
-{% block extra_css %}
-<style>
-  .form-card{ max-width:900px; }
-
-  /* ====== Look unificado para inputs/select/textarea ====== */
-  .form-card input[type="text"],
-  .form-card input[type="email"],
-  .form-card input[type="number"],
-  .form-card input[type="password"],
-  .form-card input[type="date"],
-  .form-card input[type="time"],
-  .form-card input[type="datetime-local"],
-  .form-card input[list],
-  .form-card select,
-  .form-card textarea {
-    display:block;
-    width:100%;
-    height:2.45rem;
-    padding:.45rem .7rem;
-    font-size:1rem;
-    line-height:1.5;
-    color:var(--text, #1f2937);
-    background:#fff;
-    border:1px solid var(--line, #e5e7eb);
-    border-radius:8px;
-    box-shadow:none;
-    transition:border-color .15s ease, box-shadow .15s ease;
-  }
-  .form-card select{ height:2.55rem; }
-  .form-card textarea{ min-height:120px; height:auto; resize:vertical; }
-
-  .form-card input:hover,
-  .form-card select:hover,
-  .form-card textarea:hover{ border-color:var(--primary-200, #aee0e5); }
-  .form-card input:focus,
-  .form-card select:focus,
-  .form-card textarea:focus{
-    outline:0;
-    border-color:var(--primary-300, #7fcfd6);
-    box-shadow:0 0 0 3px rgba(21,154,167,.18);
-  }
-
-  /* Fieldset de publicación */
-  .pub-box{
-    border:1px solid #e5e7eb; border-radius:8px; padding:10px;
-  }
-  .pub-legend{
-    font-size:14px; margin:0; padding:0 .4rem; width:auto;
-  }
-
-  /* Botones centrados */
-  .actions{
-    display:flex; justify-content:center; gap:.5rem; margin-top:.25rem;
-  }
-</style>
-{% endblock %}
-
+{% extends "base.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block header %}{{ titulo }}{% endblock %}
 {% block content %}
-<form method="post" enctype="multipart/form-data" class="card p-3 form-card" novalidate>
+<form method="post" enctype="multipart/form-data" class="card p-3" style="max-width:820px;">
   {% csrf_token %}
 
-  <!-- ================= Atleta con BUSCADOR ================= -->
   <div class="mb-2">
-    <label class="form-label"><b>Atleta</b></label>
-
-    <!-- Input de búsqueda con datalist (autocompletar) -->
-    <input id="finder" class="form-control" list="paciente_suggest"
-           placeholder="Escribe nombre, apellido o RUT (con puntos y guión)" autocomplete="off">
-    <datalist id="paciente_suggest">
-      {% for p in form.fields.paciente.queryset %}
-        <option value="{{ p.nombres }} {{ p.apellidos }} — {{ p.rut }}"></option>
-      {% endfor %}
-    </datalist>
-
-    <!-- El field real de Django queda oculto y sincronizado -->
-    <div style="display:none">
-      {{ form.paciente }}
-    </div>
-
-    <!-- Datos del alumno seleccionado -->
-    <div class="text-muted" style="margin-top:6px">
-      <b>Previsión:</b> <span id="prevision-val">—</span>
-      &nbsp;·&nbsp;
-      <b>N° Emergencia:</b> <span id="emergencia-val">—</span>
-    </div>
-
-    <!-- Diccionarios JS construidos desde el queryset -->
-    <script>
-      // Helpers
-      const norm = s => (s||'').toLowerCase()
-        .normalize('NFD').replace(/\p{Diacritic}/gu, '');
-      const normRut = s => {
-        if(!s) return '';
-        let r = s.toString().trim()
-          .replace(/\./g,'').replace(/\s+/g,'').replace(/[–—]/g,'-').toUpperCase();
-        if(!r.includes('-') && r.length >= 2) r = r.slice(0,-1) + '-' + r.slice(-1);
-        return r;
-      };
-
-      // Mapa por id
-      const PACS = {
-        {% for p in form.fields.paciente.queryset %}
-          "{{ p.pk }}": {
-            id: "{{ p.pk }}",
-            name: "{{ p.nombres|escapejs }} {{ p.apellidos|escapejs }}",
-            rut: "{{ p.rut|upper }}",
-            prevision: "{{ p.get_prevision_display|default:'—'|escapejs }}",
-            emergencia: "{{ p.n_emergencia|default:'—'|escapejs }}"
-          },
-        {% endfor %}
-      };
-
-      // Índices de búsqueda
-      const IDX = [];
-      const IDX_RUT = {};
-      for (const id in PACS) {
-        const p = PACS[id];
-        const label = `${p.name} — ${p.rut}`;
-        IDX.push({ id, label, key: norm(label) });
-        IDX_RUT[normRut(p.rut)] = id;
-      }
-
-      const $finder = document.getElementById('finder');
-      const $sel = document.getElementById('id_paciente');
-      const $prev = document.getElementById('prevision-val');
-      const $emer = document.getElementById('emergencia-val');
-
-      function setPaciente(id) {
-        if (!$sel) return;
-        $sel.value = id || '';
-        if (id && PACS[id]) {
-          $prev.textContent = PACS[id].prevision || '—';
-          $emer.textContent = PACS[id].emergencia || '—';
-          $finder.value = `${PACS[id].name} — ${PACS[id].rut}`;
-        } else {
-          $prev.textContent = '—';
-          $emer.textContent = '—';
-        }
-      }
-
-      function buscarYSeleccionar() {
-        const q = $finder.value || '';
-        const idRut = IDX_RUT[normRut(q)];
-        if (idRut) { setPaciente(idRut); return; }
-
-        const hit = IDX.find(x => x.label === q);
-        if (hit) { setPaciente(hit.id); return; }
-
-        const k = norm(q);
-        const hit2 = IDX.find(x => x.key.includes(k));
-        setPaciente(hit2 ? hit2.id : '');
-      }
-
-      $finder.addEventListener('change', buscarYSeleccionar);
-      $finder.addEventListener('blur', buscarYSeleccionar);
-
-      (function init(){
-        const current = $sel && $sel.value;
-        if (current) setPaciente(current); else setPaciente('');
-      })();
-    </script>
+    <label class="form-label">Atleta</label>
+    {{ form.paciente }}
   </div>
-  <!-- =============== /Atleta buscador =============== -->
-
   <div class="mb-2">
-    <label class="form-label"><b>Motivo de atención</b></label>
+    <label class="form-label">Motivo de atención</label>
     {{ form.motivo }}
-    {% for e in form.motivo.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
   </div>
-
   <div class="mb-2">
-    <label class="form-label"><b>Observaciones</b></label>
+    <label class="form-label">Observaciones</label>
     {{ form.observaciones }}
   </div>
-
   <div class="mb-2">
-    <label class="form-label"><b>Diagnóstico / Indicaciones</b></label>
+    <label class="form-label">Diagnóstico / Indicaciones</label>
     {{ form.diagnostico }}
   </div>
-
   <div class="mb-2">
-    <label class="form-label"><b>Estado</b></label>
+    <label class="form-label">Estado</label>
     {{ form.estado }}
   </div>
 
   <div class="mb-2">
-    <label class="form-label"><b>Adjuntar archivo(s)</b></label>
-    {{ form.adjuntos }}
+    <label class="form-label">Adjuntar archivo(s)</label>
+    <input type="file" name="adjuntos" multiple>
   </div>
 
-  <fieldset class="mb-3 pub-box">
-    <legend class="float-none w-auto px-2 pub-legend">Publicación (visibilidad)</legend>
+  <fieldset class="card p-2 mb-2">
+    <legend class="h6">Publicación (visibilidad)</legend>
     <label><input type="checkbox" name="publicar_profesor" {% if form.instance.publicar_profesor %}checked{% endif %}> Profesor/Entrenador</label><br>
     <label><input type="checkbox" name="publicar_coordinador" {% if form.instance.publicar_coordinador %}checked{% endif %}> Coordinador</label><br>
     <label><input type="checkbox" name="publicar_admin" {% if form.instance.publicar_admin %}checked{% endif %}> Administrador</label>
   </fieldset>
 
-  <div class="actions">
-    <button class="btn btn-primary" type="submit">Guardar</button>
-    <a class="btn btn-outline-secondary" href="{% url 'pmul:fichas_list' %}">Cancelar</a>
+  <div class="d-flex gap-2">
+    <button class="btn" type="submit">Guardar</button>
+    <a class="btn" href="{% url 'pmul:fichas_list' %}">Cancelar</a>
   </div>
 </form>
 {% endblock %}

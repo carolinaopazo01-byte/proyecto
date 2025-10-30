@@ -311,7 +311,22 @@ class Estudiante(models.Model):
     direccion = models.CharField(max_length=150, blank=True, null=True)
     comuna = models.CharField(max_length=80, blank=True, null=True)
     edad = models.PositiveSmallIntegerField(null=True, blank=True, editable=False)
-
+    n_emergencia = models.CharField(
+        max_length=30,
+        blank=True,
+        verbose_name="Número de emergencia"
+    )
+    PREVISION_CHOICES = [
+        ("FONASA", "Fonasa"),
+        ("ISAPRE", "Isapre"),
+        ("NINGUNA", "Ninguna"),
+    ]
+    prevision = models.CharField(
+        max_length=20,
+        choices=PREVISION_CHOICES,
+        default="NINGUNA",
+        verbose_name="Previsión de salud"
+    )
     apoderado_nombre = models.CharField(max_length=200, blank=True, default="")
     apoderado_telefono = models.CharField(max_length=30, blank=True, default="")
     apoderado_rut = models.CharField(max_length=12, blank=True, default="")
