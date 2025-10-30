@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Ingresar alumno temporal{% endblock %}
+{% block header %}Ingresar alumno temporal{% endblock %}
+
+{% block content %}
+<form method="post" class="card p-3" style="max-width:900px" novalidate>
+  {% csrf_token %}
+
+  <!-- 1) Identificación -->
+  <fieldset class="mb-3">
+    <legend>1. Identificación del/la atleta</legend>
+    <div class="row g-2">
+      <div class="col-md-6"><label class="form-label">Nombres</label>{{ form.nombres }}</div>
+      <div class="col-md-6"><label class="form-label">Apellidos</label>{{ form.apellidos }}</div>
+      <div class="col-md-4"><label class="form-label">Fecha de nacimiento</label>{{ form.fecha_nacimiento }}</div>
+      <div class="col-md-2">
+        <label class="form-label">Edad</label>
+        <input id="id_edad_preview" class="form-control" type="number" readonly>
+      </div>
+      <div class="col-md-6"><label class="form-label">RUT</label>{{ form.rut }}</div>
+      <div class="col-md-8"><label class="form-label">Dirección</label>{{ form.direccion }}</div>
+      <div class="col-md-4"><label class="form-label">Comuna</label>{{ form.comuna }}</div>
+      <div class="col-md-4"><label class="form-label">Teléfono</label>{{ form.telefono }}</div>
+      <div class="col-md-4"><label class="form-label">Email</label>{{ form.email }}</div>
+      <div class="col-md-4"><label class="form-label">Número de emergencia</label>{{ form.n_emergencia }}</div>
+      <div class="col-md-4"><label class="form-label">Previsión de salud</label>{{ form.prevision }}</div>
+    </div>
+  </fieldset>
+
+  <!-- 2) Tutor -->
+  <fieldset class="mb-3">
+    <legend>2. Tutor/a (si es menor de edad)</legend>
+    <div class="row g-2">
+      <div class="col-md-6"><label class="form-label">Nombre completo</label>{{ form.apoderado_nombre }}</div>
+      <div class="col-md-3"><label class="form-label">Teléfono</label>{{ form.apoderado_telefono }}</div>
+      <div class="col-md-3"><label class="form-label">Correo electrónico</label>{{ form.apoderado_email }}</div>
+      <div class="col-md-4"><label class="form-label">Fecha de nacimiento</label>{{ form.apoderado_fecha_nacimiento }}</div>
+    </div>
+  </fieldset>
+
+  <!-- 3) Motivación (solo texto, como registro en línea Formativo) -->
+  <fieldset class="mb-3">
+    <legend>3. Motivación</legend>
+    {{ form.motivacion_beca }}
+  </fieldset>
+
+  <!-- 4) Curso -->
+  <fieldset class="mb-3">
+    <legend>Curso y sede al cual postula</legend>
+    <div class="row g-2">
+      <div class="col-md-6"><label class="form-label">{{ form.curso.label }}</label>{{ form.curso }}</div>
+    </div>
+  </fieldset>
+
+  <div class="d-flex gap-2">
+    <button class="btn" type="submit">Guardar</button>
+    <a class="btn btn-light" href="{% url 'usuarios:panel_profesor' %}">Cancelar</a>
+      <a class="btn" href="{% url 'profesor:alumno_temporal_new' %}">➕ Ingresar alumno temporalmente</a>
+  </div>
+</form>
+
+<script>
+  (function(){
+    // Edad en vivo
+    const fnac = document.getElementById("id_fecha_nacimiento");
+    const edadOut = document.getElementById("id_edad_preview");
+    function calcEdad(){
+      if(!fnac || !fnac.value){ if(edadOut) edadOut.value=""; return; }
+      const d = new Date(fnac.value); if(isNaN(d)){ edadOut.value=""; return; }
+      const h = new Date(); let e = h.getFullYear()-d.getFullYear();
+      const m = h.getMonth()-d.getMonth(); if(m<0 || (m===0 && h.getDate()<d.getDate())) e--;
+      edadOut.value = e>=0 ? e : "";
+    }
+    fnac?.addEventListener("change", calcEdad); calcEdad();
+
+    // Formateo RUT
+    const inputRut = document.getElementById("id_rut");
+    if(inputRut){
+      function limpiar(v){ return v.replace(/[.\s]/g,"").replace(/-/g,"").toUpperCase(); }
+      function fmt(v){
+        v = limpiar(v); if(!v) return "";
+        const dv=v.slice(-1), base=v.slice(0,-1);
+        let out="", c=0; for(let i=base.length-1;i>=0;i--){ out=base[i]+out; c++; if(c===3 && i!==0){ out="."+out; c=0; } }
+        return out+"-"+dv;
+      }
+      inputRut.addEventListener("input", ()=>{ const b=inputRut.value; inputRut.value = fmt(b); inputRut.selectionStart=inputRut.selectionEnd=inputRut.value.length; });
+    }
+  })();
+</script>
+{% endblock %}
