@@ -4,255 +4,303 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- Favicon -->
   <link rel="icon" href="{% static 'img/logo/mi_logo.png' %}">
   <title>{% block title %}CPC - Dashboard{% endblock %}</title>
 
   <!-- CSS global -->
-  <link href="{% static 'vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet" type="text/css">
-  <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet" type="text/css">
-
-  <!-- Fuente (misma Manrope que público) -->
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
-
-  <link href="{% static 'css/ruang-admin.min.css' %}" rel="stylesheet">
-  <link href="{% static 'css/panel.css' %}" rel="stylesheet">
-  <!-- Uniformador global (márgenes seguros, cards, inputs, botones) -->
+  <link href="{% static 'vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link href="{% static 'css/cpc-uniform.css' %}" rel="stylesheet">
 
-  {% block extra_css %}{% endblock %}
-
   <style>
-    /* ===== Paleta (coherente con público) ===== */
     :root{
-      --cpc-teal:   #056375;
-      --cpc-navy:   #091236;
-      --cpc-ivory:  #FAF9F8;
-      --cpc-sea:    #A1B2AE;
-
-      --tone-aqua:  #10A5AA;
-      --tone-deep:  #0A5A64;
-      --aqua-dark:  #0B5A66;
-      --aqua-light: #D7F0F3;
-
-      --ring:       rgba(5,99,117,.28);
-      --hover-soft: rgba(16,165,170,.08);
+      --topbar-h:56px; --brand-h:56px;
+      --sb-w-desktop:220px; --sb-w-mobile:260px;
+      --rhythm:18px;
+      --bg:#f3f4f6; --text:#223146; --cpc-sea:#A1B2AE;
+      --card-bg:#fff; --card-br:#eef2f7; --card-radius:12px; --card-shadow:0 2px 6px rgba(0,0,0,.04);
     }
 
-    /* ===== Tipografía + fixes iOS ===== */
-    html, body{
-      font-family:"Manrope", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
-      -webkit-text-size-adjust:100%;
-      color:#111; line-height:1.5;
-    }
-    a{ -webkit-tap-highlight-color: rgba(0,0,0,0); }
-    h1,h2,h3,h4,h5,h6{ font-weight:800; letter-spacing:.2px; }
-
-    /* ===== TOPBAR BLANCO ===== */
-    .bg-navbar{
-      background:#ffffff !important;
-      border-bottom:1px solid var(--cpc-sea);
-    }
-    .bg-navbar .nav-link,
-    .bg-navbar .navbar-brand,
-    .bg-navbar .text-gray-600{
-      color:#334155 !important;
-      font-weight:700;
-    }
-    #sidebarToggleTop{ color:#64748b; }
-
-    /* ===== FOOTER (gradiente teal) ===== */
-    .sticky-footer{
-      background: linear-gradient(90deg, var(--aqua-dark) 0%, var(--tone-deep) 100%) !important;
-      color:#fff !important;
-    }
-    .sticky-footer .text-muted,
-    .sticky-footer span,
-    .sticky-footer a{
-      color:#ffffff !important;
-      opacity:.95;
+    html,body{height:100%;}
+    body{
+      margin:0; background:var(--bg); color:var(--text);
+      font-family:"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
     }
 
-    /* ===== SIDEBAR BLANCO con acentos teal ===== */
-    .sidebar { background:#ffffff !important; border-right:1px solid #eef2f7; }
-    .sidebar .nav-item .nav-link { color:#334155; font-weight:700; }
-    .sidebar .nav-item .nav-link i { color:#64748b; }
-    .sidebar .nav-item .nav-link:hover{
-      background-color: var(--hover-soft) !important;
-      color: var(--cpc-teal) !important;
-    }
-    .sidebar .nav-item .nav-link:hover i{ color: var(--cpc-teal) !important; }
-    .sidebar .nav-item.active .nav-link{ color: var(--cpc-teal) !important; font-weight:800; }
-    .sidebar .nav-item.active .nav-link i{ color: var(--cpc-teal) !important; }
+    /* ===== LAYOUT ===== */
+    .app{min-height:100dvh; display:flex;}
 
-    /* ===== Área del LOGO ===== */
-    .sidebar .sidebar-brand{
-      background:#ffffff !important;
-      padding-top:.85rem; padding-bottom:.85rem;
-      border-bottom:1px solid #eef2f7;
+    /* ===== SIDEBAR ===== */
+    .sidebar{
+      width:var(--sb-w-desktop); flex:0 0 var(--sb-w-desktop);
+      background:#fff; border-right:1px solid var(--card-br);
+      display:flex; flex-direction:column; z-index:900;
     }
-    .sidebar .sidebar-brand::before,
-    .sidebar .sidebar-brand::after{ display:none !important; }
-    .sidebar-brand-icon{ background:transparent !important; border:none !important; box-shadow:none !important; }
-    .sidebar-brand-icon img{
-      width:auto !important;
-      height:40px !important;
-      object-fit:contain !important;
-      border-radius:0 !important;
-      display:block;
+    /* Sin logo en el lateral izquierdo */
+    .sb-brand{
+      height:var(--brand-h); padding:0 12px;
+      display:flex; align-items:center; justify-content:space-between;
+      background:#fff; border-bottom:none;
     }
+    .sb-scroll{flex:1 1 auto; padding:var(--rhythm) 12px; overflow:hidden; background: var(--bg);}
 
-    /* ===== Formularios: foco con aro teal ===== */
-    .form-control:focus, .custom-select:focus, .form-select:focus{
-      border-color: var(--cpc-teal) !important;
-      box-shadow: 0 0 0 .2rem var(--ring) !important;
-      outline: none;
+    /* ===== MINI PERFIL (nombre + correo, fijo en el sidebar) ===== */
+    .sb-profile{
+      display:flex; align-items:center; gap:.6rem;
+      background:#fff; border:1px solid #eef2f7; border-radius:12px;
+      padding:.55rem .7rem; margin-bottom:var(--rhythm);
+      box-shadow:var(--card-shadow);
     }
-
-    /* ===== Botón primario ===== */
-    .btn-primary{
-      background-color: var(--cpc-teal) !important;
-      border-color: var(--cpc-teal) !important;
-      font-weight:700;
+    .sb-profile-avatar{
+      width:34px; height:34px; border-radius:10px;
+      display:inline-flex; align-items:center; justify-content:center;
+      background:#eef6ff; color:#3b82f6; flex:0 0 34px;
     }
-    .btn-primary:hover, .btn-primary:focus{
-      background-color:#045768 !important;
-      border-color:#045768 !important;
+    .sb-profile-avatar i{ font-size:16px; line-height:1; }
+    .sb-profile-info{ min-width:0; }
+    .sb-profile-name{
+      font-weight:800; font-size:.9rem; color:#1f2937;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.15;
+    }
+    .sb-profile-mail{
+      font-size:.78rem; color:#6b7280;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.2;
     }
 
-    /* ===== Badges ===== */
-    .badge-primary{ background-color: var(--cpc-teal); }
-
-    /* ===== Tarjetas ===== */
-    .card{
-      border:1px solid #eef2f7;
-      border-radius:.75rem;
+    .sb-section{
+      background:var(--card-bg); border:1px solid var(--card-br);
+      border-radius:var(--card-radius); box-shadow:var(--card-shadow);
+      overflow:hidden; margin-bottom: var(--rhythm);
     }
-    .card-header{
-      background: var(--cpc-ivory);
-      border-bottom:1px solid #eef2f7;
-      font-weight:800;
+    .sb-head{
+      display:flex; gap:6px; align-items:center;
+      padding:10px 12px; background:#f8fafc; border-bottom:1px solid var(--card-br);
+      font-weight:900; font-size:12px; color:#223146;
+    }
+    .sb-head i{ width:14px; text-align:center; font-size:12px; }
+    .sb-body{ padding:8px; display:flex; flex-direction:column; gap:8px; }
+
+    .sb-link{
+      display:flex; align-items:center; gap:8px; padding:8px 10px;
+      border-radius:10px; font-weight:700; color:#3b4656; border:1px solid transparent;
+      text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .sb-link i{ width:14px; min-width:14px; text-align:center; color:#7b8797; font-size:13px; }
+    .sb-link:hover{ background:rgba(16,165,170,.08); color:#056375; border-color:#cfe9ec; }
+    .sb-link:hover i{ color:#056375; }
+
+    .sb-foot{ margin-top:auto; border-top:1px solid var(--card-br); background:#fff; padding: var(--rhythm) 10px; }
+    .sb-logout{
+      display:flex; gap:8px; align-items:center; justify-content:center;
+      padding:9px 10px; border-radius:10px; font-weight:800;
+      color:#dc2626; border:1px solid #fecaca; background:#fff; text-decoration:none;
+    }
+    .sb-logout:hover{ background:#fee2e2; color:#b91c1c; border-color:#fca5a5; }
+    .sb-meta{ color:#94a3b8; font-size:.72rem; text-align:center; margin-top:8px; }
+
+    /* ===== CONTENIDO ===== */
+    .content{ flex:1 1 auto; display:flex; flex-direction:column; min-width:0; }
+    .topbar{
+      height:var(--topbar-h); display:flex; align-items:center;
+      border-bottom:1px solid var(--cpc-sea); background:#fff;
+      padding:0 12px; position:relative; z-index:1000;
+    }
+    /* Logo completo y pequeño a la derecha (sin nombre) */
+    .topbar-logo{
+      height:28px; width:auto; border-radius:0; display:block; object-fit:contain;
     }
 
-    /* ===== Tablas: scroll horizontal en móviles ===== */
-    .table-wrap{ width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
-    .table-wrap::-webkit-scrollbar{ height:8px; }
-    .table-wrap::-webkit-scrollbar-thumb{ background:#e5e7eb; border-radius:8px; }
+    .container-page{ flex:1 1 auto; padding:var(--rhythm) 16px; }
+    .container-page > *:first-child{ margin-top:0; }
+    footer.footer{ background:linear-gradient(90deg,#0B5A66 0%,#0A5A64 100%); color:#fff; }
 
-    /* ===== Responsive finos ===== */
+    /* ===== Botón global (SIEMPRE visible) ===== */
+    #menuBtn{
+      position:fixed; top:8px; left:8px;
+      display:inline-flex; align-items:center; justify-content:center;
+      width:36px; height:36px; border:none; background:transparent; color:#94a3b8;
+      padding:0; margin:0; line-height:1; border-radius:8px;
+      box-shadow:none;
+      z-index:2147483647;
+      cursor:pointer;
+    }
+    #menuBtn .icon-bars{ width:22px; height:22px; display:inline-block; }
+    #menuBtn svg path{ stroke:currentColor; stroke-width:2; fill:none; stroke-linecap:round; }
+    #menuBtn:focus{ outline:none; }
+
+    /* ===== Responsive ===== */
     @media (max-width: 991.98px){
-      /* espacio para botón de toggle en topbar */
-      .topbar .navbar-nav{ align-items:center; }
+      .sidebar{
+        position:fixed; left:0; top:0; bottom:0;
+        width:var(--sb-w-mobile);
+        transform:translateX(-100%); transition:none; background:#fff; z-index:1000;
+      }
+      body.nav-open .sidebar{ transform:translateX(0); }
+      .sb-brand{ padding-left:56px; } /* evita solape con el botón fijo */
     }
-    @media (max-width: 575.98px){
-      .img-profile{ width:32px !important; height:32px !important; }
-      .card-header{ font-size:.95rem; }
-      .btn, .form-control{ font-size:.925rem; }
+    @media (min-width: 992px){
+      .sidebar{ position:relative; transform:none; transition:none; }
+    }
+
+    /* ===== Tipografía del SIDEBAR ===== */
+    .sidebar{ font-size:12.5px; }
+    .sb-head{ font-size:14px; font-weight:900; letter-spacing:.2px; padding:8px 10px; }
+    .sb-link{ font-size:12.5px; padding:7px 10px; }
+    .sb-link i{ font-size:12px; width:14px; min-width:14px; }
+    .sb-meta{ font-size:11.5px; }
+    .sb-logout{ font-size:12.5px; }
+    @media (max-width: 991.98px){
+      .sb-head{ padding:10px 12px; font-size:14px; }
+      .sb-link{ padding:10px 12px; font-size:12.5px; }
     }
   </style>
+
+  {% block extra_css %}{% endblock %}
 </head>
+<body>
 
-<body id="page-top">
-<div id="wrapper">
+<!-- Botón global SIEMPRE visible -->
+<button id="menuBtn" aria-label="Abrir menú" aria-expanded="false">
+  <svg class="icon-bars" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M3 6h18M3 12h18M3 18h18"/>
+  </svg>
+</button>
 
-  <!-- Sidebar -->
-  <ul class="navbar-nav sidebar sidebar-light accordion" id="accordionSidebar">
-    <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{% url 'core:home' %}">
-      <div class="sidebar-brand-icon">
-        <img src="{% static 'img/logo/mi_logo.png' %}" alt="Logo">
+<div class="app" id="app">
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar" id="sidebar" aria-label="Barra lateral">
+    <div class="sb-brand"></div> <!-- sin logo a la izquierda -->
+
+    <div class="sb-scroll">
+      <!-- MINI PERFIL: nombre + correo -->
+      <div class="sb-profile">
+        <div class="sb-profile-avatar" aria-hidden="true">
+          <i class="fas fa-user"></i>
+        </div>
+        <div class="sb-profile-info">
+          <div class="sb-profile-name">
+            {{ request.user.get_full_name|default:request.user.username }}
+          </div>
+          <div class="sb-profile-mail">
+            {{ request.user.email|default:"Sin correo" }}
+          </div>
+        </div>
       </div>
-    </a>
 
-    <hr class="sidebar-divider my-0">
+      <!-- Gestión de estudiantes -->
+      <section class="sb-section">
+        <div class="sb-head"><i class="fas fa-user-graduate"></i><span>Gestión de estudiantes</span></div>
+        <div class="sb-body">
+          <a class="sb-link" href="{% url 'core:estudiantes_list' %}">
+            <i class="fas fa-list-ul"></i><span>Registros</span>
+          </a>
+        </div>
+      </section>
 
-    <!-- Mi Perfil -->
-    <li class="nav-item">
-      <a class="nav-link" href="#">
-        <i class="fas fa-user-circle"></i>
-        <span>Mi Perfil</span>
-      </a>
-    </li>
+      <!-- Gestión de cursos -->
+      <section class="sb-section">
+        <div class="sb-head"><i class="fas fa-layer-group"></i><span>Gestión de cursos</span></div>
+        <div class="sb-body">
+          <a class="sb-link" href="{% url 'core:cursos_list' %}"><i class="fas fa-table"></i><span>Registros de cursos</span></a>
+          <a class="sb-link" href="{% url 'core:planificaciones_list' %}"><i class="fas fa-clipboard-check"></i><span>Planificaciones</span></a>
+          <a class="sb-link" href="{% url 'core:sedes_list' %}"><i class="fas fa-map-marker-alt"></i><span>Sedes</span></a>
+        </div>
+      </section>
 
-    <!-- Notificaciones -->
-    <li class="nav-item">
-      <a class="nav-link" href="#">
-        <i class="fas fa-bell"></i>
-        <span>Notificaciones</span>
-      </a>
-    </li>
+      <!-- Gestión de usuarios -->
+      <section class="sb-section">
+        <div class="sb-head"><i class="fas fa-id-badge"></i><span>Gestión de usuarios</span></div>
+        <div class="sb-body">
+          <a class="sb-link" href="{% url 'usuarios:equipo_list' %}">
+            <i class="fas fa-users-cog"></i><span>Equipo</span>
+          </a>
+        </div>
+      </section>
 
-    <!-- Eventos -->
-    <li class="nav-item">
-      <a class="nav-link" href="#">
-        <i class="fas fa-calendar-alt"></i>
-        <span>Eventos</span>
-      </a>
-    </li>
+      <!-- Reportes -->
+      <section class="sb-section">
+        <div class="sb-head"><i class="fas fa-chart-bar"></i><span>Reportes</span></div>
+        <div class="sb-body">
+          <a class="sb-link" href="{% url 'core:reportes_home' %}">
+            <i class="fas fa-file-alt"></i><span>Centro de reportes</span>
+          </a>
+        </div>
+      </section>
 
-    <!-- Cerrar sesión -->
-    <li class="nav-item">
-      <a class="nav-link text-danger" href="{% url 'usuarios:logout' %}">
-        <i class="fas fa-sign-out-alt"></i>
-        <span>Cerrar sesión</span>
-      </a>
-    </li>
-
-    <hr class="sidebar-divider">
-    <div class="version text-center small">© {{ now|date:"Y" }}</div>
-  </ul>
-  <!-- /Sidebar -->
-
-  <div id="content-wrapper" class="d-flex flex-column">
-    <div id="content">
-
-      <!-- Topbar (blanco) -->
-      <nav class="navbar navbar-expand navbar-light bg-navbar topbar mb-4 static-top shadow-sm">
-        <button id="sidebarToggleTop" class="btn btn-link rounded-circle mr-3" aria-label="Mostrar/Ocultar menú">
-          <i class="fa fa-bars"></i>
-        </button>
-
-        <ul class="navbar-nav ml-auto">
-          <li class="nav-item dropdown no-arrow">
-            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown">
-              <span class="mr-2 d-none d-lg-inline text-gray-600 small">
-                {{ request.user.get_full_name|default:request.user.username }}
-              </span>
-              <img class="img-profile rounded-circle" src="{% static 'img/logo/mi_logo.png' %}" style="width:35px;height:35px;">
-            </a>
-          </li>
-        </ul>
-      </nav>
-      <!-- /Topbar -->
-
-      <!-- Contenido dinámico (uniforme y con gutters seguros) -->
-      <div class="container-fluid cpc-safe cpc-gutters" id="container-wrapper">
-        {% block content %}{% endblock %}
-      </div>
+      <!-- Comunicados: SOLO en el sidebar -->
+      <section class="sb-section">
+        <div class="sb-head"><i class="fas fa-bullhorn"></i><span>Comunicados</span></div>
+        <div class="sb-body">
+          <a class="sb-link" href="{% url 'core:comunicados_list' %}">
+            <i class="fas fa-envelope-open-text"></i><span>Ver comunicados</span>
+          </a>
+        </div>
+      </section>
     </div>
 
-    <!-- Footer (teal gradiente) -->
-    <footer class="sticky-footer shadow-sm">
-      <div class="container my-auto text-center">
+    <div class="sb-foot">
+      <a class="sb-logout" href="{% url 'usuarios:logout' %}">
+        <i class="fas fa-sign-out-alt"></i><span>Cerrar sesión</span>
+      </a>
+      <div class="sb-meta">© {% now "Y" %}</div>
+    </div>
+  </aside>
+
+  <!-- ===== CONTENIDO ===== -->
+  <main class="content">
+    <nav class="topbar">
+      <!-- Solo logo (pequeño) a la derecha; SIN nombre -->
+      <div class="ml-auto d-flex align-items-center">
+        <img src="{% static 'img/logo/mi_logo.png' %}" class="topbar-logo" alt="Logo CPC">
+      </div>
+    </nav>
+
+    <div class="container-page">
+      {% block content %}{% endblock %}
+    </div>
+
+    <footer class="footer py-3">
+      <div class="container text-center">
         <span>Desarrollado por <b>Campeones Para Coquimbo</b></span>
       </div>
     </footer>
-    <!-- /Footer -->
-
-  </div>
+  </main>
 </div>
-
-<!-- Scroll to Top -->
-<a class="scroll-to-top rounded" href="#page-top" aria-label="Volver arriba"><i class="fas fa-angle-up"></i></a>
 
 <!-- JS global -->
 <script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
 <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-<script src="{% static 'vendor/jquery-easing/jquery.easing.min.js' %}"></script>
-<script src="{% static 'js/ruang-admin.min.js' %}"></script>
+
+<!-- Toggle: usa el botón global y clase en <body> -->
+<script>
+  (function(){
+    var menuBtn = document.getElementById('menuBtn');
+
+    function toggleSidebar(e){
+      if(e) e.preventDefault();
+      var open = document.body.classList.toggle('nav-open');
+      menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+
+    if(menuBtn){
+      menuBtn.addEventListener('click', toggleSidebar);
+    }
+
+    // Limpia estado al pasar a desktop
+    var mq = window.matchMedia('(min-width: 992px)');
+    function clean(){
+      if(mq.matches){
+        document.body.classList.remove('nav-open');
+        if(menuBtn) menuBtn.setAttribute('aria-expanded','false');
+      }
+    }
+    if(mq.addEventListener){ mq.addEventListener('change', clean); } else { mq.addListener(clean); }
+  })();
+</script>
 
 {% block extra_js %}{% endblock %}
 </body>

@@ -4,176 +4,278 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
+  <!-- Favicon -->
   <link rel="icon" href="{% static 'img/logo/mi_logo.png' %}">
   <title>{% block title %}CPC - Dashboard{% endblock %}</title>
 
   <!-- CSS global -->
-  <link href="{% static 'vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet">
-  <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="{% static 'vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet" type="text/css">
+  <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet" type="text/css">
+
+  <!-- Fuente (misma Manrope que público) -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <link href="{% static 'css/ruang-admin.min.css' %}" rel="stylesheet">
+  <link href="{% static 'css/panel.css' %}" rel="stylesheet">
+  <!-- Uniformador global (márgenes seguros, cards, inputs, botones) -->
   <link href="{% static 'css/cpc-uniform.css' %}" rel="stylesheet">
 
-  <style>
-    :root{
-      --topbar-h:56px;
-      --rhythm:18px;
-
-      --bg:#f5f7fb;
-      --surface:#ffffff;
-      --text:#1f2937;
-
-      --primary-50:#e8f6f7;
-      --primary-100:#d6eff1;
-      --primary-200:#aee0e5;
-      --primary-300:#7fcfd6;
-      --primary-400:#3fb6c0;
-      --primary-500:#159aa7;
-      --primary-600:#0e7c86;
-      --primary-700:#0a5a64;
-      --primary-800:#083f49;
-
-      --card-br: #cfe7ea;
-
-      --elev-shadow-1: 0 2px 10px rgba(17, 24, 39, .10);
-      --elev-shadow-2: 0 1px  2px rgba(17, 24, 39, .06);
-      --elev-shadow: var(--elev-shadow-1), var(--elev-shadow-2);
-
-      --bar-color: var(--primary-700);
-      --bar-text: #ffffff;
-      --bar-text-weak: rgba(255,255,255,.85);
-    }
-
-    html,body{height:100%;}
-    body{
-      margin:0; background:var(--bg); color:var(--text);
-      font-family:"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
-      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
-    }
-
-    /* ===== Layout sin sidebar ===== */
-    .app{min-height:100dvh; display:flex;}
-    .content{ flex:1 1 auto; display:flex; flex-direction:column; min-width:0; }
-
-    /* ===== Topbar ===== */
-    .topbar{
-      height:var(--topbar-h); display:flex; align-items:center; gap:10px;
-      border-bottom:0; box-shadow: var(--elev-shadow);
-      background:var(--bar-color) !important; color: var(--bar-text);
-      padding:0 12px; position:sticky; top:0; z-index:1000;
-      background-clip: padding-box;
-      will-change: transform; transform: translateZ(0); contain: paint; backface-visibility: hidden;
-    }
-    .topbar, .topbar *{ color: var(--bar-text); }
-    .topbar .spacer{ flex:1 1 auto; }
-
-    .topbar-logo{ height:28px; width:auto; display:block; object-fit:contain; }
-
-    /* ===== Botón "volver" ===== */
-    .topbar-back{
-      display:inline-flex; align-items:center; justify-content:center;
-      width:36px; height:36px; border-radius:10px; border:1px solid rgba(255,255,255,.2);
-      background: transparent; color: var(--bar-text);
-      cursor:pointer; padding:0; line-height:1; outline: none;
-      transition: background .15s ease, border-color .15s ease, transform .08s ease;
-    }
-    .topbar-back i{ font-size:14px; }
-    .topbar-back:hover{ background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.35); }
-    .topbar-back:active{ transform: translateY(1px); }
-    .topbar-back:focus-visible{ box-shadow: 0 0 0 3px rgba(255,255,255,.35); }
-
-    /* Contenido */
-    .container-page{ flex:1 1 auto; padding:var(--rhythm) 16px; }
-    .container-page > *:first-child{ margin-top:0; }
-
-    /* Footer */
-    footer.footer{
-      background: var(--bar-color) !important;
-      color: var(--bar-text) !important;
-    }
-    footer.footer b{ color: var(--bar-text) !important; }
-
-    /* Estados comunes */
-    a{ color:var(--primary-600); }
-    a:hover{ color:var(--primary-700); }
-    .btn-primary{ background:var(--primary-600); border-color:var(--primary-600); }
-    .btn-primary:hover, .btn-primary:focus{ background:var(--primary-700); border-color:var(--primary-700); }
-    .form-control:focus{ border-color:var(--primary-300); box-shadow:0 0 0 3px rgba(21,154,167,.18); }
-  </style>
-
   {% block extra_css %}{% endblock %}
+
+  <style>
+    /* ===== Paleta (coherente con público) ===== */
+    :root{
+      --cpc-teal:   #056375;
+      --cpc-navy:   #091236;
+      --cpc-ivory:  #FAF9F8;
+      --cpc-sea:    #A1B2AE;
+
+      --tone-aqua:  #10A5AA;
+      --tone-deep:  #0A5A64;
+      --aqua-dark:  #0B5A66;
+      --aqua-light: #D7F0F3;
+
+      --ring:       rgba(5,99,117,.28);
+      --hover-soft: rgba(16,165,170,.08);
+    }
+
+    /* ===== Tipografía + fixes iOS ===== */
+    html, body{
+      font-family:"Manrope", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+      -webkit-text-size-adjust:100%;
+      color:#111; line-height:1.5;
+    }
+    a{ -webkit-tap-highlight-color: rgba(0,0,0,0); }
+    h1,h2,h3,h4,h5,h6{ font-weight:800; letter-spacing:.2px; }
+
+    /* ===== TOPBAR BLANCO ===== */
+    .bg-navbar{
+      background:#ffffff !important;
+      border-bottom:1px solid var(--cpc-sea);
+    }
+    .bg-navbar .nav-link,
+    .bg-navbar .navbar-brand,
+    .bg-navbar .text-gray-600{
+      color:#334155 !important;
+      font-weight:700;
+    }
+    #sidebarToggleTop{ color:#64748b; }
+
+    /* ===== FOOTER (gradiente teal) ===== */
+    .sticky-footer{
+      background: linear-gradient(90deg, var(--aqua-dark) 0%, var(--tone-deep) 100%) !important;
+      color:#fff !important;
+    }
+    .sticky-footer .text-muted,
+    .sticky-footer span,
+    .sticky-footer a{
+      color:#ffffff !important;
+      opacity:.95;
+    }
+
+    /* ===== SIDEBAR BLANCO con acentos teal ===== */
+    .sidebar { background:#ffffff !important; border-right:1px solid #eef2f7; }
+    .sidebar .nav-item .nav-link { color:#334155; font-weight:700; }
+    .sidebar .nav-item .nav-link i { color:#64748b; }
+    .sidebar .nav-item .nav-link:hover{
+      background-color: var(--hover-soft) !important;
+      color: var(--cpc-teal) !important;
+    }
+    .sidebar .nav-item .nav-link:hover i{ color: var(--cpc-teal) !important; }
+    .sidebar .nav-item.active .nav-link{ color: var(--cpc-teal) !important; font-weight:800; }
+    .sidebar .nav-item.active .nav-link i{ color: var(--cpc-teal) !important; }
+
+    /* ===== Área del LOGO ===== */
+    .sidebar .sidebar-brand{
+      background:#ffffff !important;
+      padding-top:.85rem; padding-bottom:.85rem;
+      border-bottom:1px solid #eef2f7;
+    }
+    .sidebar .sidebar-brand::before,
+    .sidebar .sidebar-brand::after{ display:none !important; }
+    .sidebar-brand-icon{ background:transparent !important; border:none !important; box-shadow:none !important; }
+    .sidebar-brand-icon img{
+      width:auto !important;
+      height:40px !important;
+      object-fit:contain !important;
+      border-radius:0 !important;
+      display:block;
+    }
+
+    /* ===== Formularios: foco con aro teal ===== */
+    .form-control:focus, .custom-select:focus, .form-select:focus{
+      border-color: var(--cpc-teal) !important;
+      box-shadow: 0 0 0 .2rem var(--ring) !important;
+      outline: none;
+    }
+
+    /* ===== Botón primario ===== */
+    .btn-primary{
+      background-color: var(--cpc-teal) !important;
+      border-color: var(--cpc-teal) !important;
+      font-weight:700;
+    }
+    .btn-primary:hover, .btn-primary:focus{
+      background-color:#045768 !important;
+      border-color:#045768 !important;
+    }
+
+    /* ===== Badges ===== */
+    .badge-primary{ background-color: var(--cpc-teal); }
+
+    /* ===== Tarjetas ===== */
+    .card{
+      border:1px solid #eef2f7;
+      border-radius:.75rem;
+    }
+    .card-header{
+      background: var(--cpc-ivory);
+      border-bottom:1px solid #eef2f7;
+      font-weight:800;
+    }
+
+    /* ===== Tablas: scroll horizontal en móviles ===== */
+    .table-wrap{ width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .table-wrap::-webkit-scrollbar{ height:8px; }
+    .table-wrap::-webkit-scrollbar-thumb{ background:#e5e7eb; border-radius:8px; }
+
+    /* ===== Responsive finos ===== */
+    @media (max-width: 991.98px){
+      /* espacio para botón de toggle en topbar */
+      .topbar .navbar-nav{ align-items:center; }
+    }
+    @media (max-width: 575.98px){
+      .img-profile{ width:32px !important; height:32px !important; }
+      .card-header{ font-size:.95rem; }
+      .btn, .form-control{ font-size:.925rem; }
+    }
+  </style>
 </head>
-<body>
-<div class="app" id="app">
-  <main class="content">
-    <nav class="topbar" id="topbar">
-      <!-- Botón de flecha para retroceder -->
-      <button
-        id="backBtn"
-        class="topbar-back"
-        type="button"
-        aria-label="Volver a la página anterior"
-        title="Volver"
-        data-fallback-url="{{ back_fallback_url|default:'/' }}"
-      >
-        <i class="fas fa-arrow-left" aria-hidden="true"></i>
-      </button>
 
-      <div class="spacer"></div>
+<body id="page-top">
+<div id="wrapper">
 
-      <div class="ml-auto d-flex align-items-center">
-        <img src="{% static 'img/logo/mi_logo.png' %}" class="topbar-logo" alt="Logo CPC">
+  <!-- Sidebar -->
+  <ul class="navbar-nav sidebar sidebar-light accordion" id="accordionSidebar">
+    <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{% url 'core:home' %}">
+      <div class="sidebar-brand-icon">
+        <img src="{% static 'img/logo/mi_logo.png' %}" alt="Logo">
       </div>
-    </nav>
+    </a>
 
-    <div class="container-page">
-      {% block content %}{% endblock %}
+    <hr class="sidebar-divider my-0">
+
+    <!-- Mi Perfil -->
+    <li class="nav-item">
+      <a class="nav-link" href="#">
+        <i class="fas fa-user-circle"></i>
+        <span>Mi Perfil</span>
+      </a>
+    </li>
+
+    <!-- Notificaciones -->
+    <li class="nav-item">
+      <a class="nav-link" href="#">
+        <i class="fas fa-bell"></i>
+        <span>Notificaciones</span>
+      </a>
+    </li>
+
+    <!-- Eventos -->
+    <li class="nav-item">
+      <a class="nav-link" href="#">
+        <i class="fas fa-calendar-alt"></i>
+        <span>Eventos</span>
+      </a>
+    </li>
+
+    <!-- Cerrar sesión -->
+    <li class="nav-item">
+      <a class="nav-link text-danger" href="{% url 'usuarios:logout' %}">
+        <i class="fas fa-sign-out-alt"></i>
+        <span>Cerrar sesión</span>
+      </a>
+    </li>
+
+    <hr class="sidebar-divider">
+    <div class="version text-center small">© {{ now|date:"Y" }}</div>
+  </ul>
+  <!-- /Sidebar -->
+
+  <div id="content-wrapper" class="d-flex flex-column">
+    <div id="content">
+
+      <!-- Topbar (blanco) -->
+      <nav class="navbar navbar-expand navbar-light bg-navbar topbar mb-4 static-top shadow-sm">
+        <button id="sidebarToggleTop" class="btn btn-link rounded-circle mr-3" aria-label="Mostrar/Ocultar menú">
+          <i class="fa fa-bars"></i>
+        </button>
+
+        <!-- ▼▼ Botón Atrás (izquierda, junto al ícono) ▼▼ -->
+        <a id="btnBack"
+           href="#"
+           class="btn btn-light btn-sm ml-1"
+           data-fallback="{% url 'core:home' %}"
+           aria-label="Volver a la página anterior">
+          <i class="fas fa-arrow-left" aria-hidden="true"></i>
+          <span class="d-none d-sm-inline">Atrás</span>
+        </a>
+        <!-- ▲▲ FIN Atrás ▲▲ -->
+
+        <ul class="navbar-nav ml-auto">
+          <li class="nav-item dropdown no-arrow">
+            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown">
+              <span class="mr-2 d-none d-lg-inline text-gray-600 small">
+                {{ request.user.get_full_name|default:request.user.username }}
+              </span>
+              <img class="img-profile rounded-circle" src="{% static 'img/logo/mi_logo.png' %}" style="width:35px;height:35px;">
+            </a>
+          </li>
+        </ul>
+      </nav>
+      <!-- /Topbar -->
+
+      <!-- Contenido dinámico (uniforme y con gutters seguros) -->
+      <div class="container-fluid cpc-safe cpc-gutters" id="container-wrapper">
+        {% block content %}{% endblock %}
+      </div>
     </div>
 
-    <footer class="footer py-3">
-      <div class="container text-center">
+    <!-- Footer (teal gradiente) -->
+    <footer class="sticky-footer shadow-sm">
+      <div class="container my-auto text-center">
         <span>Desarrollado por <b>Campeones Para Coquimbo</b></span>
       </div>
     </footer>
-  </main>
+    <!-- /Footer -->
+
+  </div>
 </div>
 
-<!-- Dependencias (opcional si ya las cargas en otras plantillas) -->
+<!-- Scroll to Top -->
+<a class="scroll-to-top rounded" href="#page-top" aria-label="Volver arriba"><i class="fas fa-angle-up"></i></a>
+
+<!-- JS global -->
 <script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
 <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'vendor/jquery-easing/jquery.easing.min.js' %}"></script>
+<script src="{% static 'js/ruang-admin.min.js' %}"></script>
 
+<!-- Lógica mínima para “Atrás” (opcional) -->
 <script>
   (function(){
-    var btn = document.getElementById('backBtn');
-    if(!btn) return;
-
-    function sameOrigin(ref){
-      try { return new URL(ref, window.location.href).origin === window.location.origin; }
-      catch(e){ return false; }
-    }
-
-    function goBack(){
-      var fallback = btn.getAttribute('data-fallback-url') || '/';
-      var hasHistory = (window.history && window.history.length > 1);
-      var fromSameOrigin = document.referrer && sameOrigin(document.referrer);
-
-      if (hasHistory && fromSameOrigin) {
-        window.history.back();
-      } else {
-        window.location.href = fallback;
-      }
-    }
-
-    btn.addEventListener('click', goBack);
-
-    // Accesibilidad: activar con Enter o Espacio
-    btn.addEventListener('keydown', function(e){
-      if (e.key === 'Enter' || e.key === ' ') {
+    var back = document.getElementById('btnBack');
+    if (back){
+      back.addEventListener('click', function(e){
         e.preventDefault();
-        goBack();
-      }
-    });
+        if (window.history.length > 1){ window.history.back(); }
+        else { window.location.href = back.getAttribute('data-fallback') || '/'; }
+      });
+    }
   })();
 </script>
 

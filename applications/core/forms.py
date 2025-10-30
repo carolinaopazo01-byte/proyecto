@@ -5,12 +5,12 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.forms import inlineformset_factory
 from django.utils import timezone
-from django.db import models  # <-- necesario para models.Q
+from django.db import models  # para models.Q
 from django.db.models import Q
-from .models import Sede
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 
-#from .models import Planificacion, Curso
-
+# MODELOS
 from .models import (
     Sede,
     Estudiante,
@@ -18,8 +18,9 @@ from .models import (
     Planificacion,
     Deporte,
     CursoHorario,
+    Comunicado,
+    AUDIENCIA_CODIGOS,   # ['PROF','PMUL','ATLE','APOD']
 )
-
 
 # =========================================================
 #                       PLANIFICACIÓN
@@ -50,8 +51,9 @@ class PlanificacionUploadForm(forms.ModelForm):
         user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
 
-        qs = Curso.objects.select_related("sede", "disciplina", "profesor") \
-                          .order_by("sede__nombre", "disciplina__nombre", "nombre")
+        qs = (Curso.objects
+                  .select_related("sede", "disciplina", "profesor")
+                  .order_by("sede__nombre", "disciplina__nombre", "nombre"))
         if user and getattr(user, "tipo_usuario", "") == "PROF":
             qs = qs.filter(models.Q(profesor=user) | models.Q(profesores_apoyo=user)).distinct()
         self.fields["curso"].queryset = qs
@@ -77,6 +79,8 @@ class PlanificacionUploadForm(forms.ModelForm):
             cleaned["semana"] = _monday(cleaned["semana"])
             self.cleaned_data["semana"] = cleaned["semana"]
         return cleaned
+
+
 # =========================================================
 #                   HELPERS RUT (top-level)
 # =========================================================
@@ -124,7 +128,6 @@ def _rut_igual(a: str, b: str) -> bool:
 # =========================================================
 #                            SEDES
 # =========================================================
-
 class SedeForm(forms.ModelForm):
     class Meta:
         model = Sede
@@ -138,6 +141,7 @@ class SedeForm(forms.ModelForm):
         labels = {
             "radio_metros": "Radio de validación (m)",
         }
+
 
 # =========================================================
 #                           CURSOS
@@ -300,7 +304,6 @@ class EstudianteForm(forms.ModelForm):
         cleaned = super().clean()
         fnac = cleaned.get("fecha_nacimiento")
         if fnac:
-            from datetime import date
             hoy = date.today()
             edad = hoy.year - fnac.year - ((hoy.month, hoy.day) < (fnac.month, fnac.day))
         else:
@@ -353,6 +356,7 @@ class EstudianteForm(forms.ModelForm):
             self.save_m2m()
         return obj
 
+
 # =========================================================
 #                          DEPORTE
 # =========================================================
@@ -365,3 +369,64 @@ class DeporteForm(forms.ModelForm):
             "categoria": forms.TextInput(attrs={"class": "form-control"}),
             "equipamiento": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
         }
+
+
+# =========================================================
+#                    COMUNICADOS (NUEVO)
+# =========================================================
+User = get_user_model()
+
+class ComunicadoForm(forms.ModelForm):
+    # Checkbox para códigos de audiencia (PROF/PMUL/ATLE/APOD)
+    audiencia_codigos = forms.MultipleChoiceField(
+        required=True,
+        choices=[(c, c) for c in AUDIENCIA_CODIGOS],
+        widget=forms.CheckboxSelectMultiple,
+        label="¿A quién va dirigido?",
+        help_text="Selecciona uno o más tipos de usuario."
+    )
+
+    class Meta:
+        model = Comunicado
+        # 'audiencia_codigos' es del formulario (arriba);
+        # 'audiencia_roles' es opcional por si usas Group con esos nombres.
+        fields = ["titulo", "cuerpo", "audiencia_roles"]
+        widgets = {
+            "titulo": forms.TextInput(attrs={"class": "form-control", "placeholder": "Título"}),
+            "cuerpo": forms.Textarea(attrs={"class": "form-control", "rows": 5, "placeholder": "Escribe el comunicado..."}),
+            "audiencia_roles": forms.SelectMultiple(attrs={"class": "form-control"}),
+        }
+        labels = {
+            "audiencia_roles": "Grupos (opcional, deben llamarse PROF/PMUL/ATLE/APOD)",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Limitar grupos a los mismos códigos, por consistencia
+        self.fields["audiencia_roles"].queryset = Group.objects.filter(
+            name__in=AUDIENCIA_CODIGOS
+        ).order_by("name")
+
+        # Si estamos editando, precargar los códigos actuales
+        if self.instance and self.instance.pk:
+            self.fields["audiencia_codigos"].initial = self.instance.get_audiencia_codigos()
+
+    def clean_audiencia_codigos(self):
+        cods = self.cleaned_data.get("audiencia_codigos") or []
+        cods = [c for c in cods if c in AUDIENCIA_CODIGOS]
+        if not cods:
+            raise ValidationError("Debes seleccionar al menos un tipo de usuario.")
+        return cods
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+
+        # Guardar lista CSV de códigos en el modelo
+        cods = self.cleaned_data.get("audiencia_codigos") or []
+        obj.set_audiencia_codigos(cods)
+
+        if commit:
+            obj.save()
+            self.save_m2m()
+        return obj

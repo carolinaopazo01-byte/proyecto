@@ -1,63 +1,117 @@
 {% extends "base/plantilla.html" %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}Comunicados{% endblock %}
 
 {% block extra_css %}
-  <style>
-    /* === Lista tipo tarjetas === */
-    .com-list{ display:grid; gap:12px; padding:0; margin:0; list-style:none; }
-    .com-card{ border:1px solid #e5e7eb; border-radius:12px; background:#fff; }
-    .com-card .card-body{ padding:14px; }
-    .com-title{ margin:0 0 6px; font-weight:800; }
-    .com-meta{ color:#6b7280; font-size:.9rem; }
-    .com-body{ white-space:pre-wrap; margin:10px 0 0; }
-    .actions{ display:flex; gap:8px; flex-wrap:wrap; }
-  </style>
+<link href="{% static 'css/cpc-uniform.css' %}" rel="stylesheet">
+<style>
+  :root{
+    --chip:#eef2f7; --chip-t:#0f172a; --muted:#6b7280;
+    --card:#fff; --border:#e5e7eb; --bg:#f8fafc;
+    --radius:12px;
+  }
+  .page-head{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:.75rem; margin:0 0 .9rem 0; padding:0 16px;
+  }
+  .page-head h4{ margin:0; font-size:clamp(18px, 3vw, 22px); }
+
+  .list{ display:grid; gap:.75rem; }
+  .card{
+    border:1px solid var(--border); border-radius:var(--radius);
+    background:var(--card); overflow:hidden;
+  }
+  .card-body{ padding:.9rem; }
+  .title{
+    margin:0 0 .25rem 0; font-weight:800; font-size:1.02rem; line-height:1.2;
+    word-break:break-word;
+  }
+  .meta{ color:var(--muted); font-size:.9rem; display:flex; gap:.6rem; flex-wrap:wrap; }
+  .chips{ display:flex; gap:.35rem; flex-wrap:wrap; margin-top:.45rem; }
+  .chip{
+    background:var(--chip); color:var(--chip-t); border:1px solid var(--border);
+    border-radius:999px; padding:.18rem .5rem; font-size:.78rem; font-weight:600;
+  }
+  .body{ margin-top:.55rem; color:#111827; line-height:1.45; }
+  .actions{
+    display:flex; gap:.4rem; flex-wrap:wrap; margin-top:.65rem;
+  }
+  .actions form{ display:inline; }
+  .empty{
+    text-align:center; padding:2rem 1rem; color:var(--muted); border:1px dashed var(--border);
+    border-radius:12px; background:var(--bg);
+  }
+  .btn-compact{ padding:.4rem .7rem; border-radius:8px; }
+</style>
 {% endblock %}
 
-{# Botón/acción a la derecha de la cabecera fija #}
-{% block header_right %}
-  {% if request.user.tipo_usuario == 'ADMIN' or request.user.tipo_usuario == 'COORD' or request.user.tipo_usuario == 'PROF' or request.user.tipo_usuario == 'PMUL' %}
-    <a class="btn btn-primary" href="{% url 'core:comunicado_create' %}">Nuevo comunicado</a>
-  {% endif %}
-{% endblock %}
+{% block content %}
 
-{# Contenido principal (el header ya lo aporta base/plantilla.html) #}
-{% block body %}
-  {% if data %}
-    <ul class="com-list">
-      {% for c in data %}
-        <li class="com-card card shadow-sm">
+  <div class="page-head">
+    <h4>Comunicados</h4>
+    {% if puede_crear %}
+      <a href="{% url 'core:comunicado_create' %}" class="btn btn-primary btn-compact">
+        <i class="fas fa-plus mr-1"></i> Nuevo comunicado
+      </a>
+    {% endif %}
+  </div>
+
+  {% if comunicados %}
+    <div class="list">
+      {% for c in comunicados %}
+        <article class="card">
           <div class="card-body">
-            <h5 class="com-title"><i class="fas fa-bullhorn mr-2"></i>{{ c.titulo }}</h5>
-            <div class="com-meta">por {{ c.autor.username }} — {{ c.creado|date:"d/m/Y H:i" }}</div>
-            <p class="com-body">{{ c.cuerpo }}</p>
+            <h5 class="title">{{ c.titulo }}</h5>
 
-            {% if request.user == c.autor or request.user.tipo_usuario == 'ADMIN' or request.user.tipo_usuario == 'COORD' %}
-              <div class="actions mt-2">
-                <a class="btn btn-sm btn-outline-primary" href="{% url 'core:comunicado_edit' c.id %}">
-                  <i class="fas fa-pen"></i> Editar
+            <div class="meta">
+              <span><i class="far fa-user"></i> {{ c.autor.get_full_name|default:c.autor.username }}</span>
+              <span><i class="far fa-clock"></i> {{ c.creado|naturaltime }}</span>
+            </div>
+
+            <div class="chips">
+              {% for cod in c.get_audiencia_codigos %}
+                <span class="chip">{{ cod }}</span>
+              {% empty %}
+                <span class="chip">SIN AUDIENCIA</span>
+              {% endfor %}
+              {# Opcional: si también usas grupos (PROF/PMUL/ATLE/APOD) #}
+              {# <span class="chip">Grupos: {{ c.audiencia_roles.all|join:", " }}</span> #}
+            </div>
+
+            <div class="body">
+              {{ c.cuerpo|linebreaksbr|truncatechars:240 }}
+            </div>
+
+            {% if puede_crear %}
+              <div class="actions">
+                <a class="btn btn-outline-primary btn-compact" href="{% url 'core:comunicado_edit' c.id %}">
+                  <i class="far fa-edit mr-1"></i> Editar
                 </a>
-                <form method="post" action="{% url 'core:comunicado_delete' c.id %}" onsubmit="return confirm('¿Eliminar este comunicado?');" style="display:inline;">
+                <form action="{% url 'core:comunicado_delete' c.id %}" method="post" onsubmit="return confirm('¿Eliminar este comunicado?');">
                   {% csrf_token %}
-                  <button class="btn btn-sm btn-danger" type="submit">
-                    <i class="fas fa-trash-alt"></i> Eliminar
+                  <button class="btn btn-outline-danger btn-compact" type="submit">
+                    <i class="far fa-trash-alt mr-1"></i> Eliminar
                   </button>
                 </form>
               </div>
             {% endif %}
           </div>
-        </li>
+        </article>
       {% endfor %}
-    </ul>
+    </div>
   {% else %}
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <div class="alert alert-info mb-0">No hay comunicados aún.</div>
-      </div>
+    <div class="empty">
+      No hay comunicados aún.
+      {% if puede_crear %}
+        <div class="mt-2">
+          <a class="btn btn-primary btn-compact" href="{% url 'core:comunicado_create' %}">
+            Crear el primero
+          </a>
+        </div>
+      {% endif %}
     </div>
   {% endif %}
-{% endblock %}
 
-{% block extra_js %}{% endblock %}
+{% endblock %}

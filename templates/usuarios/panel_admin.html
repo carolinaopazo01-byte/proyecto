@@ -1,78 +1,130 @@
 {% extends "base/app.html" %}
-
+{% load static %}
 {% block title %}Panel Administrador{% endblock %}
+
+{% block sidebar %}
+<ul class="navbar-nav sidebar sidebar-light accordion" id="accordionSidebar">
+  <a class="sidebar-brand d-flex align-items-center justify-content-between px-3" href="{% url 'core:home' %}">
+    <div class="sidebar-brand-icon">
+      <img src="{% static 'img/logo/mi_logo.png' %}" alt="Logo" style="height:40px;object-fit:contain;">
+    </div>
+    <span class="small text-muted d-none d-lg-inline">Panel</span>
+  </a>
+
+  {# MINI PERFIL (nombre + correo) #}
+  <li class="nav-item cpc-mini-profile px-3 py-2">
+    <div class="mp-wrap">
+      <div class="mp-avatar" aria-hidden="true">
+        <i class="fas fa-user"></i>
+      </div>
+      <div class="mp-info">
+        <div class="mp-name">
+          {{ request.user.get_full_name|default:request.user.username }}
+        </div>
+        <div class="mp-mail">
+          {{ request.user.email|default:"Sin correo" }}
+        </div>
+      </div>
+    </div>
+  </li>
+
+  <div class="cpc-section-label">Gestión de estudiantes</div>
+  <li class="nav-item">
+    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#menuEstudiantes"
+       aria-expanded="false" aria-controls="menuEstudiantes">
+      <i class="fas fa-user-graduate"></i><span>Estudiantes</span>
+    </a>
+    <div id="menuEstudiantes" class="collapse" data-parent="#accordionSidebar">
+      <div class="bg-white py-2 collapse-inner rounded">
+        <a class="collapse-item" href="{% url 'core:estudiantes_list' %}">Registros</a>
+      </div>
+    </div>
+  </li>
+
+  <div class="cpc-section-label">Gestión de cursos</div>
+  <li class="nav-item">
+    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#menuCursos"
+       aria-expanded="false" aria-controls="menuCursos">
+      <i class="fas fa-layer-group"></i><span>Cursos</span>
+    </a>
+    <div id="menuCursos" class="collapse" data-parent="#accordionSidebar">
+      <div class="bg-white py-2 collapse-inner rounded">
+        <a class="collapse-item" href="{% url 'core:cursos_list' %}">Registros de cursos</a>
+        <a class="collapse-item" href="{% url 'core:planificacion_upload' %}">Planificaciones</a>
+        <a class="collapse-item" href="{% url 'core:sedes_list' %}">Sedes</a>
+      </div>
+    </div>
+  </li>
+
+  <div class="cpc-section-label">Gestión de usuarios</div>
+  <li class="nav-item">
+    <a class="nav-link" href="{% url 'usuarios:equipo_list' %}">
+      <i class="fas fa-id-badge"></i><span>Usuarios</span>
+    </a>
+  </li>
+
+  <div class="cpc-section-label">Cuenta</div>
+  <li class="nav-item">
+    <a class="nav-link text-danger" href="{% url 'usuarios:logout' %}">
+      <i class="fas fa-sign-out-alt"></i><span>Cerrar sesión</span>
+    </a>
+  </li>
+
+  <hr class="sidebar-divider">
+  <div class="version text-center small">© {% now "Y" %}</div>
+</ul>
+{% endblock %}
 
 {% block extra_css %}
 <style>
-  /* ===== Estilo estandarizado (mismo look que listas/formularios) ===== */
-  :root{
-    --tile-border:#e5e7eb; --tile-bg:#fff; --tile-head:#f8fafc;
+  .cpc-section-label{
+    padding:.65rem 1rem .25rem; font-size:.72rem; letter-spacing:.06em;
+    text-transform:uppercase; color:#64748b; font-weight:800;
+  }
+  :root{ --tile-border:#e5e7eb; --tile-bg:#fff; --tile-head:#f8fafc; }
+
+  /* ===== MINI PERFIL ===== */
+  .cpc-mini-profile .mp-wrap{
+    display:flex; align-items:center; gap:.6rem;
+    border:1px solid #eef2f7; border-radius:12px; background:#fff;
+    padding:.55rem .7rem;
+  }
+  .cpc-mini-profile .mp-avatar{
+    width:34px; height:34px; border-radius:10px;
+    display:inline-flex; align-items:center; justify-content:center;
+    background:#eef6ff; color:#3b82f6;
+    flex:0 0 34px;
+  }
+  .cpc-mini-profile .mp-avatar i{ font-size:16px; line-height:1; }
+  .cpc-mini-profile .mp-info{ min-width:0; }
+  .cpc-mini-profile .mp-name{
+    font-weight:800; font-size:.9rem; color:#1f2937;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    line-height:1.15;
+  }
+  .cpc-mini-profile .mp-mail{
+    font-size:.78rem; color:#6b7280;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    line-height:1.2;
   }
 
   .page-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:.75rem}
-  .page-head h4{margin:0;font-weight:700;font-size:1.05rem}
-  .page-sub{color:#6b7280;font-size:.92rem}
+  .page-head h4{margin:0;font-weight:800;font-size:1.05rem}
 
-  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
-  .tile{
-    display:flex;flex-direction:column;gap:.6rem;
-    border:1px solid var(--tile-border);border-radius:12px;background:var(--tile-bg);
-    padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.04)
-  }
+  /* Mantengo tu grilla y estilos */
+  .tiles{display:grid;grid-template-columns:1fr;gap:14px}
+  .tile{display:flex;flex-direction:column;gap:.6rem;border:1px solid var(--tile-border);border-radius:12px;background:var(--tile-bg);padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.04)}
   .tile__head{display:flex;align-items:center;gap:.6rem;background:var(--tile-head);padding:.55rem .7rem;border-radius:10px;border:1px solid #eef2f7}
   .tile__icon{width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;background:#eef2ff}
-  .tile__title{margin:0;font-size:.98rem;font-weight:700}
+  .tile__title{margin:0;font-size:.98rem;font-weight:800}
   .tile__desc{margin:0;color:#6b7280;font-size:.9rem;min-height:2.2em}
-  .tile .btn{align-self:flex-start}
 </style>
 {% endblock %}
 
 {% block content %}
-
-  <div class="page-head">
-    <h4>Panel Administrador</h4>
-
-  </div>
+  <div class="page-head"><h4>Panel Administrador</h4></div>
 
   <div class="tiles">
-
-    <!-- Cursos -->
-    <div class="tile">
-      <div class="tile__head">
-        <span class="tile__icon"><i class="fas fa-layer-group"></i></span>
-        <h6 class="tile__title mb-0">Cursos y cupos</h6>
-      </div>
-      <p class="tile__desc">Gestiona cursos, cupos y asignaciones.</p>
-      <a class="btn btn-primary" href="{% url 'core:cursos_list' %}">
-        <i class="fas fa-cogs mr-1"></i> Gestionar cursos y cupos
-      </a>
-    </div>
-
-    <!-- Estudiantes -->
-    <div class="tile">
-      <div class="tile__head">
-        <span class="tile__icon"><i class="fas fa-user-graduate"></i></span>
-        <h6 class="tile__title mb-0">Estudiantes</h6>
-      </div>
-      <p class="tile__desc">Alta, edición y consulta de estudiantes.</p>
-      <a class="btn btn-primary" href="{% url 'core:estudiantes_list' %}">
-        <i class="fas fa-users mr-1"></i> Gestionar Estudiantes
-      </a>
-    </div>
-
-    <!-- Planificación -->
-    <div class="tile">
-      <div class="tile__head">
-        <span class="tile__icon"><i class="fas fa-clipboard-check"></i></span>
-        <h6 class="tile__title mb-0">Planificación</h6>
-      </div>
-      <p class="tile__desc">Carga y administración de planificaciones.</p>
-      <a class="btn btn-primary" href="{% url 'core:planificacion_upload' %}">
-        <i class="fas fa-upload mr-1"></i> Subir planificación
-      </a>
-    </div>
-
-    <!-- Reportes -->
     <div class="tile">
       <div class="tile__head">
         <span class="tile__icon"><i class="fas fa-chart-bar"></i></span>
@@ -80,58 +132,18 @@
       </div>
       <p class="tile__desc">Indicadores, listados y exportaciones.</p>
       <a class="btn btn-primary" href="{% url 'core:reportes_home' %}">
-        <i class="fas fa-file-alt mr-1"></i> Abrir reportes
+        <i class="fas fa-file-alt mr-1"></i>Abrir reportes
       </a>
     </div>
 
-    <!-- Sedes -->
     <div class="tile">
-      <div class="tile__head">
-        <span class="tile__icon"><i class="fas fa-map-marker-alt"></i></span>
-        <h6 class="tile__title mb-0">Sedes</h6>
-      </div>
-      <p class="tile__desc">Crea y administra sedes.</p>
-      <a class="btn btn-primary" href="{% url 'core:sedes_list' %}">
-        <i class="fas fa-building mr-1"></i> Gestionar Sedes
+
       </a>
     </div>
+  </div>
 
-    <!-- Usuarios -->
-    <div class="tile">
-      <div class="tile__head">
-        <span class="tile__icon"><i class="fas fa-id-badge"></i></span>
-        <h6 class="tile__title mb-0">Usuarios</h6>
-      </div>
-      <p class="tile__desc">Altas, permisos y estados del equipo.</p>
-      <a class="btn btn-primary" href="{% url 'usuarios:equipo_list' %}">
-        <i class="fas fa-user-cog mr-1"></i> Gestionar usuarios
-      </a>
-    </div>
-
-    <!-- Deportes -->
-    <div class="tile">
-      <div class="tile__head">
-        <span class="tile__icon"><i class="fas fa-running"></i></span>
-        <h6 class="tile__title mb-0">Deportes</h6>
-      </div>
-      <p class="tile__desc">Catálogo y mantenimiento de deportes.</p>
-      <a class="btn btn-primary" href="{% url 'core:deportes_list' %}">
-        <i class="fas fa-dumbbell mr-1"></i> Gestionar Deportes
-      </a>
-    </div>
-
-    <!-- Comunicados -->
-    <div class="tile">
-      <div class="tile__head">
-        <span class="tile__icon"><i class="fas fa-bullhorn"></i></span>
-        <h6 class="tile__title mb-0">Comunicados</h6>
-      </div>
-      <p class="tile__desc">Publica y gestiona comunicados.</p>
-      <a class="btn btn-primary" href="{% url 'core:comunicados_list' %}">
-        <i class="fas fa-envelope-open-text mr-1"></i> Abrir comunicados
-      </a>
-    </div>
-
+  <div class="mt-3">
+    {% include "base/includes/comunicados_online.html" %}
   </div>
 {% endblock %}
 
