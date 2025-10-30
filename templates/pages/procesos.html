@@ -1,6 +1,27 @@
 {% extends "base.html" %}
 {% block title %}Procesos de inscripción{% endblock %}
 {% block header %}Procesos de inscripción{% endblock %}
+
 {% block content %}
-  <p>Página informativa (contenido en construcción).</p>
+<div class="card p-3" style="max-width:800px">
+  <p class="muted" style="margin-top:0">
+    Aquí encontrarás cómo postular al programa en sus dos modalidades…
+  </p>
+
+  {% if REGISTRO_VISIBLE %}
+    <div style="margin-top:20px;">
+      <a href="{% url 'core:registro_publico' %}" class="btn primary" style="font-size:1.1em; padding:10px 22px;">
+        📝 Postular en línea
+      </a>
+    </div>
+    {% if PORTAL_CFG.texto_convocatoria %}
+      <hr>
+      <div class="muted" style="white-space:pre-wrap">{{ PORTAL_CFG.texto_convocatoria }}</div>
+    {% endif %}
+  {% else %}
+    <div class="alert" style="margin-top:20px">
+      Las inscripciones no están abiertas por ahora.
+    </div>
+  {% endif %}
+</div>
 {% endblock %}

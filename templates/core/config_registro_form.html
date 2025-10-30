@@ -1,0 +1,30 @@
+<!-- templates/core/config_registro_form.html -->
+{% extends "base.html" %}
+{% block title %}Configurar ventana de inscripciones{% endblock %}
+{% block header %}Configurar ventana de inscripciones{% endblock %}
+
+{% block content %}
+<form method="post" class="card p-3" style="max-width:680px">
+  {% csrf_token %}
+  <div class="form-check mb-2">
+    <input class="form-check-input" type="checkbox" id="id_on" name="registro_habilitado" {% if cfg.registro_habilitado %}checked{% endif %}>
+    <label class="form-check-label" for="id_on">Mostrar “Postular en línea” en el sitio</label>
+  </div>
+
+  <div class="row g-2 mb-2">
+    <div class="col-md-6">
+      <label class="form-label">Fecha inicio</label>
+      <input class="form-control" type="date" name="registro_inicio" value="{{ cfg.registro_inicio|date:'Y-m-d' }}">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Fecha fin</label>
+      <input class="form-control" type="date" name="registro_fin" value="{{ cfg.registro_fin|date:'Y-m-d' }}">
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <button class="btn" type="submit">Guardar</button>
+    <a class="btn btn-light" href="{% url 'core:solicitudes_list' %}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

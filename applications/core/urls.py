@@ -81,4 +81,13 @@ urlpatterns = [
     path("registro/admin/<int:pk>/", views.registro_detail, name="registro_detail"),
     path("registro/admin/<int:pk>/aprobar/", views.registro_aprobar, name="registro_aprobar"),
     path("registro/admin/<int:pk>/rechazar/", views.registro_rechazar, name="registro_rechazar"),
+
+    path("solicitudes/", views.solicitudes_list, name="solicitudes_list"),
+    path("solicitud/<int:pk>/", views.solicitud_ver, name="solicitud_ver"),
+    path("solicitud/<int:pk>/aprobar/", views.solicitud_aprobar, name="solicitud_aprobar"),
+    path("solicitud/<int:pk>/rechazar/", views.solicitud_rechazar, name="solicitud_rechazar"),
+
+    path("config/registro/", views.config_registro_edit, name="config_registro_edit"),
+    path("config/registro/toggle/", views.config_registro_toggle, name="config_registro_toggle"),
+
 ]

@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.db import models  # <-- necesario para models.Q
 from django.db.models import Q
 
-from .models import Sede, Comunicado, InscripcionCurso, PostulacionEstudiante
+from .models import Sede, Comunicado, InscripcionCurso, PostulacionEstudiante, Estudiante, SolicitudInscripcion, PortalConfig
 
 from .models import (
     Sede,
@@ -159,7 +159,6 @@ class CursoForm(forms.ModelForm):
             "sede": "Sede/Recinto",
         }
 
-
 class CursoHorarioForm(forms.ModelForm):
     class Meta:
         model = CursoHorario
@@ -224,6 +223,9 @@ class EstudianteForm(forms.ModelForm):
             "apoderado_nombre",
             "apoderado_telefono",
             "apoderado_rut",
+            "apoderado_email",
+            "apoderado_fecha_nacimiento",
+            "apoderado_rut",
             # 3) Información deportiva (toda opcional)
             "pertenece_organizacion",
             "club_nombre",
@@ -237,6 +239,7 @@ class EstudianteForm(forms.ModelForm):
         ]
         widgets = {
             "fecha_nacimiento": forms.DateInput(attrs={"type": "date"}),
+            "apoderado_fecha_nacimiento": forms.DateInput(attrs={"type": "date"}),
         }
         labels = {
             "rut": "RUT",
@@ -246,6 +249,8 @@ class EstudianteForm(forms.ModelForm):
             "email": "Email",
             "apoderado_nombre": "Nombre apoderado",
             "apoderado_telefono": "Teléfono apoderado",
+            "apoderado_email": "Correo electrónico del/la tutor(a)",
+            "apoderado_fecha_nacimiento": "Fecha de nacimiento del/la tutor(a)",
             "pertenece_organizacion": "¿Pertenece a una organización deportiva?",
             "club_nombre": "Nombre del club",
             "logro_nacional": "Logro nacional",
@@ -374,41 +379,88 @@ class ComunicadoForm(forms.ModelForm):
             'dirigido_a': forms.Select(attrs={'class': 'form-control'}),
         }
 
+
 class RegistroPublicoForm(forms.ModelForm):
-    # 👇 Campos extras SOLO de formulario (no van a la BD)
-    apoderado_email = forms.EmailField(
-        required=False, label="Correo electrónico del/la tutor(a)"
+    # Fecha requerida y con formatos flexibles
+    fecha_nacimiento = forms.DateField(
+        required=True,
+        input_formats=["%Y-%m-%d", "%d-%m-%Y"],
+        widget=forms.DateInput(attrs={"type": "date"})
     )
+
+    # Extras del apoderado (si ya están en el modelo se guardan directo)
+    apoderado_email = forms.EmailField(required=False, label="Correo electrónico del/la tutor(a)")
     apoderado_fecha_nacimiento = forms.DateField(
         required=False,
         label="Fecha de nacimiento del/la tutor(a)",
+        input_formats=["%Y-%m-%d", "%d-%m-%Y"],
         widget=forms.DateInput(attrs={"type": "date"})
     )
 
     class Meta:
-        model = PostulacionEstudiante
+        model = SolicitudInscripcion   # IMPORTANTÍSIMO: usa el mismo modelo que ves en /solicitudes
         fields = [
-            "programa",
-            # 1) Identificación
-            "nombres", "apellidos", "fecha_nacimiento", "rut",
-            "direccion", "comuna", "telefono", "email",
-            "n_emergencia", "prevision",
-            # 2) Tutor
-            "apoderado_nombre", "apoderado_telefono",
-            # 3) Información deportiva
-            "pertenece_organizacion", "club_nombre",
-            "logro_nacional", "logro_internacional",
-            "categoria_competida", "puntaje_o_logro",
-            "motivacion_beca",
+            # Programa
+            "nombres","apellidos","fecha_nacimiento","rut",
+            "direccion","comuna","telefono","email",
+            "n_emergencia","prevision",
+            # Tutor
+            "apoderado_nombre","apoderado_telefono","apoderado_rut",
+            "apoderado_email","apoderado_fecha_nacimiento",
+            # Deporte / motivación
+            "pertenece_organizacion","club_nombre","logro_nacional","logro_internacional",
+            "categoria_competida","puntaje_o_logro","motivacion_beca",
+            # Curso
             "curso",
         ]
+        widgets = {
+            "motivacion_beca": forms.Textarea(attrs={"rows": 4}),
+        }
+
+class AlumnoTemporalForm(forms.ModelForm):
+    class Meta:
+        model = Estudiante
+        # Formativo (igual a registro en línea - modo formativo)
+        fields = [
+            "nombres","apellidos","fecha_nacimiento","rut",
+            "direccion","comuna","telefono","email",
+            "n_emergencia","prevision",
+            "apoderado_nombre","apoderado_telefono",
+            "apoderado_email","apoderado_fecha_nacimiento",
+            # motivación: lo guardaremos en puntaje_o_logro o déjalo fuera si no quieres persistir
+            "curso",  # se asigna al curso del profesor o al que elija
+        ]
         labels = {
-            "programa": "Tipo de programa",
             "n_emergencia": "Número de emergencia",
-            "motivacion_beca": "Motivación del deportista para postular a la beca",
+            "apoderado_nombre": "Nombre completo (tutor/a)",
+            "apoderado_telefono": "Teléfono (tutor/a)",
+            "apoderado_email": "Correo electrónico (tutor/a)",
+            "apoderado_fecha_nacimiento": "Fecha de nacimiento (tutor/a)",
             "curso": "Curso y sede al cual postula",
         }
         widgets = {
-            "fecha_nacimiento": forms.DateInput(attrs={"type": "date"}),
-            "motivacion_beca": forms.Textarea(attrs={"rows": 4}),
+            "fecha_nacimiento": forms.DateInput(attrs={"type":"date"}),
+            "apoderado_fecha_nacimiento": forms.DateInput(attrs={"type":"date"}),
         }
+
+    # Campo solo UI para motivación (no está en Estudiante)
+    motivacion_beca = forms.CharField(
+        required=False, label="Motivación del deportista para postular a la beca",
+        widget=forms.Textarea(attrs={"rows":3})
+    )
+
+    class PortalConfigForm(forms.ModelForm):
+        class Meta:
+            model = PortalConfig
+            fields = ["registro_habilitado", "registro_inicio", "registro_fin", "texto_convocatoria"]
+            widgets = {
+                "registro_inicio": forms.DateInput(attrs={"type": "date"}),
+                "registro_fin": forms.DateInput(attrs={"type": "date"}),
+                "texto_convocatoria": forms.Textarea(attrs={"rows": 3}),
+            }
+            labels = {
+                "mostrar_registro": "Mostrar “Postular en línea” en el sitio",
+                "registro_inicio": "Fecha inicio",
+                "registro_fin": "Fecha fin",
+                "texto_convocatoria": "Texto corto (opcional)",
+            }

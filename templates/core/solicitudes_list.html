@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Solicitudes de inscripción{% endblock %}
+{% block header %}Solicitudes de inscripción{% endblock %}
+
+{% block content %}
+
+{# ---- Estado de ventana de inscripciones + acceso a configuración ---- #}
+<div class="card p-2 mb-2" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+  {% if portal_cfg.vigente %}
+    <span class="badge bg-success">Inscripciones visibles</span>
+    <span class="text-muted">
+      {% if portal_cfg.registro_inicio %}Desde {{ portal_cfg.registro_inicio|date:"d/m/Y" }}{% endif %}
+      {% if portal_cfg.registro_fin %} hasta {{ portal_cfg.registro_fin|date:"d/m/Y" }}{% endif %}
+    </span>
+    {% if portal_cfg.texto_convocatoria %}<em>· {{ portal_cfg.texto_convocatoria }}</em>{% endif %}
+  {% else %}
+    <span class="badge bg-secondary">Inscripciones ocultas</span>
+  {% endif %}
+  <a class="btn btn-light" href="{% url 'core:config_registro_edit' %}">⚙️ Configurar ventana</a>
+</div>
+
+<div class="mb-2" style="display:flex;gap:8px;flex-wrap:wrap">
+  <a class="btn {% if estado == 'PEND' %}btn-light{% endif %}"
+     href="{% url 'core:solicitudes_list' %}?estado=PEND">
+     Pendientes ({{ cnt_pen }})
+  </a>
+
+  <a class="btn {% if estado == 'APRO' %}btn-light{% endif %}"
+     href="{% url 'core:solicitudes_list' %}?estado=APRO">
+     Aprobadas ({{ cnt_apr }})
+  </a>
+
+  <a class="btn {% if estado == 'RECH' %}btn-light{% endif %}"
+     href="{% url 'core:solicitudes_list' %}?estado=RECH">
+     Rechazadas ({{ cnt_rec }})
+  </a>
+
+  <form method="get" style="margin-left:auto;display:flex;gap:6px">
+    <input type="hidden" name="estado" value="{{ estado }}">
+    <input type="text" name="q" value="{{ q }}" placeholder="Buscar por RUT / nombre / email"
+           style="padding:6px 8px;min-width:260px">
+    <button class="btn">Buscar</button>
+  </form>
+</div>
+
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Fecha</th>
+      <th>Postulante</th>
+      <th>RUT</th>
+      <th>Curso</th>
+      <th>Previsión</th>
+      <th>Motivación</th>
+      <th style="min-width:260px">Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% if items %}
+      {% for s in items %}
+      <tr>
+        <td>{{ s.creado|date:"d/m/Y H:i" }}</td>
+        <td>{{ s.nombres }} {{ s.apellidos }}</td>
+        <td>{{ s.rut }}</td>
+        <td>
+          {% if s.curso %}
+            {{ s.curso.nombre }} ({{ s.curso.sede.nombre }})
+          {% else %}
+            —
+          {% endif %}
+        </td>
+        <td>{{ s.get_prevision_display }}</td>
+        <td><small class="text-muted">{{ s.motivacion_beca|default:"—"|truncatechars:60 }}</small></td>
+        <td>
+          <a class="btn btn-light btn-sm" href="{% url 'core:solicitud_ver' s.id %}">👁️ Ver solicitud</a>
+<a class="btn btn-light" href="{% url 'core:config_registro_toggle' %}">
+  {% if portal_cfg.vigente %}👁️ Ocultar ahora{% else %}👁️ Mostrar ahora{% endif %}
+</a>
+
+          {% if s.estado == "PEND" %}
+            <form action="{% url 'core:solicitud_aprobar' s.id %}" method="post" style="display:inline">
+              {% csrf_token %}
+              <button class="btn btn-success btn-sm" type="submit">✅ Aprobar</button>
+            </form>
+            <form action="{% url 'core:solicitud_rechazar' s.id %}" method="post"
+                  style="display:inline" onsubmit="return confirm('¿Rechazar esta solicitud?');">
+              {% csrf_token %}
+              <button class="btn btn-light btn-sm" type="submit">❌ Rechazar</button>
+            </form>
+          {% elif s.estado == "APRO" %}
+            <span class="badge bg-success">Aprobada</span>
+          {% elif s.estado == "RECH" %}
+            <span class="badge bg-secondary">Rechazada</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    {% else %}
+      <tr><td colspan="7">No hay solicitudes en este estado.</td></tr>
+    {% endif %}
+  </tbody>
+</table>
+{% endblock %}

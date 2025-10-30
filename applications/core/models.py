@@ -1,14 +1,16 @@
 # applications/core/models.py
-from django.db import models
-from django.conf import settings
-from django.utils.timezone import localdate
-from django.core.exceptions import ValidationError
-from django.utils import timezone
-from django.contrib.auth import get_user_model
-
 from datetime import date
 
-####################3
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
+from django.contrib.auth import get_user_model
+from django.db import models
+from django.utils import timezone
+from django.utils.timezone import localdate  # si no lo usas, puedes quitarlo
+# from django.contrib.auth import get_user_model  # si no lo usas, quítalo
+from django.utils import timezone
+
 
 Usuario = settings.AUTH_USER_MODEL
 
@@ -20,7 +22,7 @@ class Sede(models.Model):
 
     latitud = models.FloatField(null=True, blank=True)
     longitud = models.FloatField(null=True, blank=True)
-    radio_metros = models.PositiveIntegerField(default=150)  # radio de validación
+    radio_metros = models.PositiveIntegerField(default=150)
 
     capacidad = models.PositiveIntegerField(default=0, blank=True)
     activa = models.BooleanField(default=True)
@@ -102,7 +104,7 @@ class Curso(models.Model):
         CERRADAS = "CER", "Inscripciones cerradas"
         ARCHIVADO = "ARC", "Archivado"
 
-    # -------- Identificación --------
+    # Identificación
     nombre = models.CharField(max_length=120)
     programa = models.CharField(max_length=5, choices=Programa.choices, default=Programa.FORMATIVO)
     disciplina = models.ForeignKey("core.Deporte", on_delete=models.PROTECT)
@@ -122,11 +124,11 @@ class Curso(models.Model):
     categoria = models.CharField(max_length=80, blank=True)
     sede = models.ForeignKey("core.Sede", on_delete=models.PROTECT)
 
-    # -------- Calendario --------
+    # Calendario
     fecha_inicio = models.DateField(null=True, blank=True)
     fecha_termino = models.DateField(null=True, blank=True)
 
-    # -------- Cupos e inscripciones --------
+    # Cupos e inscripciones
     cupos = models.PositiveIntegerField(default=20)
     cupos_espera = models.PositiveIntegerField(default=0, help_text="Opcional: cupos de lista de espera")
     permitir_inscripcion_rapida = models.BooleanField(
@@ -134,11 +136,11 @@ class Curso(models.Model):
         help_text="Permitir inscripción rápida del profesor en 1ra clase",
     )
 
-    # -------- Estado --------
+    # Estado
     publicado = models.BooleanField(default=False)
     estado = models.CharField(max_length=3, choices=Estado.choices, default=Estado.BORRADOR)
 
-    # -------- Compatibilidad (antiguos) --------
+    # Compatibilidad (antiguos)
     horario = models.CharField(
         max_length=120,
         blank=True,
@@ -160,7 +162,6 @@ class Curso(models.Model):
     def __str__(self):
         return f"{self.nombre} - {self.get_programa_display()} - {self.disciplina}"
 
-    # >>> helper para mostrar horarios en las tablas
     def horarios_str(self) -> str:
         qs = self.horarios.all().order_by("dia", "hora_inicio")
         if not qs.exists():
@@ -172,7 +173,6 @@ class Curso(models.Model):
 
     @property
     def cupos_ocupados(self):
-        # usa el reverse correcto de InscripcionCurso
         return self.inscripciones_curso.filter(estado="ACTIVA").count()
 
     @property
@@ -212,7 +212,6 @@ class InscripcionCurso(models.Model):
         ACTIVA = "ACTIVA", "Activa"
         CANCELADA = "CANCELADA", "Cancelada"
 
-    # related_name únicos para no chocar con atleta.Inscripcion
     estudiante = models.ForeignKey(
         "Estudiante",
         on_delete=models.CASCADE,
@@ -236,28 +235,26 @@ class InscripcionCurso(models.Model):
     def __str__(self):
         return f"{self.estudiante} -> {self.curso} ({self.estado})"
 
-    # --------- Reglas de negocio ----------
     def clean(self):
-        # 1) Curso debe estar publicado/abierto
+        # 1) Curso publicado/abierto
         if hasattr(self.curso, "publicado") and not self.curso.publicado:
             raise ValidationError("El curso no está publicado.")
         if hasattr(self.curso, "estado") and str(self.curso.estado).upper() in {"CERRADO", "INACTIVO"}:
             raise ValidationError("El curso no está abierto.")
 
-        # 2) Cupos disponibles (solo inscripciones activas)
+        # 2) Cupos disponibles (solo activas)
         activos = InscripcionCurso.objects.filter(curso=self.curso, estado=self.Estado.ACTIVA).count()
         if hasattr(self.curso, "cupos") and self.curso.cupos is not None:
             if activos >= int(self.curso.cupos):
                 raise ValidationError("No hay cupos disponibles en este curso.")
 
-        # 3) Choques de horario usando related_name="horarios"
+        # 3) Choque horario
         mis_otros = (
             InscripcionCurso.objects
             .filter(estudiante=self.estudiante, estado=self.Estado.ACTIVA)
             .exclude(pk=self.pk)
             .select_related("curso")
         )
-
         horarios_nuevos = list(self.curso.horarios.all().values("dia", "hora_inicio", "hora_fin"))
         for ins in mis_otros:
             horarios_existentes = list(ins.curso.horarios.all().values("dia", "hora_inicio", "hora_fin"))
@@ -347,15 +344,20 @@ class Estudiante(models.Model):
     curso = models.ForeignKey("core.Curso", on_delete=models.SET_NULL, blank=True, null=True)
     activo = models.BooleanField(default=True)
 
+    # Marcador de “temporal” (ingresado por profesor)
+    temporal = models.BooleanField(default=False, help_text="Alumno temporal creado por profesor/entrenador")
+    creado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="alumnos_temporales_creados"
+    )
+
     direccion = models.CharField(max_length=150, blank=True, null=True)
     comuna = models.CharField(max_length=80, blank=True, null=True)
     edad = models.PositiveSmallIntegerField(null=True, blank=True, editable=False)
 
-    n_emergencia = models.CharField(
-        max_length=30,
-        blank=True,
-        verbose_name="Número de emergencia"
-    )
+    n_emergencia = models.CharField(max_length=30, blank=True, verbose_name="Número de emergencia")
 
     PREVISION_CHOICES = [
         ("FONASA", "Fonasa"),
@@ -368,9 +370,18 @@ class Estudiante(models.Model):
         default="NINGUNA",
         verbose_name="Previsión de salud"
     )
+
     apoderado_nombre = models.CharField(max_length=200, blank=True, default="")
     apoderado_telefono = models.CharField(max_length=30, blank=True, default="")
-    apoderado_rut = models.CharField(max_length=12, blank=True, default="")
+    apoderado_email = models.EmailField(blank=True, null=True, verbose_name="Correo electrónico del/la tutor(a)")
+    apoderado_fecha_nacimiento = models.DateField(blank=True, null=True,
+                                                  verbose_name="Fecha de nacimiento del/la tutor(a)")
+    apoderado_rut = models.CharField(
+        max_length=12,
+        blank=True,
+        default="",
+        verbose_name="RUT del/la tutor(a)"
+    )
 
     pertenece_organizacion = models.BooleanField(default=False)
     club_nombre = models.CharField(max_length=120, blank=True, default="")
@@ -379,6 +390,7 @@ class Estudiante(models.Model):
 
     creado = models.DateTimeField(auto_now_add=True)
     modificado = models.DateTimeField(auto_now=True)
+
     categoria_competida = models.CharField(max_length=80, blank=True, default="")
     puntaje_o_logro = models.CharField(max_length=120, blank=True, default="")
 
@@ -396,13 +408,8 @@ class Estudiante(models.Model):
 
     def save(self, *args, **kwargs):
         self.edad = self._calc_edad()
-        # sugerencias suaves (no bloqueamos)
-        if self.edad is not None and self.edad < 18:
-            if not self.apoderado_nombre or not self.apoderado_telefono:
-                pass
-        if self.pertenece_organizacion and not self.club_nombre:
-            pass
         super().save(*args, **kwargs)
+
 
 class PostulacionEstudiante(models.Model):
     class Programa(models.TextChoices):
@@ -414,7 +421,7 @@ class PostulacionEstudiante(models.Model):
         APROBADA  = "APRO", "Aprobada"
         RECHAZADA = "RECH", "Rechazada"
 
-    # Copiamos los campos relevantes de Estudiante
+    # --- Identificación del/la atleta ---
     programa = models.CharField(max_length=4, choices=Programa.choices, default=Programa.FORM)
     rut = models.CharField(max_length=12)
     nombres = models.CharField(max_length=120)
@@ -433,24 +440,28 @@ class PostulacionEstudiante(models.Model):
     ]
     prevision = models.CharField(max_length=20, choices=PREVISION_CHOICES, default="NINGUNA")
 
-    # Tutor (si menor de edad)
+    # --- Tutor (SIEMPRE guardamos; si no corresponde, queda vacío) ---
     apoderado_nombre = models.CharField(max_length=200, blank=True, default="")
     apoderado_telefono = models.CharField(max_length=30, blank=True, default="")
+    apoderado_rut = models.CharField(max_length=12, blank=True, default="")
+    apoderado_email = models.EmailField(blank=True, null=True)
+    apoderado_fecha_nacimiento = models.DateField(blank=True, null=True)
 
-    # Info deportiva (relevante en ALTO)
+    # --- Información deportiva ---
     pertenece_organizacion = models.BooleanField(default=False)
     club_nombre = models.CharField(max_length=120, blank=True, default="")
     logro_nacional = models.BooleanField(default=False)
     logro_internacional = models.BooleanField(default=False)
     categoria_competida = models.CharField(max_length=80, blank=True, default="")
     puntaje_o_logro = models.CharField(max_length=120, blank=True, default="")
-    motivacion_beca = models.TextField(blank=True, default="")
+    motivacion_beca = models.TextField(
+        blank=True, default="", verbose_name="Motivación del deportista para postular a la beca"
+    )
+    # motivacion_beca = models.TextField(blank=True, default="")
 
-    # Curso y estado
+    # --- Curso y estado ---
     curso = models.ForeignKey("core.Curso", on_delete=models.SET_NULL, blank=True, null=True)
     activo = models.BooleanField(default=True)
-
-    # Control
     estado = models.CharField(max_length=4, choices=Estado.choices, default=Estado.PENDIENTE, db_index=True)
     estudiante_creado = models.ForeignKey("core.Estudiante", on_delete=models.SET_NULL, null=True, blank=True, related_name="postulaciones")
     creado = models.DateTimeField(auto_now_add=True)
@@ -461,11 +472,15 @@ class PostulacionEstudiante(models.Model):
     def __str__(self):
         return f"Postulación {self.nombres} {self.apellidos} ({self.get_programa_display()})"
 
-    # --- Aprobar: crea Estudiante con estos datos ---
     def aprobar(self):
-        if self.estado == self.Estado.APROBADA and self.estudiante_creado_id:
-            return self.estudiante_creado  # ya creada
-        # Evitar RUT duplicado si ya existe un Estudiante
+        """
+        Crea o actualiza un Estudiante con TODOS los datos, y además crea
+        el usuario que podrá iniciar sesión:
+          - Si el/la postulante es menor de 18 -> usuario del APODERADO.
+          - Si es mayor o no hay fecha válida -> usuario del/la ATLETA.
+        No agrega campos nuevos a Estudiante; solo crea el User.
+        """
+        # 1) Crear/actualizar Estudiante (igual que ya tenías)
         est, created = Estudiante.objects.get_or_create(
             rut=self.rut,
             defaults=dict(
@@ -478,19 +493,247 @@ class PostulacionEstudiante(models.Model):
                 email=self.email,
                 n_emergencia=self.n_emergencia,
                 prevision=self.prevision,
+                # Tutor
                 apoderado_nombre=self.apoderado_nombre,
                 apoderado_telefono=self.apoderado_telefono,
+                apoderado_rut=self.apoderado_rut,
+                apoderado_email=self.apoderado_email,
+                apoderado_fecha_nacimiento=self.apoderado_fecha_nacimiento,
+                # Deporte
                 pertenece_organizacion=self.pertenece_organizacion,
                 club_nombre=self.club_nombre,
                 logro_nacional=self.logro_nacional,
                 logro_internacional=self.logro_internacional,
                 categoria_competida=self.categoria_competida,
                 puntaje_o_logro=self.puntaje_o_logro,
+                # Curso/estado
                 curso=self.curso,
                 activo=self.activo,
             ),
         )
+
+        if not created:
+            est.nombres = self.nombres
+            est.apellidos = self.apellidos
+            est.fecha_nacimiento = self.fecha_nacimiento
+            est.direccion = self.direccion
+            est.comuna = self.comuna
+            est.telefono = self.telefono
+            est.email = self.email
+            est.n_emergencia = self.n_emergencia
+            est.prevision = self.prevision
+            # Tutor
+            est.apoderado_nombre = self.apoderado_nombre
+            est.apoderado_telefono = self.apoderado_telefono
+            est.apoderado_rut = self.apoderado_rut
+            est.apoderado_email = self.apoderado_email
+            est.apoderado_fecha_nacimiento = self.apoderado_fecha_nacimiento
+            # Deporte
+            est.pertenece_organizacion = self.pertenece_organizacion
+            est.club_nombre = self.club_nombre
+            est.logro_nacional = self.logro_nacional
+            est.logro_internacional = self.logro_internacional
+            est.categoria_competida = self.categoria_competida
+            est.puntaje_o_logro = self.puntaje_o_logro
+            if self.curso:
+                est.curso = self.curso
+            est.activo = self.activo
+            est.save()
+
+        # 2) Crear usuario para login (apoderado si menor, atleta si mayor)
+        def _edad(d):
+            if not d:
+                return None
+            hoy = date.today()
+            return hoy.year - d.year - ((hoy.month, hoy.day) < (d.month, d.day))
+
+        def _norm_rut(r):
+            return (r or "").replace(".", "").strip().upper()
+
+        es_menor = (_edad(self.fecha_nacimiento) is not None and _edad(self.fecha_nacimiento) < 18)
+
+        if es_menor:
+            username = _norm_rut(self.apoderado_rut) or f"APOD-{self.id}"
+            email_user = self.apoderado_email or self.email
+            tipo_usuario = "APOD"
+            nombre_user = self.apoderado_nombre or f"Apoderado de {self.nombres}"
+            apellido_user = ""
+        else:
+            username = _norm_rut(self.rut)
+            email_user = self.email
+            tipo_usuario = "ATLE"
+            nombre_user = self.nombres
+            apellido_user = self.apellidos
+
+        User = get_user_model()
+        temp_pass = User.objects.make_random_password(length=10)
+
+        user, creado_user = User.objects.get_or_create(
+            username=username,
+            defaults={
+                "email": email_user or "",
+                "first_name": nombre_user[:30],
+                "last_name": apellido_user[:150],
+            },
+        )
+        if creado_user:
+            user.set_password(temp_pass)
+            # si tu User tiene el campo tipo_usuario, lo establecemos:
+            if hasattr(user, "tipo_usuario"):
+                user.tipo_usuario = tipo_usuario
+            user.save()
+            # correo opcional
+            if email_user:
+                try:
+                    send_mail(
+                        subject="Acceso a Campeones para Coquimbo",
+                        message=(
+                            "Tu postulación fue aprobada.\n\n"
+                            f"Usuario: {username}\n"
+                            f"Contraseña temporal: {temp_pass}\n\n"
+                            "Por favor, inicia sesión y cambia tu contraseña."
+                        ),
+                        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+                        recipient_list=[email_user],
+                        fail_silently=True,
+                    )
+                except Exception:
+                    pass
+
+        # 3) Marcar la postulación como aprobada y guardar referencia del estudiante
         self.estudiante_creado = est
         self.estado = self.Estado.APROBADA
         self.save(update_fields=["estudiante_creado", "estado"])
+
         return est
+
+# ====== Solicitud de inscripción (registro público) ======
+class SolicitudInscripcion(models.Model):
+    class Estado(models.TextChoices):
+        PENDIENTE = "PEN", "Pendiente"
+        APROBADA = "APR", "Aprobada"
+        RECHAZADA = "REC", "Rechazada"
+
+    # Datos del/la atleta
+    nombres = models.CharField(max_length=120)
+    apellidos = models.CharField(max_length=120)
+    fecha_nacimiento = models.DateField(null=True, blank=True)
+    rut = models.CharField(max_length=12)
+    direccion = models.CharField(max_length=150, blank=True, null=True)
+    comuna = models.CharField(max_length=80, blank=True, null=True)
+    telefono = models.CharField(max_length=20, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    n_emergencia = models.CharField(max_length=30, blank=True)
+    prevision = models.CharField(
+        max_length=20,
+        choices=Estudiante.PREVISION_CHOICES,
+        default="NINGUNA",
+        verbose_name="Previsión de salud",
+    )
+
+    # Tutor/a
+    apoderado_nombre = models.CharField(max_length=200, blank=True, default="")
+    apoderado_telefono = models.CharField(max_length=30, blank=True, default="")
+    apoderado_email = models.EmailField(blank=True, null=True)
+    apoderado_fecha_nacimiento = models.DateField(blank=True, null=True)
+    apoderado_rut = models.CharField(max_length=12, blank=True, default="", verbose_name="RUT del/la tutor(a)")
+
+    # Alto rendimiento / motivación
+    pertenece_organizacion = models.BooleanField(default=False)
+    club_nombre = models.CharField(max_length=120, blank=True, default="")
+    logro_nacional = models.BooleanField(default=False)
+    logro_internacional = models.BooleanField(default=False)
+    categoria_competida = models.CharField(max_length=80, blank=True, default="")
+    puntaje_o_logro = models.CharField(max_length=120, blank=True, default="")
+    motivacion_beca = models.TextField(blank=True, default="")
+
+    # Curso al que postula
+    curso = models.ForeignKey("core.Curso", on_delete=models.PROTECT, null=True, blank=True)
+
+    # Gestión
+    estado = models.CharField(max_length=3, choices=Estado.choices, default=Estado.PENDIENTE, db_index=True)
+    observacion_gestion = models.TextField(blank=True, default="")
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-creado"]
+
+    def __str__(self):
+        return f"Solicitud de {self.nombres} {self.apellidos} ({self.rut}) - {self.get_estado_display()}"
+
+    def crear_o_actualizar_estudiante(self):
+        from django.db import transaction
+        with transaction.atomic():
+            est, created = Estudiante.objects.get_or_create(
+                rut=self.rut,
+                defaults={
+                    "nombres": self.nombres,
+                    "apellidos": self.apellidos,
+                    "fecha_nacimiento": self.fecha_nacimiento,
+                    "direccion": self.direccion,
+                    "comuna": self.comuna,
+                    "telefono": self.telefono,
+                    "email": self.email,
+                    "n_emergencia": self.n_emergencia,
+                    "prevision": self.prevision,
+                    "apoderado_nombre": self.apoderado_nombre,
+                    "apoderado_telefono": self.apoderado_telefono,
+                    "apoderado_email": self.apoderado_email,
+                    "apoderado_fecha_nacimiento": self.apoderado_fecha_nacimiento,
+                    "pertenece_organizacion": self.pertenece_organizacion,
+                    "club_nombre": self.club_nombre,
+                    "logro_nacional": self.logro_nacional,
+                    "logro_internacional": self.logro_internacional,
+                    "categoria_competida": self.categoria_competida,
+                    "puntaje_o_logro": self.puntaje_o_logro,
+                    "curso": self.curso,
+                    "activo": True,
+                },
+            )
+            if not created:
+                est.nombres = self.nombres
+                est.apellidos = self.apellidos
+                est.fecha_nacimiento = self.fecha_nacimiento
+                est.direccion = self.direccion
+                est.comuna = self.comuna
+                est.telefono = self.telefono
+                est.email = self.email
+                est.n_emergencia = self.n_emergencia
+                est.prevision = self.prevision
+                est.apoderado_nombre = self.apoderado_nombre
+                est.apoderado_telefono = self.apoderado_telefono
+                est.apoderado_email = self.apoderado_email
+                est.apoderado_fecha_nacimiento = self.apoderado_fecha_nacimiento
+                est.pertenece_organizacion = self.pertenece_organizacion
+                est.club_nombre = self.club_nombre
+                est.logro_nacional = self.logro_nacional
+                est.logro_internacional = self.logro_internacional
+                est.categoria_competida = self.categoria_competida
+                est.puntaje_o_logro = self.puntaje_o_logro
+                if self.curso:
+                    est.curso = self.curso
+                est.activo = True
+                est.save()
+        return est
+
+class PortalConfig(models.Model):
+    # singleton simple
+    singleton_id = models.PositiveSmallIntegerField(default=1, unique=True, editable=False)
+
+    # ⚙️ Campos que usa la vista y el form
+    registro_habilitado = models.BooleanField(default=False)
+    registro_inicio = models.DateField(null=True, blank=True)
+    registro_fin = models.DateField(null=True, blank=True)
+    texto_convocatoria = models.TextField(blank=True, default="")
+
+    class Meta:
+        verbose_name = "Configuración del portal"
+        verbose_name_plural = "Configuración del portal"
+
+    def __str__(self):
+        return "Configuración del portal"
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(singleton_id=1)
+        return obj

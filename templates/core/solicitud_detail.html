@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Detalle de solicitud{% endblock %}
+{% block header %}Detalle de solicitud{% endblock %}
+
+{% block content %}
+<div class="card p-3" style="max-width:900px">
+  <a class="btn btn-light mb-3" href="{% url 'core:solicitudes_list' %}">← Volver</a>
+
+  <h4>{{ s.nombres }} {{ s.apellidos }}</h4>
+  <p class="text-muted mb-1">RUT: {{ s.rut }} | Programa: {{ s.get_programa_display }} | Estado: 
+    {% if s.estado == "PEND" %}
+      <span class="badge bg-warning text-dark">Pendiente</span>
+    {% elif s.estado == "APRO" %}
+      <span class="badge bg-success">Aprobada</span>
+    {% elif s.estado == "RECH" %}
+      <span class="badge bg-secondary">Rechazada</span>
+    {% endif %}
+  </p>
+  <hr>
+
+  <h5>1️⃣ Datos personales</h5>
+  <ul>
+    <li><b>Fecha de nacimiento:</b> {{ s.fecha_nacimiento|date:"d/m/Y" }}</li>
+    <li><b>Dirección:</b> {{ s.direccion }}</li>
+    <li><b>Comuna:</b> {{ s.comuna }}</li>
+    <li><b>Teléfono:</b> {{ s.telefono }}</li>
+    <li><b>Email:</b> {{ s.email }}</li>
+    <li><b>Número emergencia:</b> {{ s.n_emergencia }}</li>
+    <li><b>Previsión:</b> {{ s.get_prevision_display }}</li>
+  </ul>
+
+  <h5>2️⃣ Tutor/a</h5>
+  {% if s.apoderado_nombre %}
+  <ul>
+    <li><b>Nombre:</b> {{ s.apoderado_nombre }}</li>
+    <li><b>RUT:</b> {{ s.apoderado_rut }}</li>
+    <li><b>Teléfono:</b> {{ s.apoderado_telefono }}</li>
+    <li><b>Email:</b> {{ s.apoderado_email }}</li>
+    <li><b>Fecha nacimiento:</b> {{ s.apoderado_fecha_nacimiento|date:"d/m/Y" }}</li>
+  </ul>
+  {% else %}
+  <p class="text-muted">Sin tutor registrado.</p>
+  {% endif %}
+
+  <h5>3️⃣ Información deportiva</h5>
+  <ul>
+    <li><b>Pertenece organización:</b> {{ s.pertenece_organizacion|yesno:"Sí,No" }}</li>
+    <li><b>Nombre club:</b> {{ s.club_nombre|default:"—" }}</li>
+    <li><b>Categoría:</b> {{ s.categoria_competida|default:"—" }}</li>
+    <li><b>Puntaje/logro:</b> {{ s.puntaje_o_logro|default:"—" }}</li>
+    <li><b>Logro nacional:</b> {{ s.logro_nacional|yesno:"Sí,No" }}</li>
+    <li><b>Logro internacional:</b> {{ s.logro_internacional|yesno:"Sí,No" }}</li>
+    <li><b>Motivación:</b> {{ s.motivacion_beca|default:"—" }}</li>
+  </ul>
+
+  <h5>4️⃣ Curso postulado</h5>
+  {% if s.curso %}
+    <p><b>{{ s.curso.nombre }}</b> ({{ s.curso.sede.nombre }}) — {{ s.curso.get_programa_display }}</p>
+  {% else %}
+    <p class="text-muted">Sin curso asignado.</p>
+  {% endif %}
+
+  <hr>
+  <div class="mt-3 d-flex gap-2">
+    {% if s.estado == "PEND" %}
+    <form action="{% url 'core:solicitud_aprobar' s.id %}" method="post">
+      {% csrf_token %}
+      <button class="btn btn-success">Aprobar</button>
+    </form>
+    <form action="{% url 'core:solicitud_rechazar' s.id %}" method="post" onsubmit="return confirm('¿Rechazar esta solicitud?');">
+      {% csrf_token %}
+      <button class="btn btn-light">Rechazar</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

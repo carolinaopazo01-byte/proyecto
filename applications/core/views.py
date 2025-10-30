@@ -2,15 +2,17 @@
 from django.db import connection
 from django.http import HttpResponse, FileResponse, Http404
 from django.shortcuts import render, redirect, get_object_or_404
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST
 from django.db.models import Q, Count
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 
-from .models import Comunicado, Curso, Sede, Estudiante, Planificacion, Deporte, PlanificacionVersion, InscripcionCurso, PostulacionEstudiante
-#from .forms import PlanificacionForm, DeporteForm, PlanificacionUploadForm
+from .models import Comunicado, Curso, Sede, Estudiante, Planificacion, Deporte, PlanificacionVersion, InscripcionCurso, SolicitudInscripcion, PostulacionEstudiante, PortalConfig
+
 from .forms import DeporteForm, PlanificacionUploadForm, RegistroPublicoForm
 
 from applications.usuarios.utils import role_required
@@ -22,7 +24,8 @@ from datetime import timedelta, date
 from django.utils import timezone
 
 from math import radians, sin, cos, asin, sqrt
-##########################3
+
+####################################
 
 def _monday(d: date) -> date:
     return d - timedelta(days=d.weekday())
@@ -32,6 +35,40 @@ def save(self, *args, **kwargs):
         self.semana = _to_monday(self.semana)     # normaliza
         self.set_semana_iso()
     super().save(*args, **kwargs)
+
+def _rut_normalizado(rut: str) -> str:
+    return (rut or "").replace(".", "").replace("-", "").strip()
+
+def _pwd_por_fecha(d: date) -> str:
+    return d.strftime("%d%m%Y") if d else "12345678"  # fallback por si viene vacío
+
+def _crear_usuario_si_falta(*, rut: str, nombre: str, apellido: str, email: str, telefono: str, tipo: str, fecha_nac: date):
+    """
+    Crea o devuelve un Usuario (tu modelo custom) con username=rut normalizado.
+    Password = fecha de nacimiento en DDMMAAAA.
+    """
+    User = get_user_model()
+    username = _rut_normalizado(rut)
+    if not username:
+        return None
+
+    user, created = User.objects.get_or_create(
+        username=username,
+        defaults={
+            "first_name": (nombre or "")[:30],
+            "last_name": (apellido or "")[:150],
+            "email": (email or ""),
+            "telefono": (telefono or ""),
+            "tipo_usuario": tipo,  # 'APOD' o 'ATLE' según tu enum
+            "is_active": True,
+        },
+    )
+    if created:
+        user.set_password(_pwd_por_fecha(fecha_nac))
+        user.save(update_fields=["password"])
+    return user
+
+##########################
 
 @require_http_methods(["GET"])
 def home(request):
@@ -141,13 +178,11 @@ def curso_edit(request, curso_id: int):
         "form": form, "formset": formset, "is_edit": True, "curso": curso
     })
 
-
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["POST"])
 def curso_delete(request, curso_id: int):
     Curso.objects.filter(pk=curso_id).delete()
     return redirect("core:cursos_list")
-
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
@@ -270,9 +305,7 @@ def comunicado_create(request):
             {"error": "Completa título y cuerpo.", "dirigido_a": dirigido_a}
         )
 
-    # valores por defecto para el form
     return render(request, "core/comunicado_create.html", {"dirigido_a": "TODOS"})
-
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF, Usuario.Tipo.PMUL)
 @require_http_methods(["GET", "POST"])
@@ -332,13 +365,11 @@ def deportes_recintos(request):
 def equipo_multidisciplinario(request):
     return render(request, "pages/equipo.html")
 
-
 # ------- Profesores (stubs mínimos para que no falle urls) -------
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET"])
 def profesores_list(request):
     return render(request, "core/profesores_list.html")
-
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
@@ -346,7 +377,6 @@ def profesor_create(request):
     if request.method == "POST":
         return HttpResponse("CORE / Profesores - CREAR (POST) -> guardado OK")
     return render(request, "core/profesor_form.html")
-
 
 # -------- STUBS QUE PUEDEN FALTAR EN URLs --------
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF)
@@ -421,7 +451,6 @@ def ficha_estudiante(request, estudiante_id: int):
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 def reportes_home(request):
     return render(request, "core/reportes_home.html")
-
 
 # --------- 📆 Semanal de inasistencias ----------
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
@@ -555,7 +584,6 @@ def reporte_inasistencias_detalle(request, clase_id: int):
     lunes = semana_base - timedelta(days=semana_base.weekday())
     domingo = lunes + timedelta(days=6)
 
-    # Faltas de la semana por atleta
     asist_semana = AsistenciaAtleta.objects.filter(
         atleta__isnull=False,
         clase__fecha__range=(lunes, domingo)
@@ -590,7 +618,6 @@ def reporte_inasistencias_detalle(request, clase_id: int):
         "lunes": lunes, "domingo": domingo,
         "filas": filas,
     })
-
 
 # --------- 🧑‍🏫 Asistencia por clase (selector) ----------
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF)
@@ -632,7 +659,6 @@ def reporte_asistencia_por_clase(request):
         "seleccionada": seleccionada,
         "registros": registros,
     })
-
 
 # -------- Placeholders: en blanco por ahora --------
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
@@ -686,7 +712,6 @@ def planificaciones_list(request):
 
     total_cursos = cursos_qs.count()
 
-    # Planificaciones de esa semana y filtros
     plans = (Planificacion.objects
              .select_related("curso", "curso__sede", "curso__profesor", "curso__disciplina")
              .filter(semana=lunes))
@@ -789,7 +814,6 @@ def deportes_list(request):
     items = Deporte.objects.all().order_by("nombre")
     return render(request, "core/deportes_list.html", {"items": items})
 
-
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
 def deporte_create(request):
@@ -801,7 +825,6 @@ def deporte_create(request):
     else:
         form = DeporteForm()
     return render(request, "core/deporte_form.html", {"form": form, "is_edit": False})
-
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
@@ -816,7 +839,6 @@ def deporte_edit(request, deporte_id: int):
         form = DeporteForm(instance=obj)
     return render(request, "core/deporte_form.html", {"form": form, "is_edit": True, "obj": obj})
 
-
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["POST"])
 def deporte_delete(request, deporte_id: int):
@@ -824,8 +846,6 @@ def deporte_delete(request, deporte_id: int):
     return redirect("core:deportes_list")
 
 ########
-
-
 def _haversine_m(lat1, lon1, lat2, lon2) -> float:
     """Distancia en metros entre 2 coordenadas."""
     R = 6371000.0  # radio Tierra en m
@@ -978,8 +998,8 @@ def registro_gracias(request):
     return render(request, "core/registro_gracias.html")
 
 # ---------- Interno: revisar / aprobar / rechazar ----------
-def _es_admin_o_coor(user):
-    return getattr(user, "tipo_usuario", "") in ("ADMIN", "COOR") or user.is_superuser
+def _es_admin_o_coor(u):
+    return getattr(u, "tipo_usuario", "") in ("ADMIN", "COOR") or u.is_superuser
 
 @user_passes_test(_es_admin_o_coor)
 def registro_list(request):
@@ -1009,3 +1029,169 @@ def registro_rechazar(request, pk):
         messages.info(request, "Postulación rechazada.")
         return redirect("core:registro_detail", pk=p.pk)
     return redirect("core:registro_detail", pk=pk)
+
+@user_passes_test(_es_admin_o_coor)
+@require_http_methods(["GET", "POST"])
+def config_registro_edit(request):
+    cfg = PortalConfig.get_solo()
+    if request.method == "POST":
+        on = request.POST.get("registro_habilitado") == "on"
+        inicio = request.POST.get("registro_inicio") or None
+        fin = request.POST.get("registro_fin") or None
+        texto = (request.POST.get("texto_convocatoria") or "").strip()
+        try:
+            from datetime import date
+            cfg.registro_habilitado = on
+            cfg.registro_inicio = date.fromisoformat(inicio) if inicio else None
+            cfg.registro_fin = date.fromisoformat(fin) if fin else None
+            cfg.texto_convocatoria = texto
+            cfg.save()
+            messages.success(request, "Ventana de inscripciones actualizada.")
+            return redirect("core:solicitudes_list")
+        except ValueError:
+            messages.error(request, "Fechas inválidas. Usa el selector.")
+    return render(request, "core/config_registro_form.html", {"cfg": cfg})
+
+
+# ---------------------------------------------------------------------
+# Toggle rápido: mostrar / ocultar botón “Postular en línea”
+# ---------------------------------------------------------------------
+@user_passes_test(_es_admin_o_coor)
+def config_registro_toggle(request):
+    cfg = PortalConfig.get_solo()
+    cfg.registro_habilitado = not cfg.registro_habilitado
+    cfg.save(update_fields=["registro_habilitado"])
+    estado = "visibles" if cfg.registro_habilitado else "ocultas"
+    messages.success(request, f"Inscripciones ahora {estado}.")
+    return redirect("core:solicitudes_list")
+
+
+# ---------------------------------------------------------------------
+# Control de acceso
+# ---------------------------------------------------------------------
+def _require_admin_or_coord(user):
+    t = (getattr(user, "tipo_usuario", "") or "").upper()
+    return t in {"ADMIN", "COORD"}
+
+
+# ---------------------------------------------------------------------
+# Ver detalle de solicitud individual
+# ---------------------------------------------------------------------
+@login_required
+def solicitud_ver(request, pk: int):
+    if not _require_admin_or_coord(request.user):
+        raise PermissionDenied
+    s = get_object_or_404(
+        SolicitudInscripcion.objects.select_related("curso", "curso__sede"),
+        pk=pk
+    )
+    return render(request, "core/solicitud_detail.html", {"s": s})
+
+
+# ---------------------------------------------------------------------
+# Listado de todas las solicitudes
+# ---------------------------------------------------------------------
+@login_required
+def solicitudes_list(request):
+    if not _require_admin_or_coord(request.user):
+        raise PermissionDenied
+
+    estado = (request.GET.get("estado") or "PEN").upper()  # PEN / APR / REC
+    q = (request.GET.get("q") or "").strip()
+
+    qs = SolicitudInscripcion.objects.all()
+    if estado in {"PEN", "APR", "REC"}:
+        qs = qs.filter(estado=estado)
+    if q:
+        qs = qs.filter(
+            Q(rut__icontains=q) |
+            Q(nombres__icontains=q) |
+            Q(apellidos__icontains=q) |
+            Q(email__icontains=q)
+        )
+
+    ctx = {
+        "items": qs.select_related("curso", "curso__sede")[:300],
+        "estado": estado,
+        "q": q,
+        "cnt_pen": SolicitudInscripcion.objects.filter(estado="PEN").count(),
+        "cnt_apr": SolicitudInscripcion.objects.filter(estado="APR").count(),
+        "cnt_rec": SolicitudInscripcion.objects.filter(estado="REC").count(),
+    }
+    return render(request, "core/solicitudes_list.html", ctx)
+
+
+# ---------------------------------------------------------------------
+# Aprobar solicitud → crea Estudiante y Usuario
+# ---------------------------------------------------------------------
+@user_passes_test(_es_admin_o_coor)
+def solicitud_aprobar(request, pk):
+    s = get_object_or_404(SolicitudInscripcion, pk=pk)
+    if s.estado != "PEN":
+        messages.info(request, "La solicitud ya fue gestionada.")
+        return redirect("core:solicitudes_list")
+
+    # 1️⃣ Crear o actualizar estudiante con todos los campos
+    est = s.crear_o_actualizar_estudiante()
+
+    # 2️⃣ Crear usuario para login (clave = fecha_nacimiento del atleta)
+    edad = 0
+    if s.fecha_nacimiento:
+        hoy = timezone.localdate()
+        edad = hoy.year - s.fecha_nacimiento.year - (
+            (hoy.month, hoy.day) < (s.fecha_nacimiento.month, s.fecha_nacimiento.day)
+        )
+
+    if edad < 18 and s.apoderado_rut:
+        _crear_usuario_si_falta(
+            rut=s.apoderado_rut,
+            nombre=(s.apoderado_nombre or "").split(" ")[0],
+            apellido=" ".join((s.apoderado_nombre or "").split(" ")[1:]),
+            email=s.apoderado_email or "",
+            telefono=s.apoderado_telefono or "",
+            tipo="APOD",
+            fecha_nac=s.fecha_nacimiento,  # clave = fecha atleta
+        )
+    else:
+        _crear_usuario_si_falta(
+            rut=s.rut,
+            nombre=s.nombres.split(" ")[0] if s.nombres else "",
+            apellido=s.apellidos or "",
+            email=s.email or "",
+            telefono=s.telefono or "",
+            tipo="ATLE",
+            fecha_nac=s.fecha_nacimiento,  # clave = su propia fecha
+        )
+
+    # 3️⃣ Marcar como aprobada
+    s.estado = "APR"
+    s.save(update_fields=["estado"])
+
+    messages.success(request, "✅ Solicitud aprobada. Estudiante y credenciales creadas.")
+    return redirect("core:solicitudes_list")
+
+
+# ---------------------------------------------------------------------
+# Rechazar solicitud
+# ---------------------------------------------------------------------
+@login_required
+def solicitud_rechazar(request, pk):
+    if not _require_admin_or_coord(request.user):
+        raise PermissionDenied
+    s = get_object_or_404(SolicitudInscripcion, pk=pk)
+    if request.method == "POST" and s.estado == "PEN":
+        s.estado = "REC"
+        s.save(update_fields=["estado"])
+        messages.warning(request, "❌ Solicitud rechazada.")
+    return redirect("core:solicitudes_list")
+
+
+# ---------------------------------------------------------------------
+# Ver detalle (antiguo alias o compatibilidad)
+# ---------------------------------------------------------------------
+@login_required
+def solicitud_detail(request, pk):
+    if not _require_admin_or_coord(request.user):
+        raise PermissionDenied
+    s = get_object_or_404(SolicitudInscripcion, pk=pk)
+    return render(request, "core/solicitud_detail.html", {"s": s})
