@@ -7,15 +7,21 @@ from django.views.decorators.http import require_http_methods
 from django.http import HttpResponseForbidden
 from django.utils import timezone
 from django.contrib import messages
-
-from io import BytesIO
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+
+from io import BytesIO
 import qrcode
 from qrcode.constants import ERROR_CORRECT_M
 
-from applications.core.models import Sede
+from applications.core.models import Sede, Estudiante
+
 from .models import AsistenciaProfesor
+
+from .forms import AlumnoTemporalForm
+
+#########################
 
 def _es_prof(user) -> bool:
     return (getattr(user, "tipo_usuario", "") or "").upper() == "PROF"
@@ -222,3 +228,27 @@ def placard_sede_qr(request, sede_id: int):
         return HttpResponseForbidden("Solo profesores.")
     sede = get_object_or_404(Sede, pk=sede_id)
     return render(request, "profesor/placard_sede_qr.html", {"sede": sede})
+
+@login_required
+def alumno_temporal_new(request):
+    # solo profesores pueden usar esta vista
+    if not hasattr(request.user, "tipo_usuario") or str(request.user.tipo_usuario).upper() != "PROF":
+        raise PermissionDenied("Solo disponible para profesores/entrenadores.")
+
+    if request.method == "POST":
+        form = AlumnoTemporalForm(request.POST)
+        if form.is_valid():
+            est = form.save(commit=False)
+            est.temporal = True
+            est.activo = True
+            # Si agregaste el campo creado_por en el modelo:
+            # est.creado_por = request.user
+            est.save()
+            messages.success(request, "Alumno temporal creado correctamente.")
+            return redirect("usuarios:panel_profesor")
+        else:
+            messages.error(request, "Revisa los campos del formulario.")
+    else:
+        form = AlumnoTemporalForm()
+
+    return render(request, "profesor/alumno_temporal_form.html", {"form": form})

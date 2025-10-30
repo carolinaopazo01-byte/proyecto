@@ -8,8 +8,11 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.mail import send_mail
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 
-from .models import Comunicado, Curso, Sede, Estudiante, Planificacion, Deporte, PlanificacionVersion, InscripcionCurso, PostulacionEstudiante
+from .models import Comunicado, Curso, Sede, Estudiante, Planificacion, Deporte, PlanificacionVersion, InscripcionCurso, SolicitudInscripcion
+#PostulacionEstudiante, SolicitudInscripcion
+
 #from .forms import PlanificacionForm, DeporteForm, PlanificacionUploadForm
 from .forms import DeporteForm, PlanificacionUploadForm, RegistroPublicoForm
 
@@ -141,13 +144,11 @@ def curso_edit(request, curso_id: int):
         "form": form, "formset": formset, "is_edit": True, "curso": curso
     })
 
-
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["POST"])
 def curso_delete(request, curso_id: int):
     Curso.objects.filter(pk=curso_id).delete()
     return redirect("core:cursos_list")
-
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
@@ -270,9 +271,7 @@ def comunicado_create(request):
             {"error": "Completa título y cuerpo.", "dirigido_a": dirigido_a}
         )
 
-    # valores por defecto para el form
     return render(request, "core/comunicado_create.html", {"dirigido_a": "TODOS"})
-
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF, Usuario.Tipo.PMUL)
 @require_http_methods(["GET", "POST"])
@@ -332,13 +331,11 @@ def deportes_recintos(request):
 def equipo_multidisciplinario(request):
     return render(request, "pages/equipo.html")
 
-
 # ------- Profesores (stubs mínimos para que no falle urls) -------
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET"])
 def profesores_list(request):
     return render(request, "core/profesores_list.html")
-
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
@@ -346,7 +343,6 @@ def profesor_create(request):
     if request.method == "POST":
         return HttpResponse("CORE / Profesores - CREAR (POST) -> guardado OK")
     return render(request, "core/profesor_form.html")
-
 
 # -------- STUBS QUE PUEDEN FALTAR EN URLs --------
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF)
@@ -421,7 +417,6 @@ def ficha_estudiante(request, estudiante_id: int):
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 def reportes_home(request):
     return render(request, "core/reportes_home.html")
-
 
 # --------- 📆 Semanal de inasistencias ----------
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
@@ -555,7 +550,6 @@ def reporte_inasistencias_detalle(request, clase_id: int):
     lunes = semana_base - timedelta(days=semana_base.weekday())
     domingo = lunes + timedelta(days=6)
 
-    # Faltas de la semana por atleta
     asist_semana = AsistenciaAtleta.objects.filter(
         atleta__isnull=False,
         clase__fecha__range=(lunes, domingo)
@@ -590,7 +584,6 @@ def reporte_inasistencias_detalle(request, clase_id: int):
         "lunes": lunes, "domingo": domingo,
         "filas": filas,
     })
-
 
 # --------- 🧑‍🏫 Asistencia por clase (selector) ----------
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF)
@@ -632,7 +625,6 @@ def reporte_asistencia_por_clase(request):
         "seleccionada": seleccionada,
         "registros": registros,
     })
-
 
 # -------- Placeholders: en blanco por ahora --------
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
@@ -686,7 +678,6 @@ def planificaciones_list(request):
 
     total_cursos = cursos_qs.count()
 
-    # Planificaciones de esa semana y filtros
     plans = (Planificacion.objects
              .select_related("curso", "curso__sede", "curso__profesor", "curso__disciplina")
              .filter(semana=lunes))
@@ -789,7 +780,6 @@ def deportes_list(request):
     items = Deporte.objects.all().order_by("nombre")
     return render(request, "core/deportes_list.html", {"items": items})
 
-
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
 def deporte_create(request):
@@ -801,7 +791,6 @@ def deporte_create(request):
     else:
         form = DeporteForm()
     return render(request, "core/deporte_form.html", {"form": form, "is_edit": False})
-
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
@@ -816,7 +805,6 @@ def deporte_edit(request, deporte_id: int):
         form = DeporteForm(instance=obj)
     return render(request, "core/deporte_form.html", {"form": form, "is_edit": True, "obj": obj})
 
-
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["POST"])
 def deporte_delete(request, deporte_id: int):
@@ -824,8 +812,6 @@ def deporte_delete(request, deporte_id: int):
     return redirect("core:deportes_list")
 
 ########
-
-
 def _haversine_m(lat1, lon1, lat2, lon2) -> float:
     """Distancia en metros entre 2 coordenadas."""
     R = 6371000.0  # radio Tierra en m
@@ -1009,3 +995,59 @@ def registro_rechazar(request, pk):
         messages.info(request, "Postulación rechazada.")
         return redirect("core:registro_detail", pk=p.pk)
     return redirect("core:registro_detail", pk=pk)
+
+def _require_admin_or_coord(user):
+    t = getattr(user, "tipo_usuario", "") or ""
+    t = str(t).upper()
+    return t in {"ADMIN", "COORD"}
+
+@login_required
+def solicitudes_list(request):
+    if not _require_admin_or_coord(request.user):
+        raise PermissionDenied
+
+    estado = request.GET.get("estado", "PEN")  # PEN/APR/REC
+    q = request.GET.get("q", "")
+    qs = SolicitudInscripcion.objects.all()
+    if estado in {"PEN", "APR", "REC"}:
+        qs = qs.filter(estado=estado)
+    if q:
+        qs = qs.filter(rut__icontains=q) | qs.filter(nombres__icontains=q) | qs.filter(apellidos__icontains=q) | qs.filter(email__icontains=q)
+
+    ctx = {
+        "items": qs.select_related("curso")[:300],
+        "estado": estado,
+        "q": q,
+        "cnt_pen": SolicitudInscripcion.objects.filter(estado="PEN").count(),
+        "cnt_apr": SolicitudInscripcion.objects.filter(estado="APR").count(),
+        "cnt_rec": SolicitudInscripcion.objects.filter(estado="REC").count(),
+    }
+    return render(request, "core/solicitudes_list.html", ctx)
+
+@login_required
+def solicitud_aprobar(request, pk):
+    if not _require_admin_or_coord(request.user):
+        raise PermissionDenied
+    s = get_object_or_404(SolicitudInscripcion, pk=pk)
+    if s.estado != "PEN":
+        messages.info(request, "La solicitud ya fue gestionada.")
+        return redirect("core:solicitudes_list")
+
+    est = s.crear_o_actualizar_estudiante()
+    s.estado = "APR"
+    s.save(update_fields=["estado"])
+    messages.success(request, f"Solicitud aprobada. Estudiante creado/actualizado: {est.nombres} {est.apellidos}.")
+    return redirect("core:solicitudes_list")
+
+@login_required
+def solicitud_rechazar(request, pk):
+    if not _require_admin_or_coord(request.user):
+        raise PermissionDenied
+    s = get_object_or_404(SolicitudInscripcion, pk=pk)
+    if s.estado != "PEN":
+        messages.info(request, "La solicitud ya fue gestionada.")
+    else:
+        s.estado = "REC"
+        s.save(update_fields=["estado"])
+        messages.warning(request, "Solicitud rechazada.")
+    return redirect("core:solicitudes_list")

@@ -6,140 +6,116 @@
 <form method="post" novalidate>
   {% csrf_token %}
 
-  {# ================== ERRORES GLOBALES DEL FORM ================== #}
   {% if form.non_field_errors %}
     <div class="alert alert-danger" role="alert">
-      {% for e in form.non_field_errors %}
-        <div>{{ e }}</div>
-      {% endfor %}
+      {% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}
     </div>
   {% endif %}
 
-  {# ================== SELECTOR DE PROGRAMA ================== #}
   <div class="card p-3 mb-3">
     <div class="h6 mb-2">Tipo de programa</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button type="button" class="btn" id="btn-form">Formativo</button>
       <button type="button" class="btn btn-light" id="btn-alto">Alto Rendimiento</button>
     </div>
-    <input type="hidden" id="id_postula_programa" value="FORM"> {# UI only: FORM / ALTO #}
+    <input type="hidden" id="id_postula_programa" value="FORM">
     <small class="text-muted">Elige “Formativo” para inscripción simple o “Alto Rendimiento” para solicitar datos adicionales.</small>
   </div>
 
-  <!-- ========== 1) Identificación del/la atleta ========== -->
   <fieldset id="sec-ident" class="card mb-3 p-3">
     <legend class="h5">1. Identificación del/la atleta</legend>
-
     <div class="row g-3">
-
       <div class="col-md-6">
         <label class="form-label">Nombres</label>
-        {{ form.nombres }}
-        {% for e in form.nombres.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+        {{ form.nombres }}{% for e in form.nombres.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
       </div>
-
       <div class="col-md-6">
         <label class="form-label">Apellidos</label>
-        {{ form.apellidos }}
-        {% for e in form.apellidos.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+        {{ form.apellidos }}{% for e in form.apellidos.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
       </div>
-
       <div class="col-md-4">
         <label class="form-label">Fecha de nacimiento</label>
-        {{ form.fecha_nacimiento }}
-        {% for e in form.fecha_nacimiento.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+        {{ form.fecha_nacimiento }}{% for e in form.fecha_nacimiento.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
       </div>
-
       <div class="col-md-2">
         <label class="form-label">Edad</label>
         <input id="id_edad_preview" class="form-control" type="number" readonly
                value="{{ form.instance.edad|default_if_none:'' }}">
       </div>
-
       <div class="col-md-6">
         <label class="form-label">RUT</label>
-        {{ form.rut }}
-        {% for e in form.rut.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+        {{ form.rut }}{% for e in form.rut.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
       </div>
-
       <div class="col-md-8">
         <label class="form-label">Dirección</label>
-        {{ form.direccion }}
-        {% for e in form.direccion.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+        {{ form.direccion }}{% for e in form.direccion.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
       </div>
-
       <div class="col-md-4">
         <label class="form-label">Comuna</label>
-        {{ form.comuna }}
-        {% for e in form.comuna.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+        {{ form.comuna }}{% for e in form.comuna.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
       </div>
-
       <div class="col-md-6">
         <label class="form-label">Teléfono</label>
-        {{ form.telefono }}
-        {% for e in form.telefono.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+        {{ form.telefono }}{% for e in form.telefono.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
       </div>
-
       <div class="col-md-6">
         <label class="form-label">Email</label>
-        {{ form.email }}
-        {% for e in form.email.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+        {{ form.email }}{% for e in form.email.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
       </div>
-
       <div class="col-md-6">
         <label class="form-label">Número de emergencia</label>
-        {{ form.n_emergencia }}
-        {% for e in form.n_emergencia.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+        {{ form.n_emergencia }}{% for e in form.n_emergencia.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
       </div>
-
       <div class="col-md-6">
         <label class="form-label">Previsión de salud</label>
         {{ form.prevision }}
       </div>
-
     </div>
   </fieldset>
 
-  <!-- ========== 2) Tutor/a y/o representante legal ========== -->
   <fieldset id="sec-tutor" class="card mb-3 p-3">
     <legend class="h5">2. Identificación del/la tutor/a y/o representante legal (completar sólo si es menor de edad)</legend>
-
     <div class="row g-3">
-      <div class="col-md-8">
+      <div class="col-md-6">
         <label class="form-label">Nombre completo</label>
-        {{ form.apoderado_nombre }}
-        {% for e in form.apoderado_nombre.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+        {{ form.apoderado_nombre }}{% for e in form.apoderado_nombre.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
       </div>
-
-      <div class="col-md-4">
+      <div class="col-md-3">
         <label class="form-label">Teléfono</label>
-        {{ form.apoderado_telefono }}
-        {% for e in form.apoderado_telefono.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+        {{ form.apoderado_telefono }}{% for e in form.apoderado_telefono.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
       </div>
+      <div class="col-md-3">
+        <label class="form-label">Correo electrónico</label>
+        {{ form.apoderado_email }}{% for e in form.apoderado_email.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Fecha de nacimiento</label>
+        {{ form.apoderado_fecha_nacimiento }}{% for e in form.apoderado_fecha_nacimiento.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+      </div>
+    <div class="col-md-4">
+  <label class="form-label">RUT del/la tutor(a)</label>
+  {{ form.apoderado_rut }}
+  {{ form.apoderado_rut.errors }}
+</div>
+
     </div>
   </fieldset>
 
-  <!-- ========== 3) Información deportiva del/la atleta ========== -->
   <fieldset id="sec-deportiva" class="card mb-3 p-3">
     <legend class="h5">3. Información deportiva del/la atleta</legend>
-
     <div class="mb-2 text-muted">
       <b>Deporte que practica:</b> <span id="deporte-practica">—</span>
     </div>
-
     <div class="row g-3">
       <div class="col-md-6 d-flex align-items-center gap-2">
         <label class="form-label mb-0">{{ form.pertenece_organizacion.label }}</label>
         {{ form.pertenece_organizacion }}
         {% for e in form.pertenece_organizacion.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
       </div>
-
       <div class="col-md-6" id="club_row">
         <label class="form-label">{{ form.club_nombre.label }}</label>
-        {{ form.club_nombre }}
-        {% for e in form.club_nombre.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+        {{ form.club_nombre }}{% for e in form.club_nombre.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
       </div>
-
       <div class="col-md-6">
         <label class="form-label d-block">Logros relevantes</label>
         <div class="form-check">
@@ -151,20 +127,14 @@
         {% for e in form.logro_nacional.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
         {% for e in form.logro_internacional.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
       </div>
-
       <div class="col-md-3">
         <label class="form-label">{{ form.categoria_competida.label }}</label>
-        {{ form.categoria_competida }}
-        {% for e in form.categoria_competida.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+        {{ form.categoria_competida }}{% for e in form.categoria_competida.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
       </div>
-
       <div class="col-md-3">
         <label class="form-label">{{ form.puntaje_o_logro.label }}</label>
-        {{ form.puntaje_o_logro }}
-        {% for e in form.puntaje_o_logro.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+        {{ form.puntaje_o_logro }}{% for e in form.puntaje_o_logro.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
       </div>
-
-      <!-- Motivación: campo de UI (no BD) para AR -->
       <div class="col-12">
         <label class="form-label">Motivación del deportista para postular a la beca</label>
         <textarea name="motivacion_beca" id="id_motivacion_beca" rows="3" class="form-control"></textarea>
@@ -172,14 +142,12 @@
     </div>
   </fieldset>
 
-  <!-- Curso / estado -->
   <fieldset id="sec-curso" class="card mb-3 p-3">
     <legend class="h6 mb-2">Curso y estado</legend>
     <div class="row g-3">
       <div class="col-md-6">
         <label class="form-label">Curso</label>
-        {{ form.curso }}
-        {% for e in form.curso.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
+        {{ form.curso }}{% for e in form.curso.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
       </div>
       <div class="col-md-6 d-flex align-items-center gap-2">
         {{ form.activo }} <label class="form-check-label">Activo</label>
@@ -194,7 +162,6 @@
   </div>
 </form>
 
-<!-- ===== JS: selector FORM/ALTO + edad en vivo + club + RUT + deporte desde curso ===== -->
 <script>
   (function () {
     // --- UI: FORM vs ALTO ---
@@ -207,23 +174,20 @@
     const $secDep   = document.getElementById('sec-deportiva');
     const $secCurso = document.getElementById('sec-curso');
 
-    // En AR estos campos serán obligatorios
     const AR_REQUIRED = ['id_categoria_competida', 'id_puntaje_o_logro', 'id_motivacion_beca'];
 
     function setRequired(ids, on) {
       ids.forEach(id => {
         const el = document.getElementById(id);
-        if (el) {
-          if (on) el.setAttribute('required','required');
-          else el.removeAttribute('required');
-        }
+        if (el) (on ? el.setAttribute('required','required') : el.removeAttribute('required'));
       });
     }
     function switchMode(mode) {
       $mode.value = mode; // FORM / ALTO
       if (mode === 'FORM') {
+        // 👇 ahora mostramos también la sección Tutor
         $secIdent.style.display = '';
-        $secTutor.style.display = 'none';
+        $secTutor.style.display = '';
         $secDep.style.display   = 'none';
         $secCurso.style.display = '';
         setRequired(AR_REQUIRED, false);
@@ -254,32 +218,24 @@
       if (m < 0 || (m === 0 && hoy.getDate() < d.getDate())) edad--;
       if (edadOut) edadOut.value = edad >= 0 ? edad : "";
     }
-    if (fnac) fnac.addEventListener("change", calcEdad);
+    fnac?.addEventListener("change", calcEdad);
     calcEdad();
 
-    // ---- Mostrar/ocultar "Nombre del club" según checkbox ----
+    // ---- Mostrar/ocultar "Nombre del club" ----
     const chkOrg = document.getElementById("id_pertenece_organizacion");
     const clubRow = document.getElementById("club_row");
-    function toggleClub() {
-      if (!chkOrg || !clubRow) return;
-      clubRow.style.display = chkOrg.checked ? "" : "none";
-    }
-    if (chkOrg) chkOrg.addEventListener("change", toggleClub);
-    toggleClub();
+    function toggleClub(){ if (clubRow && chkOrg) clubRow.style.display = chkOrg.checked ? "" : "none"; }
+    chkOrg?.addEventListener("change", toggleClub); toggleClub();
 
-    // ---- Formateo de RUT mientras se escribe (con puntos y guion) ----
+    // ---- Formateo de RUT ----
     const inputRut = document.getElementById("id_rut");
     if (inputRut) {
       function limpiarRut(v){ return v.replace(/[.\s]/g,'').replace(/-/g,'').toUpperCase(); }
       function formatear(v){
-        v = limpiarRut(v);
-        if (!v) return '';
-        const dv = v.slice(-1), base = v.slice(0, -1);
+        v = limpiarRut(v); if (!v) return '';
+        const dv = v.slice(-1), base = v.slice(0,-1);
         let out = '', cont = 0;
-        for (let i = base.length - 1; i >= 0; i--) {
-          out = base[i] + out; cont++;
-          if (cont === 3 && i !== 0) { out = '.' + out; cont = 0; }
-        }
+        for (let i=base.length-1;i>=0;i--) { out = base[i]+out; cont++; if (cont===3 && i!==0){ out='.'+out; cont=0; } }
         return out + '-' + dv;
       }
       inputRut.addEventListener('input', () => {
@@ -289,7 +245,7 @@
       });
     }
 
-    // ---- “Deporte que practica” desde el curso elegido ----
+    // ---- “Deporte que practica” desde el curso ----
     const $curso = document.getElementById('id_curso');
     const $deporte = document.getElementById('deporte-practica');
     const DISCIPLINA_MAP = {
@@ -297,9 +253,9 @@
         "{{ c.pk }}": "{{ c.disciplina.nombre|escapejs }}",
       {% endfor %}
     };
-    function updateDeporte(){ $deporte.textContent = DISCIPLINA_MAP[$curso.value] || '—'; }
-    if ($curso) { $curso.addEventListener('change', updateDeporte); updateDeporte(); }
+    function updateDeporte(){ $deporte.textContent = DISCIPLINA_MAP[$curso?.value] || '—'; }
+    $curso?.addEventListener('change', updateDeporte);
+    updateDeporte();
   })();
 </script>
-
 {% endblock %}

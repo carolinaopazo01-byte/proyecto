@@ -81,4 +81,8 @@ urlpatterns = [
     path("registro/admin/<int:pk>/", views.registro_detail, name="registro_detail"),
     path("registro/admin/<int:pk>/aprobar/", views.registro_aprobar, name="registro_aprobar"),
     path("registro/admin/<int:pk>/rechazar/", views.registro_rechazar, name="registro_rechazar"),
+
+    path("solicitudes/", views.solicitudes_list, name="solicitudes_list"),
+    path("solicitudes/<int:pk>/aprobar/", views.solicitud_aprobar, name="solicitud_aprobar"),
+    path("solicitudes/<int:pk>/rechazar/", views.solicitud_rechazar, name="solicitud_rechazar"),
 ]
