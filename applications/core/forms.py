@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.db import models  # <-- necesario para models.Q
 from django.db.models import Q
 
-from .models import Sede, Comunicado, InscripcionCurso
+from .models import Sede, Comunicado, InscripcionCurso, PostulacionEstudiante
 
 from .models import (
     Sede,
@@ -372,4 +372,43 @@ class ComunicadoForm(forms.ModelForm):
         fields = ['titulo', 'cuerpo', 'dirigido_a', 'autor']
         widgets = {
             'dirigido_a': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+class RegistroPublicoForm(forms.ModelForm):
+    # 👇 Campos extras SOLO de formulario (no van a la BD)
+    apoderado_email = forms.EmailField(
+        required=False, label="Correo electrónico del/la tutor(a)"
+    )
+    apoderado_fecha_nacimiento = forms.DateField(
+        required=False,
+        label="Fecha de nacimiento del/la tutor(a)",
+        widget=forms.DateInput(attrs={"type": "date"})
+    )
+
+    class Meta:
+        model = PostulacionEstudiante
+        fields = [
+            "programa",
+            # 1) Identificación
+            "nombres", "apellidos", "fecha_nacimiento", "rut",
+            "direccion", "comuna", "telefono", "email",
+            "n_emergencia", "prevision",
+            # 2) Tutor
+            "apoderado_nombre", "apoderado_telefono",
+            # 3) Información deportiva
+            "pertenece_organizacion", "club_nombre",
+            "logro_nacional", "logro_internacional",
+            "categoria_competida", "puntaje_o_logro",
+            "motivacion_beca",
+            "curso",
+        ]
+        labels = {
+            "programa": "Tipo de programa",
+            "n_emergencia": "Número de emergencia",
+            "motivacion_beca": "Motivación del deportista para postular a la beca",
+            "curso": "Curso y sede al cual postula",
+        }
+        widgets = {
+            "fecha_nacimiento": forms.DateInput(attrs={"type": "date"}),
+            "motivacion_beca": forms.Textarea(attrs={"rows": 4}),
         }
