@@ -1,38 +1,149 @@
 {% extends "base.html" %}
-{% block title %}{{ titulo }}{% endblock %}
-{% block header %}{{ titulo }}{% endblock %}
+{% block title %}Nueva ficha{% endblock %}
+{% block header %}Nueva ficha{% endblock %}
+
 {% block content %}
-<form method="post" enctype="multipart/form-data" class="card p-3" style="max-width:820px;">
+<form method="post" enctype="multipart/form-data" class="card p-3" style="max-width:900px;">
   {% csrf_token %}
 
+  <!-- ================= Atleta con BUSCADOR ================= -->
   <div class="mb-2">
-    <label class="form-label">Atleta</label>
-    {{ form.paciente }}
+    <label class="form-label"><b>Atleta</b></label>
+
+    <!-- Input de búsqueda con datalist (autocompletar) -->
+    <input id="finder" class="form-control" list="paciente_suggest"
+           placeholder="Escribe nombre, apellido o RUT (con puntos y guión)" autocomplete="off">
+    <datalist id="paciente_suggest">
+      {% for p in form.fields.paciente.queryset %}
+        <option value="{{ p.nombres }} {{ p.apellidos }} — {{ p.rut }}"></option>
+      {% endfor %}
+    </datalist>
+
+    <!-- El field real de Django queda oculto y sincronizado -->
+    <div style="display:none">
+      {{ form.paciente }}
+    </div>
+
+    <!-- Datos del alumno seleccionado -->
+    <div class="text-muted" style="margin-top:6px">
+      <b>Previsión:</b> <span id="prevision-val">—</span>
+      &nbsp;·&nbsp;
+      <b>N° Emergencia:</b> <span id="emergencia-val">—</span>
+    </div>
+
+    <!-- Diccionarios JS construidos desde el queryset -->
+    <script>
+      // Helpers
+      const norm = s => (s||'').toLowerCase()
+        .normalize('NFD').replace(/\p{Diacritic}/gu, '');
+      const normRut = s => {
+        if(!s) return '';
+        let r = s.toString().trim()
+          .replace(/\./g,'').replace(/\s+/g,'').replace(/[–—]/g,'-').toUpperCase();
+        // Si viene sin guión y tiene largo suficiente, insertarlo
+        if(!r.includes('-') && r.length >= 2) r = r.slice(0,-1) + '-' + r.slice(-1);
+        return r;
+      };
+
+      // Mapa por id
+      const PACS = {
+        {% for p in form.fields.paciente.queryset %}
+          "{{ p.pk }}": {
+            id: "{{ p.pk }}",
+            name: "{{ p.nombres|escapejs }} {{ p.apellidos|escapejs }}",
+            rut: "{{ p.rut|upper }}",
+            prevision: "{{ p.get_prevision_display|default:'—'|escapejs }}",
+            emergencia: "{{ p.n_emergencia|default:'—'|escapejs }}"
+          },
+        {% endfor %}
+      };
+
+      // Índices de búsqueda (por texto y por RUT normalizado)
+      const IDX = [];
+      const IDX_RUT = {};
+      for (const id in PACS) {
+        const p = PACS[id];
+        const label = `${p.name} — ${p.rut}`;
+        IDX.push({ id, label, key: norm(label) });
+        IDX_RUT[normRut(p.rut)] = id;
+      }
+
+      const $finder = document.getElementById('finder');
+      const $sel = document.getElementById('id_paciente');
+      const $prev = document.getElementById('prevision-val');
+      const $emer = document.getElementById('emergencia-val');
+
+      function setPaciente(id) {
+        if (!$sel) return;
+        $sel.value = id || '';
+        if (id && PACS[id]) {
+          $prev.textContent = PACS[id].prevision || '—';
+          $emer.textContent = PACS[id].emergencia || '—';
+          // Mostrar etiqueta “bonita” en el finder
+          $finder.value = `${PACS[id].name} — ${PACS[id].rut}`;
+        } else {
+          $prev.textContent = '—';
+          $emer.textContent = '—';
+        }
+      }
+
+      function buscarYSeleccionar() {
+        const q = $finder.value || '';
+        // 1) Intento exacto por RUT (con o sin puntos/guión)
+        const idRut = IDX_RUT[normRut(q)];
+        if (idRut) { setPaciente(idRut); return; }
+
+        // 2) Intento por etiqueta completa (como viene del datalist)
+        const hit = IDX.find(x => x.label === q);
+        if (hit) { setPaciente(hit.id); return; }
+
+        // 3) Intento por inclusión "inteligente" de nombre/apellido
+        const k = norm(q);
+        const hit2 = IDX.find(x => x.key.includes(k));
+        setPaciente(hit2 ? hit2.id : '');
+      }
+
+      // Eventos
+      $finder.addEventListener('change', buscarYSeleccionar);
+      $finder.addEventListener('blur', buscarYSeleccionar);
+
+      // Si el form viene con un valor preseleccionado (edición), sincronizar
+      (function init(){
+        const current = $sel && $sel.value;
+        if (current) setPaciente(current); else setPaciente('');
+      })();
+    </script>
   </div>
+  <!-- =============== /Atleta buscador =============== -->
+
   <div class="mb-2">
-    <label class="form-label">Motivo de atención</label>
+    <label class="form-label"><b>Motivo de atención</b></label>
     {{ form.motivo }}
+    {% for e in form.motivo.errors %}<div class="text-danger">{{ e }}</div>{% endfor %}
   </div>
+
   <div class="mb-2">
-    <label class="form-label">Observaciones</label>
+    <label class="form-label"><b>Observaciones</b></label>
     {{ form.observaciones }}
   </div>
+
   <div class="mb-2">
-    <label class="form-label">Diagnóstico / Indicaciones</label>
+    <label class="form-label"><b>Diagnóstico / Indicaciones</b></label>
     {{ form.diagnostico }}
   </div>
+
   <div class="mb-2">
-    <label class="form-label">Estado</label>
+    <label class="form-label"><b>Estado</b></label>
     {{ form.estado }}
   </div>
 
   <div class="mb-2">
-    <label class="form-label">Adjuntar archivo(s)</label>
-    <input type="file" name="adjuntos" multiple>
+    <label class="form-label"><b>Adjuntar archivo(s)</b></label>
+    {{ form.adjuntos }}
   </div>
 
-  <fieldset class="card p-2 mb-2">
-    <legend class="h6">Publicación (visibilidad)</legend>
+  <fieldset class="mb-3" style="border:1px solid #eee; border-radius:8px; padding:10px;">
+    <legend class="float-none w-auto px-2" style="font-size:14px;">Publicación (visibilidad)</legend>
     <label><input type="checkbox" name="publicar_profesor" {% if form.instance.publicar_profesor %}checked{% endif %}> Profesor/Entrenador</label><br>
     <label><input type="checkbox" name="publicar_coordinador" {% if form.instance.publicar_coordinador %}checked{% endif %}> Coordinador</label><br>
     <label><input type="checkbox" name="publicar_admin" {% if form.instance.publicar_admin %}checked{% endif %}> Administrador</label>
