@@ -4,46 +4,7 @@
 
 {% block extra_css %}
 <style>
-  /* ===== Carrusel ===== */
-  .cpc-carousel{
-    max-width: 1100px;
-    margin: 32px auto;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 8px 28px rgba(0,0,0,.15);
-  }
-  /* Mostrar parte superior completa y cortar abajo */
-  .cpc-carousel .carousel-item img{
-    width: 100%;
-    height: 480px;
-    object-fit: cover;
-    object-position: top;  /* ancla arriba */
-    display: block;
-  }
-  /* Caption pequeño arriba-izquierda */
-  .cpc-carousel .carousel-caption.cpc-cap{
-    position: absolute; top: 12px; left: 12px;
-    right: auto; bottom: auto; transform: none;
-    text-align: left;
-    padding: 10px 12px; border-radius: 10px;
-    background: rgba(255,255,255,.85); color: #111;
-    box-shadow: 0 2px 10px rgba(0,0,0,.12);
-  }
-  .cpc-carousel .carousel-caption.cpc-cap h6{ margin: 0 0 2px; font-weight: 700; }
-  .cpc-carousel .carousel-caption.cpc-cap p{ margin: 0; font-size: .9rem; line-height: 1.2; }
-  .cpc-carousel .badge-cpc{
-    display:inline-block; font-size:.72rem; font-weight:600;
-    padding:3px 8px; border-radius:999px;
-    background: rgba(0,0,0,.08); color:#111; margin-bottom:6px;
-  }
-  @media (max-width: 576px){
-    .cpc-carousel .carousel-item img{ height: 300px; }
-    .cpc-carousel .carousel-caption.cpc-cap{ top:8px; left:8px; padding:8px 10px; }
-    .cpc-carousel .carousel-caption.cpc-cap h6{ font-size:.95rem; }
-    .cpc-carousel .carousel-caption.cpc-cap p{ font-size:.8rem; }
-  }
-
-  /* ===== Sección de información del programa ===== */
+  /* ===== Intro del programa ===== */
   .program-intro{ max-width:1100px; margin: 24px auto 0; }
   .program-hero{
     background: linear-gradient(135deg, rgba(5,99,117,.08), rgba(9,18,54,.05));
@@ -73,183 +34,127 @@
   .program-bullet{ margin:0 0 6px 0; }
   .program-bullet:last-child{ margin-bottom:0; }
 
-  .stat{ display:flex; align-items:baseline; gap:10px; padding:2px 0 0; }
-  .stat .num{ font-size:1.65rem; font-weight:800; color:var(--cpc-teal, #056375); }
-  .stat .sub{ color:#555; }
+  /* ===== Carrusel de Noticias (contenido completo en la página) ===== */
+  .news-carousel-wrap{ max-width:1100px; margin:28px auto 32px; }
+  .news-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+  .news-head h4{ margin:0; font-weight:900; color:#0a5a64; letter-spacing:.2px; }
 
-  .pill{
-    display:inline-block; border-radius:999px; padding:4px 10px;
-    background: rgba(5,99,117,.08); color: var(--cpc-teal, #056375);
-    font-weight:700; font-size:.8rem; letter-spacing:.2px;
+  .news-carousel .carousel-item{
+    position:relative;
+    border-radius:14px; overflow:hidden;
+    box-shadow:0 8px 28px rgba(0,0,0,.10);
+    background:#fff;
+  }
+
+  .news-figure{ position:relative; width:100%; aspect-ratio: 16/9; background:#f3f4f6; }
+  .news-figure img{
+    position:absolute; inset:0; width:100%; height:100%;
+    object-fit:cover; object-position:center; display:block;
+  }
+
+  .news-panel{ padding:16px; }
+  .news-title{ margin:0 0 4px; font-weight:900; line-height:1.2; color:#0b172a; }
+  .news-meta{ font-size:.9rem; color:#6b7280; margin-bottom:8px; }
+  .news-body{ color:#1f2937; line-height:1.6; }
+  .news-body p:last-child{ margin-bottom:0; }
+
+  .news-carousel .carousel-control-prev,
+  .news-carousel .carousel-control-next{ width:10%; }
+  .news-carousel .carousel-control-prev-icon,
+  .news-carousel .carousel-control-next-icon{
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,.5));
+  }
+  .news-carousel .carousel-indicators{ bottom:-28px; }
+  .news-carousel .carousel-indicators li{
+    width:10px; height:10px; border-radius:999px; background:#cbd5e1;
+  }
+  .news-carousel .carousel-indicators .active{ background:#0a5a64; }
+
+  @media (max-width:576px){
+    .news-panel{ padding:12px; }
   }
 </style>
 {% endblock %}
 
 {% block content %}
 
-  <!-- Sección de información del programa (AHORA ARRIBA) -->
+  <!-- ===== Intro del programa ===== -->
   <section class="program-intro">
-    <!-- Mensaje principal -->
     <div class="program-hero mb-4">
       <h3>¿Qué es <span class="hi">Campeones para Coquimbo</span>?</h3>
       <p class="lead">
         Es un programa que busca promover la formación integral de los niños y niñas, utilizando el deporte formativo como instrumento
-        de inclusión y mejora de la salud física y la salud mental  en nuestra comuna, así como el apoyo a los deportistas de alto rendimiento.
+        de inclusión y mejora de la salud física y la salud mental en nuestra comuna, así como el apoyo a los deportistas de alto rendimiento.
       </p>
     </div>
 
-    <!-- Tarjetas -->
-    <div class="program-cards">
-      <div class="row">
-        <!-- Destinatarios -->
-        <div class="col-md-6 col-lg-4 mb-3">
-          <div class="program-card h-100">
-            <div class="card-header">
-              <h5 class="card-title">
-                <i class="fas fa-users"></i>
-                Destinatarios
-              </h5>
-            </div>
-            <div class="card-body">
-              <p class="program-bullet">
-                Niños, niñas, adolescentes y jóvenes de la comuna de Coquimbo que realicen deporte a un nivel formativo.
-              </p>
-              <p class="program-bullet mb-0">
-                Además, deportistas de <span class="hi">alto rendimiento</span> y proyección competitiva en diversas disciplinas deportivas.
+    <!-- Solo sección "Destinatarios" (se eliminan Beneficiarios directos e indirectos) -->
+
+
               </p>
             </div>
           </div>
         </div>
-
-        <!-- Beneficiarios directos -->
-        <div class="col-md-6 col-lg-4 mb-3">
-          <div class="program-card h-100">
-            <div class="card-header">
-              <h5 class="card-title">
-                <i class="fas fa-user-check"></i>
-                Beneficiarios directos
-              </h5>
-            </div>
-            <div class="card-body">
-              <div class="stat">
-                <div class="num">+1.000</div>
-                <div class="sub">deportistas (mediano plazo)</div>
-              </div>
-              <p class="mt-2 mb-0">
-                Proyección en el ámbito <span class="sc hi">formativo</span>.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Beneficiarios indirectos -->
-        <div class="col-md-12 col-lg-4 mb-3">
-          <div class="program-card h-100">
-            <div class="card-header">
-              <h5 class="card-title">
-                <i class="fas fa-city"></i>
-                Beneficiarios indirectos
-              </h5>
-            </div>
-            <div class="card-body">
-              <div class="stat">
-                <div class="num">227.730</div>
-                <div class="sub">habitantes de Coquimbo</div>
-              </div>
-              <p class="mt-2">
-                La infraestructura y los espacios deportivos serán abiertos a toda la comunidad para fomentar la
-                cultura del deporte, la realización de actividades físicas y la consecución de una vida saludable.
-              </p>
-            </div>
-          </div>
-        </div>
-
       </div>
     </div>
   </section>
 
-  <!-- Carrusel (AHORA ABAJO) -->
-  <section class="cpc-carousel">
-    <div id="cpcCarousel" class="carousel slide" data-ride="carousel" data-interval="5000" data-pause="hover" aria-label="Galería CPC">
-      <!-- Indicadores -->
-      <ol class="carousel-indicators">
-        <li data-target="#cpcCarousel" data-slide-to="0" class="active"></li>
-        <li data-target="#cpcCarousel" data-slide-to="1"></li>
-        <li data-target="#cpcCarousel" data-slide-to="2"></li>
-        <li data-target="#cpcCarousel" data-slide-to="3"></li>
-      </ol>
-
-      <!-- Slides -->
-      <div class="carousel-inner">
-        <!-- Slide 1 -->
-        <div class="carousel-item active">
-          <img src="{% static 'img/carrusel.jpg' %}" alt="Campeones para Coquimbo - Imagen 1">
-          <div class="carousel-caption cpc-cap">
-            <span class="badge-cpc">Alumno destacado</span>
-            {% if alumno %}
-              <h6>{{ alumno.nombre|default:"Nombre del Alumno" }}</h6>
-              <p>Deporte: {{ alumno.deporte|default:"—" }} · Sede: {{ alumno.sede|default:"—" }}</p>
-            {% else %}
-              <h6>Nombre del Alumno</h6>
-              <p>Deporte: Fútbol · Sede: San Juan</p>
-            {% endif %}
-          </div>
-        </div>
-
-        <!-- Slide 2 -->
-        <div class="carousel-item">
-          <img src="{% static 'img/carrusel1.jpg' %}" alt="Campeones para Coquimbo - Imagen 2">
-          <div class="carousel-caption cpc-cap">
-            <span class="badge-cpc">Compromiso</span>
-            {% if alumno %}
-              <h6>{{ alumno.nombre|default:"Nombre del Alumno" }}</h6>
-              <p>Progreso mensual: {{ alumno.progreso|default:"—" }} · Disciplina: {{ alumno.deporte|default:"—" }}</p>
-            {% else %}
-              <h6>Nombre del Alumno</h6>
-              <p>Progreso mensual: 85% · Disciplina: Atletismo</p>
-            {% endif %}
-          </div>
-        </div>
-
-        <!-- Slide 3 -->
-        <div class="carousel-item">
-          <img src="{% static 'img/carrusel2.jpg' %}" alt="Campeones para Coquimbo - Imagen 3">
-          <div class="carousel-caption cpc-cap">
-            <span class="badge-cpc">Esfuerzo</span>
-            {% if alumno %}
-              <h6>{{ alumno.nombre|default:"Nombre del Alumno" }}</h6>
-              <p>Entrena en: {{ alumno.sede|default:"—" }} · Categoría: {{ alumno.categoria|default:"—" }}</p>
-            {% else %}
-              <h6>Nombre del Alumno</h6>
-              <p>Entrena en: Tierras Blancas · Categoría: Sub 16</p>
-            {% endif %}
-          </div>
-        </div>
-
-        <!-- Slide 4 -->
-        <div class="carousel-item">
-          <img src="{% static 'img/carrusel3.jpg' %}" alt="Campeones para Coquimbo - Imagen 4">
-          <div class="carousel-caption cpc-cap">
-            <span class="badge-cpc">Superación</span>
-            {% if alumno %}
-              <h6>{{ alumno.nombre|default:"Nombre del Alumno" }}</h6>
-              <p>Último logro: {{ alumno.ultimo_logro|default:"—" }}</p>
-            {% else %}
-              <h6>Nombre del Alumno</h6>
-              <p>Último logro: Podio regional</p>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-
-      <!-- Controles -->
-      <a class="carousel-control-prev" href="#cpcCarousel" role="button" data-slide="prev" aria-label="Anterior">
-        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-      </a>
-      <a class="carousel-control-next" href="#cpcCarousel" role="button" data-slide="next" aria-label="Siguiente">
-        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-      </a>
+  <!-- ===== Noticias (Carrusel, contenido completo) ===== -->
+  <section class="news-carousel-wrap">
+    <div class="news-head">
+      <h4>Destacado</h4>
+      <!-- sin "Ver todas" -->
     </div>
+
+    {% if noticias %}
+      <div id="newsCarousel" class="carousel slide news-carousel" data-ride="carousel" data-interval="6000" data-pause="hover" aria-label="Carrusel de noticias">
+
+        <!-- Indicadores -->
+        <ol class="carousel-indicators">
+          {% for n in noticias %}
+            <li data-target="#newsCarousel" data-slide-to="{{ forloop.counter0 }}" class="{% if forloop.first %}active{% endif %}"></li>
+          {% endfor %}
+        </ol>
+
+        <!-- Slides (cada uno con TODO el contenido visible) -->
+        <div class="carousel-inner">
+          {% for n in noticias %}
+            <div class="carousel-item {% if forloop.first %}active{% endif %}">
+              <!-- Imagen -->
+              <figure class="news-figure">
+                {% if n.imagen %}
+                  <img src="{{ n.imagen.url }}" alt="{{ n.titulo }}">
+                {% else %}
+                  <img src="{% static 'img/placeholder-news.jpg' %}" alt="Noticia">
+                {% endif %}
+              </figure>
+
+              <!-- Contenido completo -->
+              <div class="news-panel">
+                <h5 class="news-title">{{ n.titulo }}</h5>
+                <div class="news-meta">{{ n.created_at|date:"d M Y" }}</div>
+                <div class="news-body">
+                  {% if n.resumen %}
+                    <p><strong>{{ n.resumen }}</strong></p>
+                  {% endif %}
+                  {% if n.cuerpo %}{{ n.cuerpo|safe }}{% endif %}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- Controles (sin textos) -->
+        <a class="carousel-control-prev" href="#newsCarousel" role="button" data-slide="prev" aria-label="Anterior">
+          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        </a>
+        <a class="carousel-control-next" href="#newsCarousel" role="button" data-slide="next" aria-label="Siguiente">
+          <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        </a>
+      </div>
+    {% else %}
+      <div class="alert alert-light border">Aún no hay noticias publicadas.</div>
+    {% endif %}
   </section>
 
 {% endblock %}

@@ -64,6 +64,26 @@ class Evento(models.Model):
         return f"{self.nombre} ({self.fecha})"
 
 
+# ===================== NOTICIAS (portada) =====================
+class Noticia(models.Model):
+    titulo = models.CharField(max_length=180)
+    bajada = models.CharField(max_length=280, blank=True)          # subtítulo/resumen corto
+    cuerpo = models.TextField(blank=True)                           # texto largo (opcional)
+    imagen = models.ImageField(upload_to="noticias/", blank=True, null=True)
+    publicada = models.BooleanField(default=True)
+    publicada_en = models.DateTimeField(null=True, blank=True)
+
+    autor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    creado = models.DateTimeField(auto_now_add=True)
+    modificado = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-publicada_en", "-creado"]
+
+    def __str__(self):
+        return self.titulo
+
+
 # ===================== COMUNICADOS =====================
 class ComunicadoQuerySet(models.QuerySet):
     def for_user(self, user):

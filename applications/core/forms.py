@@ -20,6 +20,7 @@ from .models import (
     CursoHorario,
     Comunicado,
     AUDIENCIA_CODIGOS,   # ['PROF','PMUL','ATLE','APOD']
+    Noticia,              # ← NUEVO
 )
 
 # =========================================================
@@ -28,12 +29,18 @@ from .models import (
 MAX_MB = 10
 ALLOWED_EXTS = {".pdf", ".doc", ".docx", ".xls", ".xlsx"}
 
+# === Imágenes de Noticias ===
+MAX_IMG_MB = 5
+IMG_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
+
+
 def _monday(d):
     return d - timedelta(days=d.weekday())
 
+
 class PlanificacionUploadForm(forms.ModelForm):
     semana = forms.DateField(
-        widget=forms.DateInput(attrs={"type": "date"}),
+        widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
         label="Semana (elige cualquier día de la semana; se ajustará al lunes)"
     )
     # archivo OPCIONAL
@@ -41,11 +48,17 @@ class PlanificacionUploadForm(forms.ModelForm):
         required=False,
         label="Archivo (PDF / DOCX / XLS / XLSX, máx. 10 MB)",
         help_text="Opcional: puedes guardar sin subir archivo",
+        widget=forms.ClearableFileInput(attrs={"class": "form-control"})
     )
 
     class Meta:
         model = Planificacion
         fields = ["curso", "semana", "archivo", "comentarios", "publica"]
+        widgets = {
+            "curso": forms.Select(attrs={"class": "form-control"}),
+            "comentarios": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "publica": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop("user", None)
@@ -135,8 +148,15 @@ class SedeForm(forms.ModelForm):
                   "latitud", "longitud", "radio_metros",
                   "capacidad", "activa", "descripcion"]
         widgets = {
+            "nombre": forms.TextInput(attrs={"class": "form-control"}),
+            "comuna": forms.TextInput(attrs={"class": "form-control"}),
+            "direccion": forms.TextInput(attrs={"class": "form-control"}),
             "latitud": forms.HiddenInput(),
             "longitud": forms.HiddenInput(),
+            "radio_metros": forms.NumberInput(attrs={"class": "form-control"}),
+            "capacidad": forms.NumberInput(attrs={"class": "form-control"}),
+            "activa": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "descripcion": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
         }
         labels = {
             "radio_metros": "Radio de validación (m)",
@@ -171,9 +191,20 @@ class CursoForm(forms.ModelForm):
             "estado",
         ]
         widgets = {
-            "fecha_inicio": forms.DateInput(attrs={"type": "date"}),
-            "fecha_termino": forms.DateInput(attrs={"type": "date"}),
-            "profesores_apoyo": forms.SelectMultiple(attrs={"size": 6}),
+            "nombre": forms.TextInput(attrs={"class": "form-control"}),
+            "programa": forms.TextInput(attrs={"class": "form-control"}),
+            "disciplina": forms.Select(attrs={"class": "form-control"}),
+            "categoria": forms.TextInput(attrs={"class": "form-control"}),
+            "sede": forms.Select(attrs={"class": "form-control"}),
+            "fecha_inicio": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+            "fecha_termino": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+            "profesor": forms.Select(attrs={"class": "form-control"}),
+            "profesores_apoyo": forms.SelectMultiple(attrs={"size": 6, "class": "form-control"}),
+            "cupos": forms.NumberInput(attrs={"class": "form-control"}),
+            "cupos_espera": forms.NumberInput(attrs={"class": "form-control"}),
+            "permitir_inscripcion_rapida": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "publicado": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "estado": forms.TextInput(attrs={"class": "form-control"}),
         }
         labels = {
             "disciplina": "Disciplina",
@@ -187,8 +218,9 @@ class CursoHorarioForm(forms.ModelForm):
         model = CursoHorario
         fields = ["dia", "hora_inicio", "hora_fin"]
         widgets = {
-            "hora_inicio": forms.TimeInput(attrs={"type": "time"}),
-            "hora_fin": forms.TimeInput(attrs={"type": "time"}),
+            "dia": forms.Select(attrs={"class": "form-control"}),
+            "hora_inicio": forms.TimeInput(attrs={"type": "time", "class": "form-control"}),
+            "hora_fin": forms.TimeInput(attrs={"type": "time", "class": "form-control"}),
         }
 
 
@@ -210,6 +242,7 @@ class EstudianteForm(forms.ModelForm):
         required=False,
         label="No tiene información deportiva aún",
         help_text="Si lo marcas, se guardará sin información deportiva.",
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
     )
 
     class Meta:
@@ -240,7 +273,25 @@ class EstudianteForm(forms.ModelForm):
             "activo",
         ]
         widgets = {
-            "fecha_nacimiento": forms.DateInput(attrs={"type": "date"}),
+            "rut": forms.TextInput(attrs={"class": "form-control"}),
+            "nombres": forms.TextInput(attrs={"class": "form-control"}),
+            "apellidos": forms.TextInput(attrs={"class": "form-control"}),
+            "fecha_nacimiento": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+            "direccion": forms.TextInput(attrs={"class": "form-control"}),
+            "comuna": forms.TextInput(attrs={"class": "form-control"}),
+            "telefono": forms.TextInput(attrs={"class": "form-control"}),
+            "email": forms.EmailInput(attrs={"class": "form-control"}),
+            "apoderado_nombre": forms.TextInput(attrs={"class": "form-control"}),
+            "apoderado_telefono": forms.TextInput(attrs={"class": "form-control"}),
+            "apoderado_rut": forms.TextInput(attrs={"class": "form-control"}),
+            "pertenece_organizacion": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "club_nombre": forms.TextInput(attrs={"class": "form-control"}),
+            "logro_nacional": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "logro_internacional": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "categoria_competida": forms.TextInput(attrs={"class": "form-control"}),
+            "puntaje_o_logro": forms.TextInput(attrs={"class": "form-control"}),
+            "curso": forms.Select(attrs={"class": "form-control"}),
+            "activo": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
         labels = {
             "rut": "RUT",
@@ -376,6 +427,7 @@ class DeporteForm(forms.ModelForm):
 # =========================================================
 User = get_user_model()
 
+
 class ComunicadoForm(forms.ModelForm):
     # Checkbox para códigos de audiencia (PROF/PMUL/ATLE/APOD)
     audiencia_codigos = forms.MultipleChoiceField(
@@ -410,7 +462,8 @@ class ComunicadoForm(forms.ModelForm):
 
         # Si estamos editando, precargar los códigos actuales
         if self.instance and self.instance.pk:
-            self.fields["audiencia_codigos"].initial = self.instance.get_audiencia_codigos()
+            if hasattr(self.instance, "get_audiencia_codigos"):
+                self.fields["audiencia_codigos"].initial = self.instance.get_audiencia_codigos()
 
     def clean_audiencia_codigos(self):
         cods = self.cleaned_data.get("audiencia_codigos") or []
@@ -424,9 +477,47 @@ class ComunicadoForm(forms.ModelForm):
 
         # Guardar lista CSV de códigos en el modelo
         cods = self.cleaned_data.get("audiencia_codigos") or []
-        obj.set_audiencia_codigos(cods)
+        if hasattr(obj, "set_audiencia_codigos"):
+            obj.set_audiencia_codigos(cods)
 
         if commit:
             obj.save()
             self.save_m2m()
         return obj
+
+
+# =========================================================
+#                      NOTICIAS (NUEVO)
+# =========================================================
+class NoticiaForm(forms.ModelForm):
+    """
+    Form para crear/editar noticias de la portada.
+    El campo 'publicada_en' se gestionará en la vista cuando se marque 'publicada'.
+    """
+    class Meta:
+        model = Noticia
+        fields = ["titulo", "bajada", "cuerpo", "imagen", "publicada"]
+        widgets = {
+            "titulo": forms.TextInput(attrs={"class": "form-control", "placeholder": "Título de la noticia"}),
+            "bajada": forms.TextInput(attrs={"class": "form-control", "placeholder": "Resumen breve (opcional)"}),
+            "cuerpo": forms.Textarea(attrs={"class": "form-control", "rows": 6, "placeholder": "Contenido (opcional)"}),
+            "imagen": forms.ClearableFileInput(attrs={"class": "form-control"}),
+            "publicada": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+        labels = {
+            "bajada": "Bajada (subtítulo/resumen)",
+            "publicada": "¿Publicada?",
+        }
+
+    def clean_imagen(self):
+        f = self.cleaned_data.get("imagen")
+        if not f:
+            return f
+        # tamaño
+        if getattr(f, "size", 0) > MAX_IMG_MB * 1024 * 1024:
+            raise ValidationError(f"La imagen no puede superar {MAX_IMG_MB} MB.")
+        # extensión
+        name = (getattr(f, "name", "") or "").lower()
+        if not any(name.endswith(ext) for ext in IMG_EXTS):
+            raise ValidationError("Formato no permitido. Usa JPG, JPEG, PNG o WEBP.")
+        return f

@@ -7,14 +7,16 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 from django.db.models import Q, Count
+from django.core.paginator import Paginator
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 
 from .models import (
-    Comunicado, Curso, Sede, Estudiante, Planificacion, Deporte, PlanificacionVersion
+    Comunicado, Curso, Sede, Estudiante, Planificacion, Deporte, PlanificacionVersion,
+    Noticia,  # ← NUEVO
 )
-from .forms import DeporteForm, PlanificacionUploadForm, ComunicadoForm
+from .forms import DeporteForm, PlanificacionUploadForm, ComunicadoForm, NoticiaForm  # ← NUEVO
 
 from applications.usuarios.utils import role_required
 from applications.usuarios.models import Usuario
@@ -26,8 +28,10 @@ from applications.atleta.models import Clase, AsistenciaAtleta
 def _monday(d: date) -> date:
     return d - timedelta(days=d.weekday())
 
+
 def _es_prof(user) -> bool:
     return getattr(user, "tipo_usuario", None) == Usuario.Tipo.PROF
+
 
 def _is_admin_or_coord(user) -> bool:
     return getattr(user, "tipo_usuario", None) in (Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
@@ -36,7 +40,27 @@ def _is_admin_or_coord(user) -> bool:
 # ------- Home (informativo) -------
 @require_http_methods(["GET"])
 def home(request):
-    return render(request, "core/home.html")
+    # Slides: últimas noticias publicadas con IMAGEN (máx. 6)
+    noticias_slider = (
+        Noticia.objects.filter(publicada=True)
+        .exclude(imagen="").exclude(imagen__isnull=True)
+        .order_by("-publicada_en", "-creado")[:6]
+    )
+
+    # Tarjetas/últimas noticias (puedes usarlas en una sección más abajo)
+    noticias = (
+        Noticia.objects.filter(publicada=True)
+        .order_by("-publicada_en", "-creado")[:6]
+    )
+
+    return render(
+        request,
+        "core/home.html",
+        {
+            "noticias_slider": noticias_slider,
+            "noticias": noticias,
+        },
+    )
 
 
 # ================= ESTUDIANTES =================
@@ -322,6 +346,97 @@ def comunicado_delete(request, comunicado_id):
     com.delete()
     messages.success(request, "Comunicado eliminado.")
     return redirect("core:comunicados_list")
+
+
+# =================== NOTICIAS (SOLO ADMIN) ===================
+@role_required(Usuario.Tipo.ADMIN)
+@require_http_methods(["GET"])
+def noticias_list(request):
+    """
+    Listado con paginación para administración de noticias.
+    """
+    q = (request.GET.get("q") or "").strip()
+    estado = (request.GET.get("estado") or "").strip()  # "pub" | "nopub" | ""
+    qs = Noticia.objects.all().order_by("-creado")  # <- FIX: 'creada' -> 'creado'
+    if q:
+        qs = qs.filter(Q(titulo__icontains=q) | Q(bajada__icontains=q))
+    if estado == "pub":
+        qs = qs.filter(publicada=True)
+    elif estado == "nopub":
+        qs = qs.filter(publicada=False)
+
+    paginator = Paginator(qs, 12)
+    page_number = request.GET.get("page") or 1
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "core/noticias_list.html", {
+        "page_obj": page_obj,
+        "q": q,
+        "estado": estado,
+    })
+
+
+@role_required(Usuario.Tipo.ADMIN)
+@require_http_methods(["GET", "POST"])
+def noticia_create(request):
+    form = NoticiaForm(request.POST or None, request.FILES or None)
+    if request.method == "POST":
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.autor = request.user
+            # si se marca publicada y no hay timestamp, lo definimos
+            if obj.publicada and not obj.publicada_en:
+                obj.publicada_en = timezone.now()
+            obj.save()
+            messages.success(request, "Noticia creada correctamente.")
+            return redirect("core:noticias_list")
+        messages.error(request, "Revisa los errores del formulario.")
+    return render(request, "core/noticia_form.html", {"form": form, "is_edit": False})
+
+
+@role_required(Usuario.Tipo.ADMIN)
+@require_http_methods(["GET", "POST"])
+def noticia_edit(request, noticia_id: int):
+    obj = get_object_or_404(Noticia, pk=noticia_id)
+    form = NoticiaForm(request.POST or None, request.FILES or None, instance=obj)
+    if request.method == "POST":
+        if form.is_valid():
+            prev_publicada = obj.publicada
+            noticia = form.save(commit=False)
+            # gestionar timestamp de publicación
+            if noticia.publicada and not prev_publicada:
+                noticia.publicada_en = timezone.now()
+            if not noticia.publicada:
+                noticia.publicada_en = None
+            noticia.save()
+            messages.success(request, "Noticia actualizada.")
+            return redirect("core:noticias_list")
+        messages.error(request, "Revisa los errores del formulario.")
+    return render(request, "core/noticia_form.html", {"form": form, "is_edit": True, "obj": obj})
+
+
+@role_required(Usuario.Tipo.ADMIN)
+@require_http_methods(["POST"])
+def noticia_delete(request, noticia_id: int):
+    obj = get_object_or_404(Noticia, pk=noticia_id)
+    obj.delete()
+    messages.success(request, "Noticia eliminada.")
+    return redirect("core:noticias_list")
+
+
+@role_required(Usuario.Tipo.ADMIN)
+@require_http_methods(["POST"])
+def noticia_toggle_publicar(request, noticia_id: int):
+    """
+    Publica/Despublica con un clic.
+    """
+    obj = get_object_or_404(Noticia, pk=noticia_id)
+    obj.publicada = not obj.publicada
+    obj.publicada_en = timezone.now() if obj.publicada else None
+    obj.save(update_fields=["publicada", "publicada_en"])
+    estado = "publicada" if obj.publicada else "despublicada"
+    messages.success(request, f"Noticia {estado}.")
+    return redirect("core:noticias_list")
 
 
 # ================ Páginas informativas ================
@@ -751,13 +866,16 @@ def reporte_asistencia_por_clase(request):
 def reporte_asistencia_por_curso(request):
     return render(request, "core/reporte_placeholder.html", {"titulo": "Asistencia por curso (rango) – próximamente"})
 
+
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 def reporte_asistencia_por_sede(request):
     return render(request, "core/reporte_placeholder.html", {"titulo": "Asistencia por sede (rango) – próximamente"})
 
+
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 def reporte_llegadas_tarde(request):
     return render(request, "core/reporte_placeholder.html", {"titulo": "Llegadas tarde – próximamente"})
+
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 def reportes_exportar_todo(request):
@@ -773,6 +891,7 @@ def _haversine_m(lat1, lon1, lat2, lon2) -> float:
     c = 2 * asin(sqrt(a))
     return R * c
 
+
 def _nearest_sede(lat, lng):
     sedes = Sede.objects.exclude(Q(latitud__isnull=True) | Q(longitud__isnull=True))
     best, best_d = None, None
@@ -781,6 +900,7 @@ def _nearest_sede(lat, lng):
         if best_d is None or d < best_d:
             best, best_d = s, d
     return best, best_d
+
 
 @login_required
 @require_http_methods(["GET", "POST"])
@@ -806,7 +926,7 @@ def mi_asistencia_qr(request):
     mensaje, ok = None, False
 
     if request.method == "POST":
-        action  = request.POST.get("action")            # 'entrada' | 'salida'
+        action = request.POST.get("action")            # 'entrada' | 'salida'
         qr_text = request.POST.get("qr_text", "").strip()
         lat_str = request.POST.get("geo_lat")
         lng_str = request.POST.get("geo_lng")
@@ -834,10 +954,10 @@ def mi_asistencia_qr(request):
         if not sede:
             mensaje = mensaje or "QR inválido o ubicación no válida."
         else:
-            hoy   = timezone.localdate()
+            hoy = timezone.localdate()
             ahora = timezone.localtime().time()
-            tipo  = (AsistenciaProfesor.Tipo.ENTRADA if action == "entrada"
-                     else AsistenciaProfesor.Tipo.SALIDA)
+            tipo = (AsistenciaProfesor.Tipo.ENTRADA if action == "entrada"
+                    else AsistenciaProfesor.Tipo.SALIDA)
 
             ya_existe = AsistenciaProfesor.objects.filter(
                 usuario=request.user, fecha=hoy, tipo=tipo
@@ -845,7 +965,7 @@ def mi_asistencia_qr(request):
 
             if ya_existe:
                 mensaje = "Ya registraste tu entrada hoy." if tipo == AsistenciaProfesor.Tipo.ENTRADA \
-                          else "Ya registraste tu salida hoy."
+                    else "Ya registraste tu salida hoy."
             else:
                 AsistenciaProfesor.objects.create(
                     usuario=request.user, sede=sede, fecha=hoy, hora=ahora, tipo=tipo
@@ -870,6 +990,7 @@ def asistencia_profesor(request, curso_id: int):
     if request.method == "POST":
         return HttpResponse(f"CORE / Asistencia PROFESOR curso_id={curso_id} (POST) -> registrada")
     return HttpResponse(f"CORE / Asistencia PROFESOR curso_id={curso_id} (GET) -> pantalla tomar asistencia")
+
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF)
 @require_http_methods(["GET", "POST"])
