@@ -1,4 +1,3 @@
-{% extends "base/public.html" %}
 {% block title %}Registro en línea{% endblock %}
 {% block header %}Registro en línea{% endblock %}
 
@@ -22,9 +21,7 @@
 
 <div class="col-md-4">
   <label class="form-label">Fecha de nacimiento</label>
-  {{ form.fecha_nacimiento }}
 </div>
-
 <div class="col-md-2">
   <label class="form-label">Edad</label>
   <input id="id_edad_preview" class="form-control" type="number" readonly />
@@ -44,37 +41,10 @@
     </div>
   </fieldset>
 
-  <!-- 2) Tutor -->
 <!-- 2) Tutor -->
 <fieldset id="sec-tutor" class="mb-3">
   <legend>2. Tutor/a (si es menor de edad)</legend>
   <div class="row g-2">
-    <div class="col-md-8">
-      <label class="form-label">Nombre completo</label>
-      {{ form.apoderado_nombre }}
-      {{ form.apoderado_nombre.errors }}
-    </div>
-    <div class="col-md-4">
-      <label class="form-label">Teléfono</label>
-      {{ form.apoderado_telefono }}
-      {{ form.apoderado_telefono.errors }}
-    </div>
-
-    <div class="col-md-4">
-      <label class="form-label">RUT del/la tutor(a)</label>
-      {{ form.apoderado_rut }}
-      {{ form.apoderado_rut.errors }}
-    </div>
-    <div class="col-md-4">
-      <label class="form-label">Correo electrónico del/la tutor(a)</label>
-      {{ form.apoderado_email }}
-      {{ form.apoderado_email.errors }}
-    </div>
-    <div class="col-md-4">
-      <label class="form-label">Fecha de nacimiento del/la tutor(a)</label>
-      {{ form.apoderado_fecha_nacimiento }}
-      {{ form.apoderado_fecha_nacimiento.errors }}
-    </div>
   </div>
 </fieldset>
 
@@ -149,33 +119,12 @@
   // ---- Edad en vivo (atleta) ----
   const fnac = document.getElementById("id_fecha_nacimiento");
   const edadOut = document.getElementById("id_edad_preview");
-
   function calcEdad() {
-    if (!fnac || !fnac.value) {
-      if (edadOut) edadOut.value = "";
-      return;
-    }
-    // 'yyyy-mm-dd'
-    const partes = fnac.value.split("-");
-    if (partes.length !== 3) { if (edadOut) edadOut.value = ""; return; }
-    const anio = parseInt(partes[0], 10);
-    const mes  = parseInt(partes[1], 10);
-    const dia  = parseInt(partes[2], 10);
-
     const hoy = new Date();
-    let edad = hoy.getFullYear() - anio;
-    if ((hoy.getMonth()+1 < mes) || ((hoy.getMonth()+1 === mes) && (hoy.getDate() < dia))) {
-      edad--;
-    }
-    if (edadOut) edadOut.value = (edad >= 0 ? edad : "");
   }
   fnac?.addEventListener("change", calcEdad);
-  fnac?.addEventListener("input",  calcEdad);
-  calcEdad(); // al cargar
 
-  // ---- Formateo de RUT (puntos y guion) atleta y tutor ----
   function limpiarRut(v){ return v.replace(/[.\s]/g,'').replace(/-/g,'').toUpperCase(); }
-  function formatearRut(v){
     v = limpiarRut(v);
     if (!v) return '';
     const dv = v.slice(-1), base = v.slice(0, -1);
@@ -186,19 +135,8 @@
     }
     return out + '-' + dv;
   }
-  function wireRut(id){
-    const el = document.getElementById(id);
-    if(!el) return;
-    el.addEventListener('input', () => {
-      const val = el.value;
-      el.value = formatearRut(val);
-      el.selectionStart = el.selectionEnd = el.value.length;
     });
   }
-  wireRut("id_rut");            // atleta
-  wireRut("id_apoderado_rut");  // tutor(a)
-
 })();
 </script>
-
 {% endblock %}
