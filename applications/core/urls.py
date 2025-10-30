@@ -3,8 +3,8 @@ from . import views
 from .views import (
     planificaciones_list,
     planificacion_upload,
-    planificacion_detail,      # opcional
-    planificacion_download,    # opcional
+    planificacion_detail,
+    planificacion_download,
 )
 
 app_name = "core"
@@ -29,6 +29,7 @@ urlpatterns = [
     path("cursos/<int:curso_id>/editar/", views.curso_edit, name="curso_edit"),
     path("cursos/<int:curso_id>/eliminar/", views.curso_delete, name="curso_delete"),
     path("cursos/<int:curso_id>/configurar-cupos/", views.curso_configurar_cupos, name="curso_configurar_cupos"),
+    path("cursos/<int:curso_id>/inscribir/<int:estudiante_id>/", views.inscribir_en_curso, name="inscribir_en_curso"),
 
     # Sedes
     path("sedes/", views.sedes_list, name="sedes_list"),
