@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Solicitud enviada{% endblock %}
+{% block header %}Solicitud enviada{% endblock %}
+{% block content %}
+<div class="card p-4" style="max-width:720px">
+  <h3 class="mb-2">¡Gracias!</h3>
+  <p>Tu postulación fue recibida correctamente. Un coordinador la revisará y te contactaremos a la brevedad.</p>
+  <a class="btn mt-2" href="{% url 'core:home' %}">Volver al inicio</a>
+</div>
+{% endblock %}
