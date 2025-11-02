@@ -4,8 +4,7 @@ services:
     env: python
     plan: free
     buildCommand: "pip install -r requirements.txt"
-    preDeployCommand: "python manage.py migrate && python manage.py collectstatic --noinput"
-    startCommand: "gunicorn campeones_coquimbo.wsgi:application -b 0.0.0.0:$PORT"
+    startCommand: "bash -c 'python manage.py migrate && python manage.py collectstatic --noinput && gunicorn campeones_coquimbo.wsgi:application -b 0.0.0.0:$PORT'"
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: campeones_coquimbo.settings.production
