@@ -5,10 +5,10 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # === Clave secreta
-# No hardcodees en producción: léela desde el entorno en production.py
-SECRET_KEY = "admin123"  # ← solo para desarrollo; en prod úsala desde variables de entorno
+# En producción se toma desde DJANGO_SECRET_KEY (production.py)
+SECRET_KEY = "admin123"
 
-# === Django / Apps instaladas
+# === Apps instaladas
 INSTALLED_APPS = [
     # Django
     "django.contrib.admin",
@@ -22,7 +22,7 @@ INSTALLED_APPS = [
     "django_filters",
     "django.contrib.humanize",
 
-    # Tus apps
+    # Apps del proyecto
     "applications.usuarios",
     "applications.atleta",
     "applications.evaluaciones",
@@ -53,7 +53,7 @@ WSGI_APPLICATION = "campeones_coquimbo.wsgi.application"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],  # carpeta global de templates
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -65,12 +65,17 @@ TEMPLATES = [
     },
 ]
 
-# === Autenticación
-AUTH_USER_MODEL = "usuarios.Usuario"  # app_label.Model
+# === Usuario y autenticación
+AUTH_USER_MODEL = "usuarios.Usuario"
 AUTHENTICATION_BACKENDS = [
     "applications.usuarios.auth_backends.RutBackend",
     "django.contrib.auth.backends.ModelBackend",
 ]
+
+# Redirecciones de auth (globales)
+LOGIN_URL = "usuarios:login_rut"
+LOGIN_REDIRECT_URL = "/usuarios/panel/"
+LOGOUT_REDIRECT_URL = "/"
 
 # === Validadores de contraseña
 AUTH_PASSWORD_VALIDATORS = [
@@ -80,45 +85,28 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# === Internacionalización
+# === I18N / TZ
 LANGUAGE_CODE = "es"
 TIME_ZONE = "America/Santiago"
 USE_I18N = True
 USE_TZ = True
 
-# === Archivos estáticos / media
-# STATICFILES_DIRS apunta a tus fuentes estáticas (ej. /static del proyecto).
-# STATIC_ROOT es donde collectstatic juntará todo para servir en prod.
+# === Archivos estáticos y media
 STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"          # destino de collectstatic
+STATICFILES_DIRS = [BASE_DIR / "static"]        # fuentes estáticas del proyecto
 
-# WhiteNoise: sirve estáticos comprimidos y con hash en producción
+# WhiteNoise: estáticos comprimidos con hash
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-# Media (subidas de usuarios)
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
-
-# === Seguridad (ajusta en cada entorno)
-# En desarrollo (local.py) normalmente:
-#   DEBUG = True
-#   CSRF_COOKIE_SECURE = False
-#   SESSION_COOKIE_SECURE = False
-# En producción (production.py) normalmente:
-#   DEBUG = False
-#   CSRF_COOKIE_SECURE = True
-#   SESSION_COOKIE_SECURE = True
-#   SECURE_SSL_REDIRECT = True
-#   ALLOWED_HOSTS = ["tu-app.onrender.com"]
-#   CSRF_TRUSTED_ORIGINS = ["https://tu-app.onrender.com"]
 
 # === Otros
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # === Base de datos
-# Define la DB por entorno:
-# - En local.py: SQLite (ya lo tienes)
-# - En production.py: Postgres (por DATABASE_URL)
-# Si quieres, puedes dejar aquí un stub y sobreescribir por entorno:
-# DATABASES = {}
+# Se define por entorno:
+# - local.py → SQLite
+# - production.py → DATABASE_URL (Postgres) o fallback a SQLite
+# DATABASES = {}  # intencionalmente definido en cada settings de entorno
