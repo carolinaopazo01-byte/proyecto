@@ -6,9 +6,14 @@ import os
 DEBUG = False
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "change-me")
 
+# Host proporcionado por Render (se inyecta como env var)
 host = os.getenv("RENDER_EXTERNAL_HOSTNAME", "")
 ALLOWED_HOSTS = [host] if host else []
 CSRF_TRUSTED_ORIGINS = [f"https://{host}"] if host else []
+
+# Render está detrás de proxy: confía en el header para HTTPS/host
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
 
 # --- Seguridad en prod ---
 CSRF_COOKIE_SECURE = True
@@ -39,7 +44,7 @@ if db_url:
             )
         }
     except Exception:
-        # Fallback por si falta la librería; no rompe el deploy
+        # Fallback a SQLite si falta la librería
         DATABASES = {
             "default": {
                 "ENGINE": "django.db.backends.sqlite3",
