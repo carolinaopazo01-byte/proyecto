@@ -1,31 +1,76 @@
+
 {% extends "base/app.html" %}
 {% load static %}
 {% block title %}{{ is_edit|yesno:"Editar comunicado,Crear comunicado" }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid cpc-safe" style="max-width:760px;">
+  <h4 class="mb-3">{{ is_edit|yesno:"Editar comunicado,Nuevo comunicado" }}</h4>
 
+  {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
 
   <form method="post" novalidate>
     {% csrf_token %}
 
-            {{ form.titulo }}
-          </div>
+    <div class="form-group">
+      <label for="{{ form.titulo.id_for_label }}">Título</label>
+      {{ form.titulo }}
+      {% if form.titulo.errors %}<div class="text-danger small">{{ form.titulo.errors }}</div>{% endif %}
+    </div>
 
-            {{ form.cuerpo }}
-          </div>
-        </div>
+    <div class="form-group">
+      <label for="{{ form.cuerpo.id_for_label }}">Cuerpo</label>
+      {{ form.cuerpo }}
+      {% if form.cuerpo.errors %}<div class="text-danger small">{{ form.cuerpo.errors }}</div>{% endif %}
+    </div>
+
+    <div class="form-row">
+      <div class="form-group col-md-6">
+        <label for="{{ form.audiencia_tipo.id_for_label }}">Audiencia</label>
+        {{ form.audiencia_tipo }}
+        <small class="form-text text-muted">Elige “Tipos de usuario” o “Usuarios específicos” para filtrar.</small>
+        {% if form.audiencia_tipo.errors %}<div class="text-danger small">{{ form.audiencia_tipo.errors }}</div>{% endif %}
       </div>
+    </div>
 
+    <div class="form-group">
+      <label for="{{ form.audiencia_roles.id_for_label }}">Tipos de usuario</label>
+      {{ form.audiencia_roles }}
+      {% if form.audiencia_roles.help_text %}<small class="form-text text-muted">{{ form.audiencia_roles.help_text }}</small>{% endif %}
+      {% if form.audiencia_roles.errors %}<div class="text-danger small">{{ form.audiencia_roles.errors }}</div>{% endif %}
+    </div>
+
+    <div class="form-group">
+      <label for="{{ form.audiencia_usuarios.id_for_label }}">Usuarios específicos</label>
+      {{ form.audiencia_usuarios }}
+      {% if form.audiencia_usuarios.help_text %}<small class="form-text text-muted">{{ form.audiencia_usuarios.help_text }}</small>{% endif %}
+      {% if form.audiencia_usuarios.errors %}<div class="text-danger small">{{ form.audiencia_usuarios.errors }}</div>{% endif %}
+    </div>
+
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary" type="submit">
+        <i class="fas fa-save mr-1"></i> Guardar
       </button>
+      <a class="btn btn-outline-secondary" href="{% url 'core:comunicados_list' %}">Cancelar</a>
     </div>
   </form>
 </div>
 
 <script>
+  // UX: mostrar/ocultar campos según elección
   (function(){
+    function toggleFields(){
+      var sel = document.getElementById("id_audiencia_tipo");
+      var v = sel ? sel.value : "TODOS";
+      var roles = document.getElementById("id_audiencia_roles")?.closest(".form-group");
+      var users = document.getElementById("id_audiencia_usuarios")?.closest(".form-group");
+      if(roles) roles.style.display = (v === "ROLES") ? "" : "none";
+      if(users) users.style.display = (v === "USUARIOS") ? "" : "none";
     }
+    document.addEventListener("change", function(e){
+      if(e.target && e.target.id === "id_audiencia_tipo"){ toggleFields(); }
     });
+    document.addEventListener("DOMContentLoaded", toggleFields);
   })();
 </script>
 {% endblock %}

@@ -71,7 +71,7 @@ urlpatterns = [
     # 🧑‍🏫 Asistencia por clase (selector)
     path("reportes/asistencia-clase/", views.reporte_asistencia_por_clase, name="reporte_asistencia_por_clase"),
 
-    # Placeholders (pantallas en blanco listas para implementar)
+    # Placeholders
     path("reportes/asistencia-curso/", views.reporte_asistencia_por_curso, name="reporte_asistencia_por_curso"),
     path("reportes/asistencia-sede/", views.reporte_asistencia_por_sede, name="reporte_asistencia_por_sede"),
     path("reportes/llegadas-tarde/", views.reporte_llegadas_tarde, name="reporte_llegadas_tarde"),
@@ -82,4 +82,11 @@ urlpatterns = [
     path("deportes/nuevo/", views.deporte_create, name="deporte_create"),
     path("deportes/<int:deporte_id>/editar/", views.deporte_edit, name="deporte_edit"),
     path("deportes/<int:deporte_id>/eliminar/", views.deporte_delete, name="deporte_delete"),
+
+    # ===== Noticias (solo ADMIN) =====
+    path("noticias/", views.noticias_list, name="noticias_list"),
+    path("noticias/nueva/", views.noticia_create, name="noticia_create"),
+    path("noticias/<int:noticia_id>/editar/", views.noticia_edit, name="noticia_edit"),
+    path("noticias/<int:noticia_id>/eliminar/", views.noticia_delete, name="noticia_delete"),
+    path("noticias/<int:noticia_id>/toggle/", views.noticia_toggle_publicar, name="noticia_toggle_publicar"),
 ]

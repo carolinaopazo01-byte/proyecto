@@ -1,33 +1,153 @@
-{% extends "base.html" %}
+{% extends "base/app.html" %}
+{% load static %}
+
 {% block title %}Panel Atleta{% endblock %}
-{% block header %}Panel del Atleta{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ===== Paleta propia del atleta (verde) ===== */
+  :root{
+    --ath-accent:#0E9F6E;         /* verde principal */
+    --ath-accent-weak:#E8FFF1;    /* verde muy claro */
+    --tile-border:#e5e7eb;
+    --tile-bg:#fff;
+    --tile-head:#f8fafc;
+  }
+
+  .page-head{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:12px;margin-bottom:.75rem
+  }
+  .page-head h4{margin:0;font-weight:800;font-size:1.1rem;letter-spacing:.2px}
+  .page-sub{color:#6b7280;font-size:.92rem}
+
+  /* Próxima cita */
+  .next-appt{
+    background:var(--ath-accent-weak);
+    border:1px solid #b8f0cf;
+    padding:12px;border-radius:10px;margin:.6rem 0 1rem 0;
+  }
+
+  /* Tiles */
+  .tiles{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+    gap:14px
+  }
+  .tile{
+    display:flex;flex-direction:column;gap:.6rem;
+    border:1px solid var(--tile-border);border-radius:12px;background:var(--tile-bg);
+    padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.04)
+  }
+  .tile__head{
+    display:flex;align-items:center;gap:.6rem;background:var(--tile-head);
+    padding:.55rem .7rem;border-radius:10px;border:1px solid #eef2f7
+  }
+  .tile__icon{
+    width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;
+    border-radius:6px;background:rgba(14,159,110,.12); color:var(--ath-accent);
+  }
+  .tile__title{margin:0;font-size:.98rem;font-weight:800}
+  .tile__desc{margin:0;color:#6b7280;font-size:.9rem;min-height:2.2em}
+  .tile .btn{align-self:flex-start}
+
+  /* Botón principal con alto contraste */
+  .btn-ath{
+    background:var(--ath-accent);
+    border-color:var(--ath-accent);
+    color:#ffffff !important;               /* texto blanco para contraste */
+    font-weight:700;
+  }
+  .btn-ath:hover,
+  .btn-ath:focus{
+    background:#0b8a5f;
+    border-color:#0b8a5f;
+    color:#ffffff !important;
+    box-shadow:0 0 0 .2rem rgba(14,159,110,.25);
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-  <p>Hola, <strong>{{ request.user.username }}</strong>.</p>
+  <div class="page-head">
+    <div>
+      <h4>Panel Atleta</h4>
+    </div>
+    <div></div>
+  </div>
 
-  {# --- BLOQUE DE PRÓXIMA CITA --- #}
+  {# Próxima cita (si existe) #}
   {% if proxima_cita %}
-    <div style="background:#e8fff1;border:1px solid #b8f0cf;
-                padding:12px;border-radius:8px;margin:10px 0;">
+    <div class="next-appt">
       <strong>Próxima cita:</strong>
       {{ proxima_cita.inicio|date:"D d/m H:i" }} – {{ proxima_cita.fin|date:"H:i" }}
       con {{ proxima_cita.profesional.get_full_name|default:proxima_cita.profesional.username }}
     </div>
   {% endif %}
 
-  <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:12px;">
-    <a class="btn" href="{% url 'pmul:reservar_listado' %}?semana={% now 'Y-m-d' %}">
-      🗓️ Tomar hora (Equipo Multidisciplinario)
-    </a>
-    <a class="btn" href="{% url 'core:comunicados_list' %}">Comunicados</a>
-    <a class="btn" href="{% url 'atleta:mis_cursos' %}">📘 Mi curso</a>
-    <a class="btn" href="{% url 'atleta:asistencia_semana' %}?semana={% now 'Y-m-d' %}">✅ Asistencia</a>
-    <a class="btn" href="{% url 'atleta:planificacion_semana' %}?semana={% now 'Y-m-d' %}">📝 Planificación</a>
-    <a class="btn" href="{% url 'atleta:documentos_protocolos' %}">📄 Documentos y protocolos</a>
-    <a class="btn" href="{% url 'atleta:cambiar_password' %}">🔒 Cambiar contraseña</a>
+  <div class="tiles">
+    <div class="tile">
+      <div class="tile__head">
+        <span class="tile__icon"><i class="fas fa-calendar-check"></i></span>
+        <h6 class="tile__title mb-0">Tomar hora (Equipo Multidisciplinario)</h6>
+      </div>
+      <p class="tile__desc">Agenda con Kinesiología, Psicología, Nutrición o TENS.</p>
+      <a class="btn btn-ath" href="{% url 'pmul:reservar_listado' %}?semana={% now 'Y-m-d' %}">Abrir agenda</a>
+    </div>
+
+    <div class="tile">
+      <div class="tile__head">
+        <span class="tile__icon"><i class="fas fa-bullhorn"></i></span>
+        <h6 class="tile__title mb-0">Comunicados</h6>
+      </div>
+      <p class="tile__desc">Avisos y novedades de tus cursos y sedes.</p>
+      <a class="btn btn-ath" href="{% url 'core:comunicados_list' %}">Ver comunicados</a>
+    </div>
+
+    <div class="tile">
+      <div class="tile__head">
+        <span class="tile__icon"><i class="fas fa-book"></i></span>
+        <h6 class="tile__title mb-0">Mi curso</h6>
+      </div>
+      <p class="tile__desc">Consulta tu curso y detalles de la actividad.</p>
+      <a class="btn btn-ath" href="{% url 'atleta:mis_cursos' %}">Abrir</a>
+    </div>
+
+    <div class="tile">
+      <div class="tile__head">
+        <span class="tile__icon"><i class="fas fa-user-check"></i></span>
+        <h6 class="tile__title mb-0">Asistencia</h6>
+      </div>
+      <p class="tile__desc">Revisa tu asistencia de la semana.</p>
+      <a class="btn btn-ath" href="{% url 'atleta:asistencia_semana' %}?semana={% now 'Y-m-d' %}">Ver asistencia</a>
+    </div>
+
+    <div class="tile">
+      <div class="tile__head">
+        <span class="tile__icon"><i class="fas fa-clipboard-list"></i></span>
+        <h6 class="tile__title mb-0">Planificación</h6>
+      </div>
+      <p class="tile__desc">Contenidos y objetivos de las sesiones.</p>
+      <a class="btn btn-ath" href="{% url 'atleta:planificacion_semana' %}?semana={% now 'Y-m-d' %}">Ver planificación</a>
+    </div>
+
+    <div class="tile">
+      <div class="tile__head">
+        <span class="tile__icon"><i class="fas fa-file-alt"></i></span>
+        <h6 class="tile__title mb-0">Documentos y protocolos</h6>
+      </div>
+      <p class="tile__desc">Descarga de documentos oficiales del programa.</p>
+      <a class="btn btn-ath" href="{% url 'atleta:documentos_protocolos' %}">Abrir</a>
+    </div>
+
+    <!-- NUEVA: Cambiar contraseña -->
+    <div class="tile">
+      <div class="tile__head">
+        <span class="tile__icon"><i class="fas fa-lock"></i></span>
+        <h6 class="tile__title mb-0">Cambiar contraseña</h6>
+      </div>
+      <p class="tile__desc">Actualiza tu contraseña de acceso.</p>
+      <a class="btn btn-ath" href="{% url 'atleta:cambiar_password' %}">Cambiar</a>
+    </div>
   </div>
 
-  <p style="margin-top:20px;">
-    <a class="btn" href="{% url 'usuarios:logout' %}">Salir</a>
-  </p>
 {% endblock %}

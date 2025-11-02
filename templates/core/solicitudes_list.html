@@ -3,35 +3,50 @@
 {% block header %}Solicitudes de inscripción{% endblock %}
 
 {% block content %}
+<div class="mb-2" style="display:flex;gap:8px;flex-wrap:wrap">
+  <a class="btn {% if estado == 'PEN' %}btn-light{% endif %}" href="{% url 'core:solicitudes_list' %}?estado=PEN">Pendientes ({{ cnt_pen }})</a>
+  <a class="btn {% if estado == 'APR' %}btn-light{% endif %}" href="{% url 'core:solicitudes_list' %}?estado=APR">Aprobadas ({{ cnt_apr }})</a>
+  <a class="btn {% if estado == 'REC' %}btn-light{% endif %}" href="{% url 'core:solicitudes_list' %}?estado=REC">Rechazadas ({{ cnt_rec }})</a>
+  <form method="get" style="margin-left:auto;display:flex;gap:6px">
     <input type="hidden" name="estado" value="{{ estado }}">
+    <input type="text" name="q" value="{{ q }}" placeholder="Buscar por RUT / nombre / email" style="padding:6px 8px;min-width:260px">
+    <button class="btn">Buscar</button>
   </form>
 </div>
 
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>Postulante</th>
-          <th>RUT</th>
-          <th>Curso</th>
-          <th>Previsión</th>
-          <th>Motivación</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for s in items %}
-          <tr>
-            <td>{{ s.creado|date:"d/m/Y H:i" }}</td>
-            <td>{{ s.nombres }} {{ s.apellidos }}</td>
-            <td>{{ s.rut }}</td>
-            <td>{{ s.get_prevision_display }}</td>
-            <td><small class="text-muted">{{ s.motivacion_beca|truncatechars:60|default:"—" }}</small></td>
-              {% if s.estado == 'PEN' %}
-              {% else %}
-              {% endif %}
-            </td>
-          </tr>
-        {% empty %}
-        {% endfor %}
-      </tbody>
-    </table>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Fecha</th>
+      <th>Postulante</th>
+      <th>RUT</th>
+      <th>Curso</th>
+      <th>Previsión</th>
+      <th>Motivación</th>
+      <th style="min-width:180px">Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for s in items %}
+    <tr>
+      <td>{{ s.creado|date:"d/m/Y H:i" }}</td>
+      <td>{{ s.nombres }} {{ s.apellidos }}</td>
+      <td>{{ s.rut }}</td>
+      <td>{% if s.curso %}{{ s.curso.nombre }} ({{ s.curso.sede.nombre }}){% else %}—{% endif %}</td>
+      <td>{{ s.get_prevision_display }}</td>
+      <td><small class="text-muted">{{ s.motivacion_beca|truncatechars:60|default:"—" }}</small></td>
+      <td>
+        {% if s.estado == 'PEN' %}
+          <a class="btn" href="{% url 'core:solicitud_aprobar' s.id %}">✅ Aprobar</a>
+          <a class="btn" href="{% url 'core:solicitud_rechazar' s.id %}">❌ Rechazar</a>
+        {% else %}
+          {{ s.get_estado_display }}
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7">No hay solicitudes en este estado.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
 {% endblock %}

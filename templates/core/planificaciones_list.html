@@ -1,6 +1,18 @@
-{% extends "base.html" %}
+{% extends "base/plantilla.html" %}
 {% block title %}Planificaciones{% endblock %}
 {% block header %}Planificaciones{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Alineación de filtros y acciones */
+  .filters-row{ row-gap:.5rem; }
+  .filters-row .form-label{ font-size:.85rem; margin-bottom:.2rem; }
+  /* Columna de acciones en tabla a la derecha y con ancho fijo */
+  .col-actions-th{ width:140px; text-align:right; }
+  .col-actions-td{ text-align:right; }
+  .actions-inline{ display:inline-flex; gap:.4rem; flex-wrap:wrap; justify-content:flex-end; }
+</style>
+{% endblock %}
 
 {% block content %}
 
@@ -15,7 +27,7 @@
   <a class="btn btn-primary" href="{% url 'core:planificacion_upload' %}">Subir planificación</a>
 </div>
 
-<form method="get" class="row g-2 mb-3">
+<form method="get" class="row filters-row align-items-end mb-3">
   <div class="col-auto">
     <label class="form-label mb-0 small">Semana</label>
     <input type="date" class="form-control" name="semana" value="{{ semana }}">
@@ -49,7 +61,7 @@
       {% endfor %}
     </select>
   </div>
-  <div class="col-auto align-self-end">
+  <div class="col-auto">
     <button class="btn btn-outline-secondary" type="submit">Filtrar</button>
   </div>
 </form>
@@ -66,7 +78,7 @@
           <th>Pública</th>
           <th>Archivo</th>
           <th>Autor</th>
-          <th></th>
+          <th class="col-actions-th">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -79,13 +91,17 @@
             <td>{% if p.publica %}Sí{% else %}No{% endif %}</td>
             <td>
               {% if p.archivo %}
-                <a href="{% url 'core:planificacion_download' p.id %}">Descargar</a>
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'core:planificacion_download' p.id %}">Descargar</a>
               {% else %}
                 —
               {% endif %}
             </td>
             <td>{{ p.autor }}</td>
-            <td><a class="btn btn-sm btn-outline-primary" href="{% url 'core:planificacion_detail' p.id %}">Ver</a></td>
+            <td class="col-actions-td">
+              <span class="actions-inline">
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'core:planificacion_detail' p.id %}">Ver</a>
+              </span>
+            </td>
           </tr>
         {% endfor %}
       </tbody>

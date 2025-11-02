@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.db import models  # <-- necesario para models.Q
 from django.db.models import Q
 
-from .models import Sede, Comunicado, InscripcionCurso, PostulacionEstudiante
+from .models import Sede, Comunicado, InscripcionCurso, PostulacionEstudiante, Estudiante
 
 from .models import (
     Sede,
@@ -224,6 +224,9 @@ class EstudianteForm(forms.ModelForm):
             "apoderado_nombre",
             "apoderado_telefono",
             "apoderado_rut",
+            "apoderado_email",
+            "apoderado_fecha_nacimiento",
+            "apoderado_rut",
             # 3) Información deportiva (toda opcional)
             "pertenece_organizacion",
             "club_nombre",
@@ -237,6 +240,7 @@ class EstudianteForm(forms.ModelForm):
         ]
         widgets = {
             "fecha_nacimiento": forms.DateInput(attrs={"type": "date"}),
+            "apoderado_fecha_nacimiento": forms.DateInput(attrs={"type": "date"}),
         }
         labels = {
             "rut": "RUT",
@@ -246,6 +250,8 @@ class EstudianteForm(forms.ModelForm):
             "email": "Email",
             "apoderado_nombre": "Nombre apoderado",
             "apoderado_telefono": "Teléfono apoderado",
+            "apoderado_email": "Correo electrónico del/la tutor(a)",
+            "apoderado_fecha_nacimiento": "Fecha de nacimiento del/la tutor(a)",
             "pertenece_organizacion": "¿Pertenece a una organización deportiva?",
             "club_nombre": "Nombre del club",
             "logro_nacional": "Logro nacional",
@@ -375,16 +381,6 @@ class ComunicadoForm(forms.ModelForm):
         }
 
 class RegistroPublicoForm(forms.ModelForm):
-    # 👇 Campos extras SOLO de formulario (no van a la BD)
-    apoderado_email = forms.EmailField(
-        required=False, label="Correo electrónico del/la tutor(a)"
-    )
-    apoderado_fecha_nacimiento = forms.DateField(
-        required=False,
-        label="Fecha de nacimiento del/la tutor(a)",
-        widget=forms.DateInput(attrs={"type": "date"})
-    )
-
     class Meta:
         model = PostulacionEstudiante
         fields = [
@@ -393,13 +389,15 @@ class RegistroPublicoForm(forms.ModelForm):
             "nombres", "apellidos", "fecha_nacimiento", "rut",
             "direccion", "comuna", "telefono", "email",
             "n_emergencia", "prevision",
-            # 2) Tutor
-            "apoderado_nombre", "apoderado_telefono",
+            # 2) Tutor (todos persisten)
+            "apoderado_nombre", "apoderado_telefono", "apoderado_rut",
+            "apoderado_email", "apoderado_fecha_nacimiento",
             # 3) Información deportiva
             "pertenece_organizacion", "club_nombre",
             "logro_nacional", "logro_internacional",
             "categoria_competida", "puntaje_o_logro",
             "motivacion_beca",
+            # Curso
             "curso",
         ]
         labels = {
@@ -407,8 +405,42 @@ class RegistroPublicoForm(forms.ModelForm):
             "n_emergencia": "Número de emergencia",
             "motivacion_beca": "Motivación del deportista para postular a la beca",
             "curso": "Curso y sede al cual postula",
+            "apoderado_rut": "RUT del/la tutor(a)",
         }
         widgets = {
             "fecha_nacimiento": forms.DateInput(attrs={"type": "date"}),
+            "apoderado_fecha_nacimiento": forms.DateInput(attrs={"type": "date"}),
             "motivacion_beca": forms.Textarea(attrs={"rows": 4}),
         }
+
+class AlumnoTemporalForm(forms.ModelForm):
+    class Meta:
+        model = Estudiante
+        # Formativo (igual a registro en línea - modo formativo)
+        fields = [
+            "nombres","apellidos","fecha_nacimiento","rut",
+            "direccion","comuna","telefono","email",
+            "n_emergencia","prevision",
+            "apoderado_nombre","apoderado_telefono",
+            "apoderado_email","apoderado_fecha_nacimiento",
+            # motivación: lo guardaremos en puntaje_o_logro o déjalo fuera si no quieres persistir
+            "curso",  # se asigna al curso del profesor o al que elija
+        ]
+        labels = {
+            "n_emergencia": "Número de emergencia",
+            "apoderado_nombre": "Nombre completo (tutor/a)",
+            "apoderado_telefono": "Teléfono (tutor/a)",
+            "apoderado_email": "Correo electrónico (tutor/a)",
+            "apoderado_fecha_nacimiento": "Fecha de nacimiento (tutor/a)",
+            "curso": "Curso y sede al cual postula",
+        }
+        widgets = {
+            "fecha_nacimiento": forms.DateInput(attrs={"type":"date"}),
+            "apoderado_fecha_nacimiento": forms.DateInput(attrs={"type":"date"}),
+        }
+
+    # Campo solo UI para motivación (no está en Estudiante)
+    motivacion_beca = forms.CharField(
+        required=False, label="Motivación del deportista para postular a la beca",
+        widget=forms.Textarea(attrs={"rows":3})
+    )
