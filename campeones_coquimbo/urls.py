@@ -12,6 +12,8 @@ urlpatterns = [
     path("pmul/", include("applications.pmul.urls", namespace="pmul")),
     path("apoderado/", include("applications.apoderado.urls", namespace="apoderado")),
     path("profesor/", include("applications.profesor.urls", namespace="profesor")),
+
+path("", RedirectView.as_view(pattern_name="core:home", permanent=False)),
 ]
 
 if settings.DEBUG:
