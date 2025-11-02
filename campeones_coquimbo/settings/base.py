@@ -17,12 +17,12 @@ INSTALLED_APPS = [
 
     # Tus apps (¡sin duplicados!)
     'applications.usuarios',
-    'applications.core',
     'applications.atleta',
     'applications.evaluaciones',
     'applications.pmul.apps.PmulConfig',
     'applications.profesor',
     'django.contrib.humanize',
+'applications.core.apps.CoreConfig'
 ]
 
 MIDDLEWARE = [

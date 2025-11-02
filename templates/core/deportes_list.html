@@ -7,24 +7,67 @@
 <style>
   .page-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
   .page-head-left { display:flex; align-items:center; gap:10px; }
+  .filters { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .table thead th { white-space:nowrap; }
   .actions { display:flex; gap:8px; flex-wrap:wrap; }
+  .search-input { min-width:260px; }
+
+  /* Botón redondo para ícono (lupita) */
+  .icon-btn{
+    width:38px; height:38px; padding:0;
+    display:inline-flex; align-items:center; justify-content:center;
+    border-radius:.375rem;
+    line-height:1;
+  }
+
+  /* Responsivo */
+  @media (max-width: 576px){
+    .search-input{ min-width:0; width:100%; }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
+  <!-- Cabecera -->
   <div class="page-head mb-3">
     <div class="page-head-left">
       <h4 class="mb-0">Deportes</h4>
     </div>
-    <a class="btn btn-primary" href="{% url 'core:deporte_create' %}">Nuevo deporte</a>
+    <a class="btn btn-primary" href="{% url 'core:deporte_create' %}">
+      <i class="fas fa-plus"></i> Nuevo deporte
+    </a>
+  </div>
+
+  <!-- Filtros / buscador (opcional; usa ?q=) -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+      <div class="filters">
+        <form method="get" class="d-flex align-items-center" style="gap:8px;">
+          <input type="text"
+                 name="q"
+                 value="{{ q }}"
+                 class="form-control search-input"
+                 placeholder="Buscar por nombre o categoría"
+                 aria-label="Buscar deportes por nombre o categoría">
+          <button class="btn btn-outline-primary icon-btn" type="submit" aria-label="Buscar" title="Buscar">
+            <i class="fas fa-search"></i>
+          </button>
+        </form>
+
+        {% if items %}
+          <span class="ml-auto text-muted small">
+            Mostrando {{ items|length }} registro{% if items|length != 1 %}s{% endif %}
+          </span>
+        {% endif %}
+      </div>
+    </div>
   </div>
 
   {% if items %}
     <div class="card shadow-sm">
       <div class="card-body p-0">
         <div class="table-responsive">
-          <table class="table table-hover mb-0">
+          <table class="table table-hover mb-0" style="min-width:680px;">
             <thead class="thead-light">
               <tr>
                 <th>Nombre</th>
@@ -60,9 +103,7 @@
       </div>
     </div>
   {% else %}
-    <div class="alert alert-info mb-0">
-      No hay deportes cargados.
-    </div>
+    <div class="alert alert-info mb-0">No hay deportes cargados.</div>
   {% endif %}
 {% endblock %}
 

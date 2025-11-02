@@ -1,74 +1,118 @@
-{% extends "base.html" %}
+{% extends "base/plantilla.html" %}
 {% block title %}Cursos{% endblock %}
 {% block header %}Cursos{% endblock %}
 
+{% block extra_css %}
+<style>
+  /* Cabecera */
+  .page-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:.75rem; }
+  .page-head-left{ display:flex; align-items:center; gap:10px; }
+
+  /* Tabla */
+  .table-wrap{ border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; }
+  .table{ margin-bottom:0; }
+  .table thead th{ white-space:nowrap; background:#f8fafc; }
+  .table td, .table th{ vertical-align:middle; }
+
+  /* Columna acciones */
+  .col-actions-th{ width:180px; text-align:right; }
+  .col-actions-td{ text-align:right; }
+
+  /* Acciones consistentes */
+  .actions-inline{ display:flex; justify-content:flex-end; align-items:center; gap:.4rem; flex-wrap:wrap; }
+  .actions-inline form{ margin:0; }
+  .btn-action{ padding:.35rem .6rem; line-height:1.1; border-radius:8px; font-size:.875rem; }
+  .btn-action[disabled]{ opacity:.6; pointer-events:none; }
+
+  /* Cupos */
+  .badge-cupos{ font-weight:600; }
+  .mini-hint{ font-size:12px; color:#6b7280; margin-top:.25rem; }
+</style>
+{% endblock %}
+
 {% block content %}
-  <p>
-    <a class="btn" href="{% url 'core:curso_create' %}">➕ Nuevo curso</a>
-  </p>
 
-  {% if cursos %}
-  <table class="table table-striped">
-    <thead>
-      <tr>
-        <th>Nombre</th>
-        <th>Programa</th>
-        <th>Disciplina</th>
-        <th>Profesor</th>
-        <th>Horario</th>
-        <th>Sede</th>
-        <th>Cupos</th>
-        <th>Acción</th>  {# 👈 NUEVO #}
-      </tr>
-    </thead>
-    <tbody>
-      {% for c in cursos %}
-      <tr>
-        <td>{{ c.nombre }}</td>
-        <td>{{ c.get_programa_display }}</td>
-        <td>{{ c.disciplina }}</td>
-        <td>{{ c.profesor.get_full_name|default:c.profesor.username }}</td>
-        <td>
-          {# Si tienes objetos CursoHorario, los puedes listar aquí #}
-          {% for h in c.cursohorario_set.all %}
-            {{ h.get_dia_display }} {{ h.hora_inicio|time:"H:i" }}–{{ h.hora_fin|time:"H:i" }}{% if not forloop.last %}<br>{% endif %}
-          {% empty %}
-            —
+<!-- Cabecera -->
+<div class="page-head">
+  <div class="page-head-left">
+    <h5 class="mb-0">Cursos</h5>
+  </div>
+  <a class="btn btn-primary" href="{% url 'core:curso_create' %}">
+    <i class="fas fa-plus"></i> Nuevo curso
+  </a>
+</div>
+
+{% if cursos %}
+  <div class="table-wrap">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover align-middle">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Programa</th>
+            <th>Disciplina</th>
+            <th>Profesor</th>
+            <th>Horario</th>
+            <th>Sede</th>
+            <th>Cupos</th>
+            <th class="col-actions-th">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in cursos %}
+            <tr>
+              <td>{{ c.nombre }}</td>
+              <td>{{ c.get_programa_display }}</td>
+              <td>{{ c.disciplina }}</td>
+              <td>{{ c.profesor.get_full_name|default:c.profesor.username }}</td>
+              <td>
+                {% for h in c.cursohorario_set.all %}
+                  {{ h.get_dia_display }} {{ h.hora_inicio|time:"H:i" }}–{{ h.hora_fin|time:"H:i" }}{% if not forloop.last %}<br>{% endif %}
+                {% empty %}
+                  <span class="text-muted">—</span>
+                {% endfor %}
+              </td>
+              <td>{{ c.sede }}</td>
+              <td>
+                {% if c.cupos %}
+                  <span class="badge badge-cupos bg-light text-dark">
+                    {{ c.cupos_ocupados }}/{{ c.cupos }}
+                  </span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+
+              <!-- Acciones -->
+              <td class="col-actions-td">
+                <span class="actions-inline">
+                  {% if alumno %}
+                    {% if c.cupos and c.cupos_disponibles|default:0 <= 0 %}
+                      <span class="badge bg-secondary">Lleno</span>
+                    {% else %}
+                      <form method="post" action="{% url 'core:inscribir_en_curso' c.id alumno.id %}" class="d-inline" onsubmit="this.querySelector('button').disabled=true;">
+                        {% csrf_token %}
+                        <button class="btn btn-outline-primary btn-action" type="submit">
+                          <i class="fas fa-user-plus"></i> Inscribir
+                        </button>
+                      </form>
+                      {% if c.cupos %}
+                        <div class="mini-hint">Disp: {{ c.cupos_disponibles }}</div>
+                      {% endif %}
+                    {% endif %}
+                  {% else %}
+                    <span class="mini-hint">Selecciona un alumno para inscribir.</span>
+                  {% endif %}
+                </span>
+              </td>
+            </tr>
           {% endfor %}
-        </td>
-        <td>{{ c.sede }}</td>
-        <td>
-          {% if c.cupos %}
-            {{ c.cupos_ocupados }}/{{ c.cupos }}
-          {% else %}
-            —
-          {% endif %}
-        </td>
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% else %}
+  <div class="alert alert-info mb-0">No hay cursos creados.</div>
+{% endif %}
 
-        {# ===================== ACCIÓN: INSCRIBIR ===================== #}
-        <td>
-          {% if alumno %}
-            <form method="post" action="{% url 'core:inscribir_en_curso' c.id alumno.id %}" style="display:inline;">
-              {% csrf_token %}
-              <button class="btn">Inscribir</button>
-            </form>
-            {% if c.cupos %}
-              <div class="text-muted" style="font-size:12px;">
-                Disp: {{ c.cupos_disponibles }}
-              </div>
-            {% endif %}
-          {% else %}
-            <span class="text-muted" style="font-size:12px;">
-              Selecciona un alumno para inscribir.
-            </span>
-          {% endif %}
-        </td>
-        {# ============================================================ #}
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-    <p class="text-muted">No hay cursos creados.</p>
-  {% endif %}
 {% endblock %}

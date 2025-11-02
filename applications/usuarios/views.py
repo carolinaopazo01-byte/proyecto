@@ -1,19 +1,19 @@
 # applications/usuarios/views.py
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, get_user_model
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.db.models import Q
 from django.views.decorators.http import require_http_methods
-from django.contrib import messages  # opcional
-from django.contrib.auth.decorators import login_required
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.contrib import messages
 
-from .models import Usuario
-from .utils import normalizar_rut
-from .forms import UsuarioCreateForm, UsuarioUpdateForm
 from applications.usuarios.utils import role_required
-
-# 👇 Import correcto según tu estructura
 from applications.core.models import Comunicado
+from .utils import normalizar_rut, formatear_rut
+from .forms import UsuarioCreateForm, UsuarioUpdateForm
+
+Usuario = get_user_model()
 
 
 def _redirigir_por_tipo(user: Usuario):
@@ -34,16 +34,21 @@ def _redirigir_por_tipo(user: Usuario):
 @require_http_methods(["GET", "POST"])
 def login_rut(request):
     if request.method == "POST":
-        rut_ingresado = request.POST.get("rut") or ""
+        rut_ingresado = (request.POST.get("rut") or "").strip()
         password = request.POST.get("password") or ""
-        next_url = request.POST.get("next") or request.GET.get("next") or ""
+        next_url = (request.POST.get("next") or request.GET.get("next") or "").strip()
 
-        rut_norm = normalizar_rut(rut_ingresado)           # "12345678-9"
-        username = rut_norm.replace(".", "").replace("-", "")  # "123456789"
+        # Variantes del rut para autenticación
+        rut_norm = normalizar_rut(rut_ingresado)          # 12345678-9
+        rut_fmt = formatear_rut(rut_norm)                 # 12.345.678-9
+        rut_plain = rut_norm.replace("-", "")             # 123456789
 
-        user = authenticate(request, username=username, password=password)
-        if not user:
-            user = authenticate(request, username=rut_norm, password=password)
+        # authenticate usa el kw "username" incluso si USERNAME_FIELD es distinto
+        user = (
+            authenticate(request, username=rut_fmt,  password=password)
+            or authenticate(request, username=rut_norm,  password=password)
+            or authenticate(request, username=rut_plain, password=password)
+        )
 
         if not user:
             return render(request, "usuarios/login.html", {"error": "RUT o contraseña incorrectos"})
@@ -51,7 +56,8 @@ def login_rut(request):
             return render(request, "usuarios/login.html", {"error": "Usuario inactivo"})
 
         login(request, user)
-        if next_url:
+
+        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
             return redirect(next_url)
         return _redirigir_por_tipo(user)
 
@@ -66,11 +72,7 @@ def logout_view(request):
 # =================== Paneles ===================
 @role_required(Usuario.Tipo.ADMIN)
 def panel_admin(request):
-    """
-    Muestra el panel admin y pasa comunicados para renderizarlos
-    en la pantalla principal (include base/includes/comunicados_online.html).
-    """
-    # Ordena por 'creado' si existe; fallback por id
+    # Toma los últimos comunicados según el campo temporal disponible
     if hasattr(Comunicado, "creado"):
         comunicados = Comunicado.objects.order_by("-creado", "-id")[:8]
     elif hasattr(Comunicado, "fecha"):
@@ -80,9 +82,7 @@ def panel_admin(request):
     else:
         comunicados = Comunicado.objects.order_by("-id")[:8]
 
-    return render(request, "usuarios/panel_admin.html", {
-        "comunicados": comunicados,
-    })
+    return render(request, "usuarios/panel_admin.html", {"comunicados": comunicados})
 
 
 @role_required(Usuario.Tipo.COORD)
@@ -102,7 +102,7 @@ def panel_apoderado(request):
 
 @role_required(Usuario.Tipo.PMUL)
 def panel_prof_multidisciplinario(request):
-    return render(request, "usuarios/panel_prof_multidisciplinario.html")
+    return render(request, "pmul/panel.html")
 
 
 @role_required(Usuario.Tipo.ATLE)
@@ -122,11 +122,11 @@ def usuarios_list(request):
 
     if q:
         qs = qs.filter(
-            Q(rut__icontains=q) |
-            Q(first_name__icontains=q) |
-            Q(last_name__icontains=q) |
-            Q(username__icontains=q) |
-            Q(email__icontains=q)
+            Q(rut__icontains=q)
+            | Q(first_name__icontains=q)
+            | Q(last_name__icontains=q)
+            | Q(username__icontains=q)
+            | Q(email__icontains=q)
         )
     if rol:
         qs = qs.filter(tipo_usuario=rol)
@@ -138,22 +138,22 @@ def usuarios_list(request):
     if request.GET.get("export") == "1":
         resp = HttpResponse(content_type="text/csv; charset=utf-8")
         resp["Content-Disposition"] = 'attachment; filename="usuarios.csv"'
-        resp.write("\ufeff")
+        resp.write("\ufeff")  # BOM para Excel
         headers = ["RUT", "Nombre", "Usuario", "Rol", "Email", "Teléfono", "Estado"]
         resp.write(",".join(headers) + "\n")
         for u in qs:
             nombre = f"{u.first_name} {u.last_name}".strip()
             estado_txt = "Activo" if u.is_active else "Inactivo"
             fila = [
-                u.rut,
+                u.rut or "",
                 nombre,
-                u.username,
-                u.get_tipo_usuario_display(),
+                u.username or "",
+                u.get_tipo_usuario_display() if hasattr(u, "get_tipo_usuario_display") else (u.tipo_usuario or ""),
                 u.email or "",
                 u.telefono or "",
                 estado_txt,
             ]
-            resp.write(",".join('"%s"' % (s.replace('"', '""')) for s in fila) + "\n")
+            resp.write(",".join('"%s"' % (str(s).replace('"', '""')) for s in fila) + "\n")
         return resp
 
     ctx = {"items": qs, "q": q, "rol": rol, "estado": estado, "roles": Usuario.Tipo.choices}
@@ -168,9 +168,12 @@ def usuario_create(request):
         form = UsuarioCreateForm(request.POST)
         if form.is_valid():
             form.save()
+            messages.success(request, "Usuario creado correctamente.")
             return redirect("usuarios:usuarios_list")
+        messages.error(request, "Revisa los errores del formulario.")
     else:
         form = UsuarioCreateForm()
+
     return render(request, "usuarios/usuario_form.html", {"form": form, "is_edit": False})
 
 
@@ -189,9 +192,12 @@ def usuario_edit(request, usuario_id: int):
         form = UsuarioUpdateForm(request.POST, instance=u)
         if form.is_valid():
             form.save()
+            messages.success(request, "Usuario actualizado correctamente.")
             return redirect("usuarios:usuarios_list")
+        messages.error(request, "Revisa los errores del formulario.")
     else:
         form = UsuarioUpdateForm(instance=u)
+
     return render(request, "usuarios/usuario_form.html", {"form": form, "is_edit": True, "u": u})
 
 

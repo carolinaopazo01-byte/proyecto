@@ -1,73 +1,142 @@
-{% extends "base.html" %}
+{% extends "base/plantilla.html" %}
+{% block title %}Reservar hora{% endblock %}
 {% block header %}Reservar hora{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ===== Aviso próxima cita ===== */
+  .next-appt{
+    background:#eef8ff; border:1px solid #bfe0ff; color:#0b4a6f;
+    padding:.6rem .75rem; border-radius:10px; margin-bottom:.75rem;
+    display:flex; gap:.5rem; align-items:flex-start;
+  }
+  .next-appt i{ margin-top:.1rem; }
+
+  /* ===== Filtros ===== */
+  .filters-card .card-body{ padding:.65rem .75rem; }
+  .filters-row{ row-gap:.5rem; --g:.5rem; }
+  .filters-row .form-label{ font-size:.85rem; margin-bottom:.2rem; }
+
+  .filters-row .form-control,
+  .filters-row .form-select{
+    height:2.1rem; font-size:.95rem; border-radius:10px; border:1px solid #cfd8e3;
+    transition: box-shadow .12s, border-color .12s;
+  }
+  .filters-row .form-control:focus,
+  .filters-row .form-select:focus{
+    border-color:#0d6efd; box-shadow:0 0 0 .2rem rgba(13,110,253,.15); outline:none;
+  }
+
+  .filters-actions{ display:flex; gap:.5rem; align-items:end; }
+
+  /* ===== Tabla ===== */
+  .table-wrap{ border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; }
+  .table{ margin-bottom:0; }
+  .table thead th{ background:#f8fafc; white-space:nowrap; }
+  .table td, .table th{ vertical-align:middle; }
+  .col-actions-th{ width:120px; text-align:right; }
+  .col-actions-td{ text-align:right; }
+
+  .btn-action{ padding:.35rem .6rem; line-height:1.1; border-radius:8px; font-size:.875rem; }
+
+  /* Info rango */
+  .range-note{ color:#6b7280; }
+
+  @media (max-width:576px){
+    .filters-actions{ width:100%; }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 
-{# --- BLOQUE DE PRÓXIMA CITA --- #}
-{% if proxima_cita %}
-  <div style="background:#eef8ff;border:1px solid #bfe0ff;
-              padding:12px;border-radius:8px;margin-bottom:16px;">
-    <strong>Tu próxima cita:</strong>
-    {{ proxima_cita.inicio|date:"D d/m H:i" }} – {{ proxima_cita.fin|date:"H:i" }}
-    con {{ proxima_cita.profesional.get_full_name|default:proxima_cita.profesional.username }}
-  </div>
-{% endif %}
+  {# --- PRÓXIMA CITA --- #}
+  {% if proxima_cita %}
+    <div class="next-appt" role="status" aria-live="polite">
+      <i class="far fa-clock"></i>
+      <div>
+        <strong>Tu próxima cita:</strong>
+        {{ proxima_cita.inicio|date:"D d/m H:i" }} – {{ proxima_cita.fin|date:"H:i" }}
+        con {{ proxima_cita.profesional.get_full_name|default:proxima_cita.profesional.username }}
+      </div>
+    </div>
+  {% endif %}
 
-<form method="get" class="mb-3" style="display:flex;gap:10px;align-items:end;">
-  <div>
-    <label>Semana:</label>
-    <input type="date" name="semana" value="{{ semana }}">
-  </div>
-  <div>
-    <label>Especialidad:</label>
-    <select name="subrol">
-      <option value="">Todos</option>
-      <option value="KIN"  {% if request.GET.subrol == "KIN" %}selected{% endif %}>Kinesiología</option>
-      <option value="PSI"  {% if request.GET.subrol == "PSI" %}selected{% endif %}>Psicología</option>
-      <option value="NUT"  {% if request.GET.subrol == "NUT" %}selected{% endif %}>Nutrición</option>
-      <option value="TENS" {% if request.GET.subrol == "TENS" %}selected{% endif %}>TENS</option>
-    </select>
-  </div>
-  <button class="btn">Filtrar</button>
-  <a class="btn" href="?semana={{ semana_anterior }}&subrol={{ request.GET.subrol }}">« Semana anterior</a>
-  <a class="btn" href="?semana={{ semana_siguiente }}&subrol={{ request.GET.subrol }}">Semana siguiente »</a>
-</form>
+  {# --- FILTROS --- #}
+  <div class="card shadow-sm filters-card mb-2">
+    <div class="card-body">
+      <form method="get" class="row filters-row align-items-end g-2">
+        <div class="col-md-4 col-sm-6">
+          <label class="form-label mb-0">Semana</label>
+          <input type="date" class="form-control" name="semana" value="{{ semana }}">
+        </div>
+        <div class="col-md-4 col-sm-6">
+          <label class="form-label mb-0">Especialidad</label>
+          <select class="form-select" name="subrol">
+            <option value="">Todos</option>
+            <option value="KIN"  {% if request.GET.subrol == "KIN"  %}selected{% endif %}>Kinesiología</option>
+            <option value="PSI"  {% if request.GET.subrol == "PSI"  %}selected{% endif %}>Psicología</option>
+            <option value="NUT"  {% if request.GET.subrol == "NUT"  %}selected{% endif %}>Nutrición</option>
+            <option value="TENS" {% if request.GET.subrol == "TENS" %}selected{% endif %}>TENS</option>
+          </select>
+        </div>
 
-<p class="text-muted">
-  Mostrando del <strong>{{ desde|date:"d/m" }}</strong> al <strong>{{ hasta|date:"d/m" }}</strong>.
-</p>
+        <div class="col-lg-auto col-12">
+          <div class="filters-actions">
+            <button class="btn btn-outline-secondary" type="submit">Filtrar</button>
+            <a class="btn btn-light" href="?semana={{ semana }}&subrol=">Limpiar</a>
+            <a class="btn btn-light" href="?semana={{ semana_anterior }}&subrol={{ request.GET.subrol }}">« Semana anterior</a>
+            <a class="btn btn-light" href="?semana={{ semana_siguiente }}&subrol={{ request.GET.subrol }}">Semana siguiente »</a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
 
-<table class="table">
-  <thead>
-    <tr>
-      <th>Profesional</th>
-      <th>Inicio</th>
-      <th>Fin</th>
-      <th>Piso</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for s in slots %}
-      <tr>
-        <td>
-          {{ s.profesional.first_name }} {{ s.profesional.last_name }}
-          ({{ s.profesional.perfil_pmul.get_especialidad_display }})
-        </td>
-        <td>{{ s.inicio|date:"d/m H:i" }}</td>
-        <td>{{ s.fin|date:"H:i" }}</td>
-        <td>{{ s.piso }}</td>
-        <td>
-          <a class="btn btn-sm btn-primary"
-             href="{% url 'pmul:reservar_confirmar' s.id %}">
-             Reservar
-          </a>
-        </td>
-      </tr>
-    {% empty %}
-      <tr>
-        <td colspan="5" class="text-muted">No hay cupos disponibles.</td>
-      </tr>
-    {% endfor %}
-  </tbody>
-</table>
+  <p class="range-note mb-2">
+    Mostrando del <strong>{{ desde|date:"d/m" }}</strong> al <strong>{{ hasta|date:"d/m" }}</strong>.
+  </p>
+
+  {# --- TABLA DE SLOTS --- #}
+  <div class="table-wrap">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover align-middle">
+        <thead>
+          <tr>
+            <th>Profesional</th>
+            <th>Inicio</th>
+            <th>Fin</th>
+            <th>Piso</th>
+            <th class="col-actions-th">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in slots %}
+            <tr>
+              <td>
+                {{ s.profesional.first_name }} {{ s.profesional.last_name }}
+                <span class="text-muted">
+                  ({{ s.profesional.perfil_pmul.get_especialidad_display }})
+                </span>
+              </td>
+              <td>{{ s.inicio|date:"d/m H:i" }}</td>
+              <td>{{ s.fin|date:"H:i" }}</td>
+              <td>{{ s.piso }}</td>
+              <td class="col-actions-td">
+                <a class="btn btn-outline-primary btn-action"
+                   href="{% url 'pmul:reservar_confirmar' s.id %}">
+                  Reservar
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" class="text-muted">No hay cupos disponibles.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 {% endblock %}

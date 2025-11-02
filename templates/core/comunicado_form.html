@@ -1,76 +1,133 @@
-
 {% extends "base/app.html" %}
 {% load static %}
 {% block title %}{{ is_edit|yesno:"Editar comunicado,Crear comunicado" }}{% endblock %}
 
+{% block extra_css %}
+<style>
+  :root{ --border:#e5e7eb; --bg-head:#f8fafc; --radius:12px; --fs-xs:.86rem; }
+  .page-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:.75rem; }
+  .page-title{ margin:0; font-size:1.05rem; font-weight:700; }
+
+  .section{ background:#fff; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+  .section + .section{ margin-top:.6rem; }
+  .section__head{ padding:.6rem .9rem; background:var(--bg-head); border-bottom:1px solid #eef2f7; }
+  .section__title{ margin:0; font-weight:700; font-size:.95rem; }
+  .section__body{ padding:.9rem; }
+
+  .form-grid{ display:grid; grid-template-columns:repeat(12,1fr); gap:.6rem; }
+  .col-12{grid-column:span 12;}
+
+  .stack{ display:flex; flex-direction:column; gap:.25rem; }
+  .form-label{ font-weight:600; font-size:var(--fs-xs); margin-bottom:0; }
+  .section .form-control, .section .form-select, .section textarea{
+    border:1px solid #cfd8e3; border-radius:10px; padding:.5rem .6rem;
+    transition: box-shadow .12s, border-color .12s;
+  }
+  .section .form-control:focus, .section .form-select:focus, .section textarea:focus{
+    border-color:#0d6efd; box-shadow:0 0 0 .2rem rgba(13,110,253,.15); outline:none;
+  }
+  .field-errors{ color:#dc3545; font-size:.85rem; margin-top:.15rem; }
+
+  .actions-wrap{
+    position:sticky; bottom:16px; z-index:20;
+    display:flex; justify-content:center; gap:.5rem;
+    padding:.6rem .8rem; max-width:760px; margin:1rem auto 0;
+    border:1px solid #e5e7eb; border-radius:12px;
+    background:rgba(255,255,255,.95); backdrop-filter:saturate(120%) blur(4px);
+    box-shadow:0 6px 20px rgba(0,0,0,.08);
+  }
+  .btn-compact{ padding:.4rem .7rem; border-radius:8px; }
+
+  /* 🔒 Ocultar forzosamente campos de grupos/audiencias si llegan a renderizarse */
+  #id_audiencia_roles,
+  label[for="id_audiencia_roles"],
+  #id_audiencia_usuarios,
+  label[for="id_audiencia_usuarios"]{
+    display:none !important;
+  }
+  /* Si Select2 reemplaza el input, también ocultamos posibles wrappers */
+  #id_audiencia_roles ~ .select2,
+  #id_audiencia_usuarios ~ .select2{
+    display:none !important;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid cpc-safe" style="max-width:760px;">
-  <h4 class="mb-3">{{ is_edit|yesno:"Editar comunicado,Nuevo comunicado" }}</h4>
 
-  {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+  <div class="page-head">
+    <h4 class="page-title">{{ is_edit|yesno:"Editar comunicado,Nuevo comunicado" }}</h4>
+  </div>
+
+  {% if error %}
+    <div class="alert alert-danger" role="alert">{{ error }}</div>
+  {% endif %}
+
+  {% if form.errors or form.non_field_errors %}
+    <div class="alert alert-danger mb-2" role="alert" aria-live="assertive">
+      <strong>Hay errores en el formulario.</strong> Revísalos por favor.
+      {% if form.non_field_errors %}
+        <div class="mt-1">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>
+      {% endif %}
+    </div>
+  {% endif %}
 
   <form method="post" novalidate>
     {% csrf_token %}
 
-    <div class="form-group">
-      <label for="{{ form.titulo.id_for_label }}">Título</label>
-      {{ form.titulo }}
-      {% if form.titulo.errors %}<div class="text-danger small">{{ form.titulo.errors }}</div>{% endif %}
-    </div>
+    {# Fijamos la audiencia para el backend. Quita si no es necesario. #}
+    <input type="hidden" name="audiencia_tipo" value="TODOS">
 
-    <div class="form-group">
-      <label for="{{ form.cuerpo.id_for_label }}">Cuerpo</label>
-      {{ form.cuerpo }}
-      {% if form.cuerpo.errors %}<div class="text-danger small">{{ form.cuerpo.errors }}</div>{% endif %}
-    </div>
+    <!-- Contenido -->
+    <section class="section">
+      <div class="section__head"><h6 class="section__title">Contenido</h6></div>
+      <div class="section__body">
+        <div class="form-grid">
+          <div class="col-12 stack">
+            <label class="form-label" for="{{ form.titulo.id_for_label }}">Título</label>
+            {{ form.titulo }}
+            {% if form.titulo.errors %}<div class="field-errors">{{ form.titulo.errors }}</div>{% endif %}
+          </div>
 
-    <div class="form-row">
-      <div class="form-group col-md-6">
-        <label for="{{ form.audiencia_tipo.id_for_label }}">Audiencia</label>
-        {{ form.audiencia_tipo }}
-        <small class="form-text text-muted">Elige “Tipos de usuario” o “Usuarios específicos” para filtrar.</small>
-        {% if form.audiencia_tipo.errors %}<div class="text-danger small">{{ form.audiencia_tipo.errors }}</div>{% endif %}
+          <div class="col-12 stack">
+            <label class="form-label" for="{{ form.cuerpo.id_for_label }}">Cuerpo</label>
+            {{ form.cuerpo }}
+            {% if form.cuerpo.errors %}<div class="field-errors">{{ form.cuerpo.errors }}</div>{% endif %}
+          </div>
+        </div>
       </div>
-    </div>
+    </section>
 
-    <div class="form-group">
-      <label for="{{ form.audiencia_roles.id_for_label }}">Tipos de usuario</label>
-      {{ form.audiencia_roles }}
-      {% if form.audiencia_roles.help_text %}<small class="form-text text-muted">{{ form.audiencia_roles.help_text }}</small>{% endif %}
-      {% if form.audiencia_roles.errors %}<div class="text-danger small">{{ form.audiencia_roles.errors }}</div>{% endif %}
-    </div>
-
-    <div class="form-group">
-      <label for="{{ form.audiencia_usuarios.id_for_label }}">Usuarios específicos</label>
-      {{ form.audiencia_usuarios }}
-      {% if form.audiencia_usuarios.help_text %}<small class="form-text text-muted">{{ form.audiencia_usuarios.help_text }}</small>{% endif %}
-      {% if form.audiencia_usuarios.errors %}<div class="text-danger small">{{ form.audiencia_usuarios.errors }}</div>{% endif %}
-    </div>
-
-    <div class="d-flex gap-2">
-      <button class="btn btn-primary" type="submit">
-        <i class="fas fa-save mr-1"></i> Guardar
+    <!-- Acciones -->
+    <div class="actions-wrap">
+      <a class="btn btn-light btn-compact" href="{% url 'core:comunicados_list' %}">Cancelar</a>
+      <button class="btn btn-primary btn-compact" type="submit">
+        <i class="fas fa-save me-1"></i> Guardar
       </button>
-      <a class="btn btn-outline-secondary" href="{% url 'core:comunicados_list' %}">Cancelar</a>
     </div>
   </form>
 </div>
 
 <script>
-  // UX: mostrar/ocultar campos según elección
+  // Doble seguridad: oculta contenedores de roles/usuarios si existieran, incluidos wrappers de Bootstrap/stack
   (function(){
-    function toggleFields(){
-      var sel = document.getElementById("id_audiencia_tipo");
-      var v = sel ? sel.value : "TODOS";
-      var roles = document.getElementById("id_audiencia_roles")?.closest(".form-group");
-      var users = document.getElementById("id_audiencia_usuarios")?.closest(".form-group");
-      if(roles) roles.style.display = (v === "ROLES") ? "" : "none";
-      if(users) users.style.display = (v === "USUARIOS") ? "" : "none";
+    function hideGroup(id){
+      var el = document.getElementById(id);
+      if (!el) return;
+      var wrap = el.closest('.form-group') || el.closest('.stack') || el.parentElement;
+      if (wrap) wrap.style.display = 'none';
+      // Oculta label asociado
+      var lab = document.querySelector('label[for="'+id+'"]');
+      if (lab) (lab.closest('.form-group') || lab.parentElement).style.display = 'none';
+      // Si hay Select2, ocúltalo
+      var s2 = el.nextElementSibling;
+      if (s2 && s2.classList && s2.classList.contains('select2')) s2.style.display = 'none';
     }
-    document.addEventListener("change", function(e){
-      if(e.target && e.target.id === "id_audiencia_tipo"){ toggleFields(); }
+    document.addEventListener('DOMContentLoaded', function(){
+      hideGroup('id_audiencia_roles');
+      hideGroup('id_audiencia_usuarios');
     });
-    document.addEventListener("DOMContentLoaded", toggleFields);
   })();
 </script>
 {% endblock %}

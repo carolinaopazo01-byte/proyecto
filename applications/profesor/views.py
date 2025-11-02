@@ -6,9 +6,10 @@ from io import BytesIO
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseForbidden
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect  # ← agregado redirect
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
+from django.contrib import messages  # ← agregado messages
 
 import qrcode
 from qrcode.constants import ERROR_CORRECT_M
@@ -249,3 +250,34 @@ def mis_cursos_prof(request):
         return HttpResponseForbidden("Solo profesores.")
     cursos = Curso.objects.filter(profesor=request.user).order_by('-creado')
     return render(request, "profesor/mis_cursos_prof.html", {"cursos": cursos})
+
+
+# ===================== 2) (NUEVO) Alumno temporal – stub seguro =====================
+@login_required
+@require_http_methods(["GET", "POST"])
+def alumno_temporal_new(request):
+    """
+    Formulario 'rápido' para crear un alumno temporal.
+    Se apoya en el AlumnoTemporalForm definido en applications.core.forms.
+    Import local para evitar import circular.
+    """
+    try:
+        from applications.core.forms import AlumnoTemporalForm
+    except Exception:
+        return HttpResponse("No se pudo cargar AlumnoTemporalForm (applications.core.forms).", status=500)
+
+    if request.method == "POST":
+        form = AlumnoTemporalForm(request.POST)
+        if form.is_valid():
+            est = form.save()
+            messages.success(
+                request,
+                f"Alumno temporal creado: {getattr(est, 'nombres', '')} {getattr(est, 'apellidos', '')}."
+            )
+            # Redirige a un listado seguro; ajusta si tienes otra vista de destino
+            return redirect("core:estudiantes_list")
+        messages.error(request, "Revisa los errores del formulario.")
+    else:
+        form = AlumnoTemporalForm()
+
+    return render(request, "profesor/alumno_temporal_form.html", {"form": form})

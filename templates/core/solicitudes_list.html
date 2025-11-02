@@ -2,51 +2,128 @@
 {% block title %}Solicitudes de inscripción{% endblock %}
 {% block header %}Solicitudes de inscripción{% endblock %}
 
+{% block extra_css %}
+<style>
+  /* Contenedor de tabs + búsqueda */
+  .soli-head{ display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; margin-bottom:.75rem; }
+  .soli-tabs{ display:flex; gap:.4rem; flex-wrap:wrap; }
+  .soli-tabs .btn{ border-radius:999px; padding:.35rem .7rem; }
+  .soli-tabs .btn-light{ background:#f8fafc; border:1px solid #e5e7eb; }
+
+  .soli-search{ margin-left:auto; display:flex; gap:.5rem; align-items:center; }
+  .soli-search .form-control{ min-width:260px; padding:.55rem .7rem; border:1px solid #cfd8e3; border-radius:10px; }
+  .soli-search .form-control:focus{ border-color:#0d6efd; box-shadow:0 0 0 .2rem rgba(13,110,253,.15); outline:none; }
+
+  /* Tabla */
+  .table-wrap{ border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; }
+  .table thead th{ white-space:nowrap; background:#f8fafc; }
+  .table td, .table th{ vertical-align:middle; }
+  .col-actions-th{ width:210px; text-align:right; }
+  .col-actions-td{ text-align:right; }
+
+  /* Acciones consistentes */
+  .actions-inline{ display:flex; gap:.4rem; flex-wrap:wrap; justify-content:flex-end; align-items:center; }
+  .actions-inline .btn{ padding:.35rem .6rem; line-height:1.1; border-radius:8px; font-size:.875rem; }
+  .actions-inline form{ margin:0; }
+
+  /* Estado como badge cuando no hay acciones */
+  .badge-state{ font-weight:600; }
+
+  @media (max-width: 992px){
+    .col-actions-th{ width:180px; }
+    .actions-inline .btn{ padding:.3rem .5rem; font-size:.82rem; }
+  }
+  @media (max-width:576px){
+    .soli-search{ width:100%; margin-left:0; }
+    .soli-search .form-control{ min-width:0; flex:1; }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="mb-2" style="display:flex;gap:8px;flex-wrap:wrap">
-  <a class="btn {% if estado == 'PEN' %}btn-light{% endif %}" href="{% url 'core:solicitudes_list' %}?estado=PEN">Pendientes ({{ cnt_pen }})</a>
-  <a class="btn {% if estado == 'APR' %}btn-light{% endif %}" href="{% url 'core:solicitudes_list' %}?estado=APR">Aprobadas ({{ cnt_apr }})</a>
-  <a class="btn {% if estado == 'REC' %}btn-light{% endif %}" href="{% url 'core:solicitudes_list' %}?estado=REC">Rechazadas ({{ cnt_rec }})</a>
-  <form method="get" style="margin-left:auto;display:flex;gap:6px">
+
+<div class="soli-head">
+  <!-- Tabs de estado -->
+  <div class="soli-tabs">
+    <a class="btn {% if estado == 'PEN' %}btn-light{% else %}btn-outline-light border{% endif %}"
+       href="{% url 'core:solicitudes_list' %}?estado=PEN">
+      Pendientes ({{ cnt_pen }})
+    </a>
+    <a class="btn {% if estado == 'APR' %}btn-light{% else %}btn-outline-light border{% endif %}"
+       href="{% url 'core:solicitudes_list' %}?estado=APR">
+      Aprobadas ({{ cnt_apr }})
+    </a>
+    <a class="btn {% if estado == 'REC' %}btn-light{% else %}btn-outline-light border{% endif %}"
+       href="{% url 'core:solicitudes_list' %}?estado=REC">
+      Rechazadas ({{ cnt_rec }})
+    </a>
+  </div>
+
+  <!-- Buscador -->
+  <form method="get" class="soli-search">
     <input type="hidden" name="estado" value="{{ estado }}">
-    <input type="text" name="q" value="{{ q }}" placeholder="Buscar por RUT / nombre / email" style="padding:6px 8px;min-width:260px">
-    <button class="btn">Buscar</button>
+    <input class="form-control" type="text" name="q" value="{{ q }}" placeholder="Buscar por RUT / nombre / email" aria-label="Buscar solicitudes">
+    <button class="btn btn-outline-secondary" type="submit">Buscar</button>
+    {% if q %}
+      <a class="btn btn-light" href="{% url 'core:solicitudes_list' %}?estado={{ estado|urlencode }}">Limpiar</a>
+    {% endif %}
   </form>
 </div>
 
-<table class="table table-striped">
-  <thead>
-    <tr>
-      <th>Fecha</th>
-      <th>Postulante</th>
-      <th>RUT</th>
-      <th>Curso</th>
-      <th>Previsión</th>
-      <th>Motivación</th>
-      <th style="min-width:180px">Acciones</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for s in items %}
-    <tr>
-      <td>{{ s.creado|date:"d/m/Y H:i" }}</td>
-      <td>{{ s.nombres }} {{ s.apellidos }}</td>
-      <td>{{ s.rut }}</td>
-      <td>{% if s.curso %}{{ s.curso.nombre }} ({{ s.curso.sede.nombre }}){% else %}—{% endif %}</td>
-      <td>{{ s.get_prevision_display }}</td>
-      <td><small class="text-muted">{{ s.motivacion_beca|truncatechars:60|default:"—" }}</small></td>
-      <td>
-        {% if s.estado == 'PEN' %}
-          <a class="btn" href="{% url 'core:solicitud_aprobar' s.id %}">✅ Aprobar</a>
-          <a class="btn" href="{% url 'core:solicitud_rechazar' s.id %}">❌ Rechazar</a>
-        {% else %}
-          {{ s.get_estado_display }}
-        {% endif %}
-      </td>
-    </tr>
-    {% empty %}
-    <tr><td colspan="7">No hay solicitudes en este estado.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+<div class="table-wrap">
+  <div class="table-responsive">
+    <table class="table table-sm table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Postulante</th>
+          <th>RUT</th>
+          <th>Curso</th>
+          <th>Previsión</th>
+          <th>Motivación</th>
+          <th class="col-actions-th">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in items %}
+          <tr>
+            <td>{{ s.creado|date:"d/m/Y H:i" }}</td>
+            <td>{{ s.nombres }} {{ s.apellidos }}</td>
+            <td>{{ s.rut }}</td>
+            <td>
+              {% if s.curso %}
+                {{ s.curso.nombre }} <span class="text-muted">({{ s.curso.sede.nombre }})</span>
+              {% else %}—{% endif %}
+            </td>
+            <td>{{ s.get_prevision_display }}</td>
+            <td><small class="text-muted">{{ s.motivacion_beca|truncatechars:60|default:"—" }}</small></td>
+            <td class="col-actions-td">
+              {% if s.estado == 'PEN' %}
+                <span class="actions-inline">
+                  <a class="btn btn-sm btn-outline-success" href="{% url 'core:solicitud_aprobar' s.id %}">
+                    ✅ Aprobar
+                  </a>
+                  <a class="btn btn-sm btn-outline-danger" href="{% url 'core:solicitud_rechazar' s.id %}">
+                    ❌ Rechazar
+                  </a>
+                </span>
+              {% else %}
+                {% if s.estado == 'APR' %}
+                  <span class="badge badge-state bg-success">Aprobada</span>
+                {% elif s.estado == 'REC' %}
+                  <span class="badge badge-state bg-secondary">Rechazada</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" class="text-muted">No hay solicitudes en este estado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
 {% endblock %}

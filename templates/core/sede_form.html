@@ -11,17 +11,21 @@
     --border:#e5e7eb; --bg-head:#f8fafc;
   }
 
-  /* Cabecera SIN botón atrás, alineada al layout base */
-  .page-head{ display:flex; align-items:center; gap:10px; margin-bottom:.6rem; }
+  /* Cabecera */
+  .page-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:.75rem; }
+  .page-head-left{ display:flex; align-items:center; gap:10px; }
   .page-head h4{ margin:0; font-size:1.05rem; font-weight:700; }
 
+  /* Página */
   .page { display:flex; flex-direction:column; gap: var(--sp-sm); }
 
+  /* Secciones */
   .section { background:#fff; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
   .section__head { padding:.55rem .8rem; background:var(--bg-head); border-bottom:1px solid #eef2f7; }
   .section__title { font-size:.95rem; font-weight:700; margin:0; letter-spacing:.2px; }
   .section__body { padding:.8rem; }
 
+  /* Grid */
   .form-grid { display:grid; grid-template-columns: repeat(12,1fr); gap:.6rem; }
   .col-12{grid-column:span 12;} .col-8{grid-column:span 8;}
   .col-6{grid-column:span 6;} .col-4{grid-column:span 4;} .col-3{grid-column:span 3;}
@@ -29,23 +33,52 @@
     .col-8,.col-6,.col-4,.col-3{grid-column:span 12;}
   }
 
-  .stack{ display:flex; flex-direction:column; gap:.25rem; }
-  .form-label{ font-weight:600; font-size: var(--fs-xs); margin-bottom:0; }
+  /* === Inputs (igual que en las demás pantallas) === */
+  .stack{ display:flex; flex-direction:column; gap:.35rem; }
+  .form-label{ font-weight:600; font-size:.92rem; margin-bottom:0; }
 
+  /* Normaliza todos los campos aunque no tengan .form-control */
   .section input[type="text"],
   .section input[type="number"],
+  .section input[type="email"],
+  .section input[type="tel"],
+  .section input[type="date"],
+  .section input[type="time"],
+  .section input[type="url"],
   .section select,
   .section textarea,
   .section .form-control,
   .section .form-select{
-    padding:.3rem .5rem!important;
-    font-size:var(--fs-sm)!important;
-    height:2.1rem; line-height:1.2;
-    border-radius:8px;
+    padding:.7rem .9rem !important;
+    font-size:1rem !important;
+    height:auto;
+    line-height:1.35;
+    border:1px solid #cfd8e3;
+    border-radius:10px;
+    background:#fff;
+    transition: box-shadow .12s, border-color .12s;
   }
-  .section textarea{ min-height:90px; height:auto; }
+  .section textarea{ min-height:120px; }
 
-  /* Botonera sticky CENTRADA (igual al resto de formularios) */
+  /* Foco */
+  .section input:focus,
+  .section select:focus,
+  .section textarea:focus,
+  .section .form-control:focus,
+  .section .form-select:focus{
+    border-color:#0d6efd;
+    box-shadow:0 0 0 .2rem rgba(13,110,253,.15);
+    outline:none;
+  }
+
+  /* Placeholders */
+  .section ::placeholder{ color:#9aa4b2; }
+
+  /* Errores */
+  .text-danger{ color:#dc2626; }
+  .invalid-hint{ font-size:.8rem; }
+
+  /* Acciones sticky centradas */
   .actions-wrap{
     position: sticky; bottom:16px; z-index:20;
     display:flex; justify-content:center; gap:.5rem;
@@ -60,26 +93,62 @@
 
 {% block content %}
 
-  <!-- Cabecera (alineada, sin botón Atrás) -->
+  {% if messages %}
+    <div class="mb-2" aria-live="polite">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Cabecera -->
   <div class="page-head">
-    <h4>{% if is_edit %}Editar sede{% else %}Nueva sede{% endif %}</h4>
+    <div class="page-head-left">
+      <h4 class="mb-0">{% if is_edit %}Editar sede{% else %}Nueva sede{% endif %}</h4>
+    </div>
+    <a class="btn btn-light btn-sm" href="{% url 'core:sedes_list' %}">
+      <i class="fas fa-list"></i> Listado
+    </a>
   </div>
+
+  {% if form.errors or form.non_field_errors %}
+    <div class="alert alert-danger mb-2" role="alert" aria-live="assertive">
+      Hay errores en el formulario. Revísalos por favor.
+      {% if form.non_field_errors %}
+        <div class="mt-1">{{ form.non_field_errors }}</div>
+      {% endif %}
+    </div>
+  {% endif %}
 
   <form method="post" novalidate class="page">
     {% csrf_token %}
+
+    {# Campos ocultos #}
+    {{ form.latitud }}
+    {{ form.longitud }}
+    {{ form.radio_metros }}
 
     <!-- 1) Identificación de la sede -->
     <section class="section">
       <div class="section__head"><h6 class="section__title">1. Identificación de la sede</h6></div>
       <div class="section__body">
         <div class="form-grid">
+          <!-- Nombre -->
           <div class="col-6 stack">
-            <label class="form-label">Nombre (obligatorio)</label>
+            <label class="form-label" for="{{ form.nombre.id_for_label }}">Nombre (obligatorio)</label>
             {{ form.nombre }}
+            {% if form.nombre.errors %}
+              <small class="text-danger invalid-hint">{{ form.nombre.errors|striptags }}</small>
+            {% endif %}
           </div>
+
+          <!-- Comuna -->
           <div class="col-6 stack">
-            <label class="form-label">Comuna</label>
+            <label class="form-label" for="{{ form.comuna.id_for_label }}">Comuna</label>
             {{ form.comuna }}
+            {% if form.comuna.errors %}
+              <small class="text-danger invalid-hint">{{ form.comuna.errors|striptags }}</small>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -90,13 +159,22 @@
       <div class="section__head"><h6 class="section__title">2. Ubicación y capacidad</h6></div>
       <div class="section__body">
         <div class="form-grid">
+          <!-- Dirección -->
           <div class="col-8 stack">
-            <label class="form-label">Dirección (obligatorio)</label>
+            <label class="form-label" for="{{ form.direccion.id_for_label }}">Dirección (obligatorio)</label>
             {{ form.direccion }}
+            {% if form.direccion.errors %}
+              <small class="text-danger invalid-hint">{{ form.direccion.errors|striptags }}</small>
+            {% endif %}
           </div>
+
+          <!-- Capacidad -->
           <div class="col-4 stack">
-            <label class="form-label">Capacidad (opcional)</label>
+            <label class="form-label" for="{{ form.capacidad.id_for_label }}">Capacidad (opcional)</label>
             {{ form.capacidad }}
+            {% if form.capacidad.errors %}
+              <small class="text-danger invalid-hint">{{ form.capacidad.errors|striptags }}</small>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -107,18 +185,28 @@
       <div class="section__head"><h6 class="section__title">3. Estado y descripción</h6></div>
       <div class="section__body">
         <div class="form-grid">
+          <!-- Activa -->
           <div class="col-3 d-flex align-items-center" style="gap:.4rem;">
-            {{ form.activa }} <label class="form-check-label mb-0">Activo</label>
+            {{ form.activa }}
+            <label class="form-check-label mb-0" for="{{ form.activa.id_for_label }}">Activo</label>
+            {% if form.activa.errors %}
+              <small class="text-danger invalid-hint ms-2">{{ form.activa.errors|striptags }}</small>
+            {% endif %}
           </div>
+
+          <!-- Descripción -->
           <div class="col-12 stack">
-            <label class="form-label">Descripción (opcional)</label>
+            <label class="form-label" for="{{ form.descripcion.id_for_label }}">Descripción (opcional)</label>
             {{ form.descripcion }}
+            {% if form.descripcion.errors %}
+              <small class="text-danger invalid-hint">{{ form.descripcion.errors|striptags }}</small>
+            {% endif %}
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ACCIONES (centradas) -->
+    <!-- Acciones (sticky centradas) -->
     <div class="actions-wrap">
       <a class="btn btn-light btn-compact" href="{% url 'core:sedes_list' %}">Cancelar</a>
       <button class="btn btn-primary btn-compact" type="submit">

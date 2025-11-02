@@ -1,0 +1,24 @@
+{# templates/core/estudiante_nuevo_selector.html #}
+{% extends "base/app.html" %}
+{% block title %}Nuevo Estudiante{% endblock %}
+
+{% block content %}
+<div class="container-fluid cpc-safe" style="max-width:720px;">
+  <h1 class="h3 mb-3">Registrar nuevo estudiante</h1>
+  <p class="text-muted">Elige el tipo de programa para el nuevo estudiante.</p>
+
+  <div style="display:grid; gap:14px; grid-template-columns:1fr 1fr;">
+    <a href="{% url 'core:estudiante_create_formativo' %}" class="btn btn-primary" style="padding:18px; font-weight:700;">
+      Programa Formativo
+    </a>
+    <a href="{% url 'core:estudiante_create_alto' %}" class="btn btn-outline-primary" style="padding:18px; font-weight:700;">
+      Alto Rendimiento
+    </a>
+  </div>
+
+  <hr class="my-4">
+
+  <p class="mb-1">¿Prefieres el formulario tradicional?</p>
+  <a href="{% url 'core:estudiante_create' %}">Usar formulario genérico</a>
+</div>
+{% endblock %}

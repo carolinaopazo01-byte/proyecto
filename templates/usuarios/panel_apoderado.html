@@ -1,0 +1,8 @@
+{% extends "base/plantillapod.html" %}
+{% block title %}Panel Apoderado{% endblock %}
+
+{% block content %}
+  <div class="page-head"><h4>Panel Apoderado</h4></div>
+  <div class="alert alert-info">Bienvenido(a), {{ request.user.get_full_name|default:request.user.username }}.</div>
+  <p>Aquí irá el contenido del panel de apoderados.</p>
+{% endblock %}

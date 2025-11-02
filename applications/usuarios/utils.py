@@ -6,19 +6,19 @@ from django.http import HttpResponseForbidden
 from django.shortcuts import redirect
 from django.urls import reverse
 
-from .models import Usuario
 
-def rut_equivalente(rut):
-    """Convierte cualquier formato de RUT a uno comparable, solo números y DV."""
-    if not rut:
-        return ""
-    return rut.replace(".", "").replace("-", "").strip().upper()
-
+# --------------------------------------------------------------------------------------
+# Decoradores de rol
+# --------------------------------------------------------------------------------------
 def role_required(*roles):
     """
-    Usa: @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, ...)
-    - Si NO está logueado: redirige a login con ?next=<ruta_actual>.
-    - Si SÍ está logueado pero no tiene el rol: 403 (evita loop al login).
+    Uso:
+        @role_required('ADMIN', 'COORD', ...)
+        @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, ...)
+
+    Comportamiento:
+      - Si NO está logueado: redirige a login con ?next=<ruta_actual>.
+      - Si SÍ está logueado pero no tiene el rol: 403 (evita loop al login).
     """
     def decorator(view_func):
         @wraps(view_func)
@@ -29,11 +29,12 @@ def role_required(*roles):
                 qs = urlencode({"next": request.get_full_path()})
                 return redirect(f"{login_url}?{qs}")
 
-            # Asegura que sea tu modelo y tenga atributo tipo_usuario
-            if not hasattr(user, "tipo_usuario"):
+            # Comprobamos atributo de rol sin importar el modelo concreto
+            tipo = getattr(user, "tipo_usuario", None)
+            if tipo is None:
                 return HttpResponseForbidden("Perfil no válido.")
 
-            if roles and user.tipo_usuario not in roles:
+            if roles and tipo not in roles:
                 return HttpResponseForbidden("No tienes permiso para acceder a esta función.")
 
             return view_func(request, *args, **kwargs)
@@ -42,26 +43,50 @@ def role_required(*roles):
 
 
 def any_role(*roles):
-    """Helper para Python/plantillas: any_role(user, roles...) -> bool"""
+    """
+    Helper para Python/plantillas:
+        any_role('ADMIN','COORD')(request.user) -> bool
+    """
     def check(user):
         return getattr(user, "is_authenticated", False) and getattr(user, "tipo_usuario", None) in roles
     return check
 
 
-# --------- Utilidades RUT ---------
+# --------------------------------------------------------------------------------------
+# Utilidades RUT
+# --------------------------------------------------------------------------------------
+def _strip_rut_chars(s: str) -> str:
+    """Quita puntos y espacios, normaliza guiones Unicode a '-' y pasa DV a mayúscula."""
+    if not s:
+        return ""
+    s = s.strip().replace(".", "").replace(" ", "")
+    # Normaliza guiones “raros”
+    s = s.replace("–", "-").replace("—", "-").replace("-", "-")  # en-dash, em-dash, no-break hyphen
+    return s.upper()
+
+
 def normalizar_rut(rut: str) -> str:
-    """Devuelve 'XXXXXXXX-DV' (sin puntos, con guion). No valida DV."""
+    """
+    Devuelve 'XXXXXXXX-DV' (sin puntos, con guion). No valida DV.
+    Si no hay suficientes caracteres, devuelve la mejor forma posible.
+    """
     if not rut:
         return ""
-    s = "".join(c for c in rut if c.isdigit() or c.upper() == "K")
+    s = _strip_rut_chars(rut)
+    # Dejar solo dígitos + 'K'
+    s = "".join(c for c in s if c.isdigit() or c == "K")
     if len(s) < 2:
+        # No hay base + dv suficientes
         return s
-    base, dv = s[:-1], s[-1].upper()
+    base, dv = s[:-1], s[-1]
     return f"{base}-{dv}"
 
 
 def formatear_rut(rut: str) -> str:
-    """Formatea con puntos + guion. No valida DV."""
+    """
+    Formatea un RUT ya normalizado a 'XX.XXX.XXX-DV'.
+    No valida DV; usa normalizar_rut internamente.
+    """
     nr = normalizar_rut(rut)
     if "-" not in nr:
         return nr
@@ -73,3 +98,11 @@ def formatear_rut(rut: str) -> str:
     if base:
         partes.insert(0, base)
     return ".".join(partes) + "-" + dv
+
+
+def rut_equivalente(rut: str) -> str:
+    """
+    Convierte cualquier formato de RUT a uno comparable:
+    'XXXXXXXX-DV' (sin puntos). Útil para comparaciones/duplicados.
+    """
+    return normalizar_rut(rut)

@@ -3,41 +3,70 @@
 {% block header %}Historial de planificación{% endblock %}
 
 {% block content %}
-<div class="card p-3">
-  <p><b>Curso:</b> {{ p.curso.nombre }} ({{ p.curso.disciplina }})</p>
-  <p><b>Semana:</b> {{ p.semana|date:"d/m/Y" }}</p>
-  <hr>
-  <table class="table">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Fecha</th>
-        <th>Autor</th>
-        <th>Archivo</th>
-        <th>Comentarios</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for v in versiones %}
-      <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>{{ v.creado|date:"d/m/Y H:i" }}</td>
-        <td>{{ v.autor|default:"—" }}</td>
-        <td>
-          {% if v.archivo %}
-            <a href="{{ v.archivo.url }}">Descargar</a>
-          {% else %}—{% endif %}
-        </td>
-        <td style="white-space:pre-wrap">{{ v.comentarios|default:"—" }}</td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="5">Aún no hay versiones.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<style>
+  .hist-meta dt{ width:160px; color:#6b7280; font-weight:600; }
+  .hist-meta dd{ margin-bottom:.5rem; }
+  @media (max-width:576px){ .hist-meta dt{ width:120px; } }
+</style>
 
-  <div class="mt-2">
-    <a class="btn" href="{% url 'core:planificacion_detail' p.id %}">Volver</a>
+<div class="card shadow-sm">
+  <div class="card-body">
+    <!-- Metadatos -->
+    <dl class="row hist-meta">
+      <dt class="col-sm-4 col-md-3">Curso</dt>
+      <dd class="col-sm-8 col-md-9">
+        {{ p.curso.nombre }}
+        {% if p.curso.disciplina %}<span class="text-muted">({{ p.curso.disciplina }})</span>{% endif %}
+      </dd>
+
+      <dt class="col-sm-4 col-md-3">Semana</dt>
+      <dd class="col-sm-8 col-md-9">{{ p.semana|date:"d/m/Y" }}</dd>
+    </dl>
+
+    <hr class="my-3">
+
+    <!-- Tabla de versiones -->
+    <div class="table-responsive">
+      <table class="table table-sm align-middle">
+        <thead class="thead-light">
+          <tr>
+            <th style="width:56px;">#</th>
+            <th>Fecha</th>
+            <th>Autor</th>
+            <th style="min-width:140px;">Archivo</th>
+            <th>Comentarios</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in versiones %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ v.creado|date:"d/m/Y H:i" }}</td>
+            <td>{{ v.autor|default:"—" }}</td>
+            <td>
+              {% if v.archivo %}
+                <a class="btn btn-sm btn-outline-primary" href="{{ v.archivo.url }}">
+                  <i class="fas fa-download"></i> Descargar
+                </a>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td style="white-space:pre-wrap">{{ v.comentarios|default:"—" }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="text-muted">Aún no hay versiones.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Acciones -->
+    <div class="mt-3">
+      <a class="btn btn-secondary" href="{% url 'core:planificacion_detail' p.id %}">Volver</a>
+    </div>
   </div>
 </div>
 {% endblock %}

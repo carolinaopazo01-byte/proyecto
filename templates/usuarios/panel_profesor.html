@@ -1,4 +1,4 @@
-{% extends "base/app.html" %}
+{% extends "base/plantilla_profesor.html" %}
 {% load static %}
 
 {% block title %}Panel Profesor / Entrenador{% endblock %}
@@ -10,30 +10,25 @@
     --tile-bg:#fff;
     --tile-head:#f8fafc;
   }
-
   .page-head{
     display:flex;align-items:center;justify-content:space-between;
     gap:12px;margin-bottom:.75rem;
   }
   .page-head h4{margin:0;font-weight:800;font-size:1.1rem;letter-spacing:.2px}
-  .page-sub{color:#6b7280;font-size:.92rem}
 
-  .tiles{
-    display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
-    gap:14px;
-  }
+  /* Tarjetas compactas */
   .tile{
     display:flex;flex-direction:column;gap:.6rem;
     border:1px solid var(--tile-border);border-radius:12px;background:var(--tile-bg);
-    padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.04);
+    padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.04);max-width:520px;
   }
   .tile__head{
     display:flex;align-items:center;gap:.6rem;background:var(--tile-head);
-    padding:.55rem .7rem;border-radius:10px;border:1px solid #eef2f7;
+    padding:.55rem .7rem;border-radius:10px;border:1px solid #eef2f7
   }
   .tile__icon{
     width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;
-    border-radius:6px;background:#eef2ff;
+    border-radius:6px;background:#eef6ff
   }
   .tile__title{margin:0;font-size:.98rem;font-weight:800}
   .tile__desc{margin:0;color:#6b7280;font-size:.9rem;min-height:2.2em}
@@ -53,72 +48,28 @@
 {% block content %}
 
   <div class="page-head">
-    <div>
-      <h4>Panel Profesor / Entrenador</h4>
-    </div>
-    <div><!-- espacio para acciones futuras --></div>
+    <div><h4>Panel Profesor / Entrenador</h4></div>
+    <div></div>
   </div>
 
-  <div class="tiles">
-
-    <!-- Tomar asistencia -->
-    <div class="tile">
-      <div class="tile__head">
-        <span class="tile__icon"><i class="fas fa-clipboard-check"></i></span>
-        <h6 class="tile__title mb-0">Tomar asistencia</h6>
-      </div>
-      <p class="tile__desc">Registra la asistencia por clase.</p>
-      <a class="btn btn-primary" href="{% url 'core:reporte_asistencia_por_clase' %}">
-        <i class="fas fa-list-check mr-1"></i> Ir al selector
-      </a>
+  {# === ÚNICA tarjeta: Comunicados === #}
+  <div class="tile mb-3">
+    <div class="tile__head">
+      <span class="tile__icon"><i class="fas fa-bullhorn"></i></span>
+      <h6 class="tile__title mb-0">Comunicados</h6>
     </div>
-
-    <!-- Planificaciones -->
-    <div class="tile">
-      <div class="tile__head">
-        <span class="tile__icon"><i class="fas fa-calendar-week"></i></span>
-        <h6 class="tile__title mb-0">Planificaciones</h6>
-      </div>
-      <p class="tile__desc">Sube y administra tu planificación semanal.</p>
-      <a class="btn btn-primary" href="{% url 'core:planificaciones_list' %}">
-        <i class="fas fa-folder-open mr-1"></i> Abrir planificaciones
-      </a>
-    </div>
-
-    <!-- Comunicados -->
-    <div class="tile">
-      <div class="tile__head">
-        <span class="tile__icon"><i class="fas fa-bullhorn"></i></span>
-        <h6 class="tile__title mb-0">Comunicados</h6>
-      </div>
-      <p class="tile__desc">Publica y revisa anuncios del programa.</p>
-      <a class="btn btn-primary" href="{% url 'core:comunicados_list' %}">
-        <i class="fas fa-envelope-open-text mr-1"></i> Ver comunicados
-      </a>
-    </div>
-
-    <!-- Agenda con Equipo Multidisciplinario -->
-    <div class="tile">
-      <div class="tile__head">
-        <span class="tile__icon"><i class="fas fa-user-md"></i></span>
-        <h6 class="tile__title mb-0">Agenda PMUL</h6>
-      </div>
-      <p class="tile__desc">Coordina atención con el Equipo Multidisciplinario.</p>
-      <a class="btn btn-primary" href="/pmul/agenda/">
-        <i class="fas fa-comments mr-1"></i> Abrir agenda
-      </a>
-    </div>
-
+    <p class="tile__desc">Publica y revisa los anuncios del programa.</p>
+    <a class="btn btn-primary" href="{% url 'profesor:comunicados_prof' %}">
+      <i class="fas fa-envelope-open-text mr-1"></i> Ver comunicados
+    </a>
   </div>
 
-  <!-- Próximas clases (siempre visible) -->
-  <div class="mt-3 card-block">
+  {# === Próximas clases === #}
+  <div class="card-block">
     <div class="card-head">
       <h6 class="card-title mb-0">Próximas clases</h6>
-      {# espacio para un filtro/acciones futuras #}
     </div>
     <div class="list-condensed">
-
       {% if proximas_clases %}
         {% for c in proximas_clases %}
           <div class="item">
@@ -126,7 +77,7 @@
               {{ c.fecha|date:"D d/m" }} · {{ c.hora_inicio|time:"H:i" }}
             </span>
             <div>
-              <div><strong>{{ c.curso.nombre }}</strong> · {{ c.curso.disciplina }}</div>
+              <div><strong>{{ c.curso.nombre }}</strong>{% if c.curso.disciplina %} · {{ c.curso.disciplina }}{% endif %}</div>
               <div class="muted">
                 {{ c.curso.sede }}{% if c.recinto %} · {{ c.recinto }}{% endif %}
                 {% if c.profesor %} · Prof. {{ c.profesor.get_full_name|default:c.profesor.username }}{% endif %}
@@ -137,7 +88,6 @@
       {% else %}
         <div class="muted">No hay clases próximas registradas.</div>
       {% endif %}
-
     </div>
   </div>
 

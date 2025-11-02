@@ -5,11 +5,13 @@ from . import views
 app_name = "apoderado"
 
 urlpatterns = [
-    path("dashboard/", views.dashboard, name="dashboard"),
-    path("alumno/<int:pk>/", views.alumno_detalle, name="alumno_detalle"),  # 👈 aquí
+    path("", views.dashboard, name="dashboard"),
+
+    # TODAS sin pk: las vistas resuelven el alumno por request.user
+    path("alumno/", views.alumno_detalle, name="alumno_detalle"),
     path("asistencia/", views.asistencia, name="asistencia"),
-    path("planificacion/", views.planificacion, name="planificacion"),
     path("evaluaciones/", views.evaluaciones, name="evaluaciones"),
-    path("comunicados/", views.comunicados, name="comunicados"),
+    path("planificacion/", views.planificacion, name="planificacion"),
     path("protocolos/", views.protocolos, name="protocolos"),
+
 ]

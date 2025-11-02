@@ -1,0 +1,94 @@
+{% extends "base/plantilla.html" %}
+{% block title %}{% if is_edit %}Editar período{% else %}Nuevo período{% endif %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .page-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:.75rem; }
+  .page-head-left{ display:flex; align-items:center; gap:10px; }
+  .actions{ display:flex; gap:8px; flex-wrap:wrap; }
+
+  /* Inputs consistentes */
+  .form-control, .form-select{
+    padding:.7rem .9rem; border:1px solid #cfd8e3; border-radius:10px;
+    transition: box-shadow .12s, border-color .12s;
+  }
+  .form-control:focus, .form-select:focus{
+    border-color:#0d6efd; box-shadow:0 0 0 .2rem rgba(13,110,253,.15); outline:none;
+  }
+  .field-error{ color:#dc3545; font-size:.875rem; margin-top:.25rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+  <div class="mb-2" aria-live="polite">
+    {% for m in messages %}<div class="alert alert-{{ m.tags }}">{{ m }}</div>{% endfor %}
+  </div>
+{% endif %}
+
+<!-- Cabecera -->
+<div class="page-head">
+  <div class="page-head-left">
+    <h4 class="mb-0">{% if is_edit %}Editar período{% else %}Nuevo período{% endif %}</h4>
+  </div>
+  <a class="btn btn-light btn-sm" href="{% url 'core:periodos_list' %}">
+    <i class="fas fa-list"></i> Listado
+  </a>
+</div>
+
+{% if form.non_field_errors %}
+  <div class="alert alert-danger mb-2" role="alert" aria-live="assertive">
+    {% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}
+  </div>
+{% endif %}
+
+<form method="post" novalidate class="card shadow-sm">
+  {% csrf_token %}
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label" for="{{ form.nombre.id_for_label }}">Nombre</label>
+        {{ form.nombre }}
+        {% for e in form.nombre.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label" for="{{ form.inicio.id_for_label }}">Inicio</label>
+        {{ form.inicio }}
+        <div class="form-text">Puede quedar vacío.</div>
+        {% for e in form.inicio.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label" for="{{ form.fin.id_for_label }}">Fin</label>
+        {{ form.fin }}
+        <div class="form-text">Puede quedar vacío.</div>
+        {% for e in form.fin.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label" for="{{ form.estado.id_for_label }}">Estado</label>
+        {{ form.estado }}
+        {% for e in form.estado.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+      </div>
+
+      <div class="col-md-3 d-flex align-items-end">
+        <div class="form-check">
+          {{ form.activo }}
+          <label class="form-check-label" for="{{ form.activo.id_for_label }}">Activo</label>
+        </div>
+        {% for e in form.activo.errors %}<div class="field-error ms-2">{{ e }}</div>{% endfor %}
+      </div>
+    </div>
+
+    <!-- Acciones centradas -->
+    <div class="actions mt-3 justify-content-center">
+      <a class="btn btn-secondary" href="{% url 'core:periodos_list' %}">Cancelar</a>
+      <button class="btn btn-primary" type="submit">
+        {% if is_edit %}Guardar cambios{% else %}Guardar{% endif %}
+      </button>
+    </div>
+  </div>
+</form>
+{% endblock %}

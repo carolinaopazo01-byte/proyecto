@@ -4,31 +4,43 @@
 
 {% block extra_css %}
 <style>
-  .page-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:.75rem; }
-  .page-head-left { display:flex; align-items:center; gap:10px; }
-  .table thead th { white-space:nowrap; }
-  .actions { display:flex; gap:8px; flex-wrap:wrap; }
+  /* Cabecera */
+  .page-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:.75rem; }
+  .page-head-left{ display:flex; align-items:center; gap:10px; }
 
-  /* Alinear filtros con la franja celeste (mismos gutters laterales) */
+  /* Filtros */
   .filters-card .card-body{
-    padding-top:.75rem;
-    padding-bottom:.75rem;
-    padding-left: var(--cpc-gutter-x, 16px);
-    padding-right: var(--cpc-gutter-x, 16px);
+    padding-top:.75rem; padding-bottom:.75rem;
+    padding-left: var(--cpc-gutter-x, 16px); padding-right: var(--cpc-gutter-x, 16px);
   }
-
-  /* Inputs compactos en filtros */
   .filters .form-control, .filters select, .filters input[type="text"]{
     height:2.1rem; font-size:.95rem;
+    border-radius:10px; border:1px solid #cfd8e3;
   }
+  .filters .form-control:focus, .filters select:focus{
+    border-color:#0d6efd; box-shadow:0 0 0 .2rem rgba(13,110,253,.15); outline:none;
+  }
+  .filters-actions{ display:flex; gap:8px; justify-content:flex-end; }
+  @media (max-width:576px){ .filters-actions{ justify-content:flex-start; } }
 
-  /* Fila de botones a la derecha, alineados con el borde del contenedor */
-  .filters-actions{
-    display:flex; gap:8px; justify-content:flex-end;
+  /* Tabla */
+  .table thead th{ white-space:nowrap; background:#f8fafc; }
+  .table td, .table th{ vertical-align:middle; }
+  .table-wrap{ border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; }
+
+  /* Acciones columna */
+  .col-actions-th{ width:300px; text-align:right; }
+  .col-actions-td{ text-align:right; }
+  .actions-inline{
+    display:inline-flex; justify-content:flex-end; align-items:center;
+    gap:.4rem; flex-wrap:wrap;
   }
-  @media (max-width: 576px){
-    .filters-actions{ justify-content:flex-start; }
-  }
+  .actions-inline form{ margin:0; }
+  .btn-action{ padding:.35rem .6rem; line-height:1.1; border-radius:8px; font-size:.875rem; }
+  .btn-action[disabled]{ opacity:.6; pointer-events:none; }
+
+  /* Badges estado (compatibles con Bootstrap 4/5) */
+  .badge-success{ background-color:#198754; } .badge-secondary{ background-color:#6c757d; }
 </style>
 {% endblock %}
 
@@ -40,20 +52,23 @@
       <h4 class="mb-0">Equipo (usuarios)</h4>
     </div>
     <div class="d-flex" style="gap:8px;">
-      <a class="btn btn-primary" href="{% url 'usuarios:usuario_create' %}">Nuevo</a>
+      <a class="btn btn-primary" href="{% url 'usuarios:usuario_create' %}">
+        <i class="fas fa-user-plus"></i> Nuevo
+      </a>
       <a class="btn btn-outline-secondary"
-         href="?q={{ q }}&rol={{ rol }}&estado={{ estado }}&export=1">Exportar Excel</a>
+         href="?q={{ q }}&rol={{ rol }}&estado={{ estado }}&export=1">
+        <i class="fas fa-file-excel"></i> Exportar Excel
+      </a>
     </div>
   </div>
 
-  <!-- Filtros: card con gutters iguales a la franja -->
+  <!-- Filtros -->
   <form method="get" class="card filters-card mb-3 filters">
     <div class="card-body">
       <div class="row g-2 align-items-end">
         <div class="col-lg-5">
           <label class="form-label mb-1">Buscar</label>
-          <input class="form-control" type="text" name="q" value="{{ q }}"
-                 placeholder="RUT / Nombre / Usuario / Email">
+          <input class="form-control" type="text" name="q" value="{{ q }}" placeholder="RUT / Nombre / Usuario / Email">
         </div>
 
         <div class="col-lg-3">
@@ -75,10 +90,9 @@
           </select>
         </div>
 
-        <!-- Botones en su propia fila, pegados al borde derecho = alineados con franja -->
         <div class="col-12">
           <div class="filters-actions">
-            <button class="btn btn-primary" type="submit">Buscar</button>
+            <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Buscar</button>
             <a class="btn btn-outline-secondary" href="?q=&rol=&estado=">Limpiar</a>
           </div>
         </div>
@@ -87,63 +101,67 @@
   </form>
 
   {% if items %}
-    <div class="card shadow-sm">
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table table-hover mb-0">
-            <thead class="thead-light">
+    <div class="table-wrap">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+          <thead>
+            <tr>
+              <th>RUT</th>
+              <th>Nombre</th>
+              <th>Usuario</th>
+              <th>Rol</th>
+              <th>Email</th>
+              <th>Teléfono</th>
+              <th>Estado</th>
+              <th class="col-actions-th">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in items %}
               <tr>
-                <th>RUT</th>
-                <th>Nombre</th>
-                <th>Usuario</th>
-                <th>Rol</th>
-                <th>Email</th>
-                <th>Teléfono</th>
-                <th>Estado</th>
-                <th style="min-width:220px;">Acciones</th>
+                <td>{{ u.rut }}</td>
+                <td>{{ u.first_name }} {{ u.last_name }}</td>
+                <td>{{ u.username }}</td>
+                <td>{{ u.get_tipo_usuario_display }}</td>
+                <td>{{ u.email }}</td>
+                <td>{{ u.telefono }}</td>
+                <td>
+                  {% if u.is_active %}
+                    <span class="badge badge-success">Activo</span>
+                  {% else %}
+                    <span class="badge badge-secondary">Inactivo</span>
+                  {% endif %}
+                </td>
+                <td class="col-actions-td">
+                  <span class="actions-inline">
+                    <a class="btn btn-sm btn-outline-info btn-action" href="{% url 'usuarios:usuario_detail' u.id %}">
+                      <i class="fas fa-eye"></i> Ver
+                    </a>
+
+                    <a class="btn btn-sm btn-outline-primary btn-action" href="{% url 'usuarios:usuario_edit' u.id %}">
+                      <i class="fas fa-pen"></i> Editar
+                    </a>
+
+                    <form method="post" action="{% url 'usuarios:usuario_toggle_active' u.id %}" onsubmit="this.querySelector('button').disabled=true;">
+                      {% csrf_token %}
+                      <button class="btn btn-sm btn-outline-secondary btn-action" type="submit">
+                        {% if u.is_active %}<i class="fas fa-user-slash"></i> Desactivar{% else %}<i class="fas fa-user-check"></i> Activar{% endif %}
+                      </button>
+                    </form>
+
+                    <form method="post" action="{% url 'usuarios:usuario_delete' u.id %}"
+                          onsubmit="if(!confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.')) return false; this.querySelector('button').disabled=true;">
+                      {% csrf_token %}
+                      <button class="btn btn-sm btn-outline-danger btn-action" type="submit">
+                        <i class="fas fa-trash-alt"></i> Eliminar
+                      </button>
+                    </form>
+                  </span>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {% for u in items %}
-                <tr>
-                  <td>{{ u.rut }}</td>
-                  <td>{{ u.first_name }} {{ u.last_name }}</td>
-                  <td>{{ u.username }}</td>
-                  <td>{{ u.get_tipo_usuario_display }}</td>
-                  <td>{{ u.email }}</td>
-                  <td>{{ u.telefono }}</td>
-                  <td>
-                    {% if u.is_active %}
-                      <span class="badge badge-success">Activo</span>
-                    {% else %}
-                      <span class="badge badge-secondary">Inactivo</span>
-                    {% endif %}
-                  </td>
-                  <td>
-                    <div class="actions">
-                      <a class="btn btn-sm btn-outline-info" href="{% url 'usuarios:usuario_detail' u.id %}">Ver</a>
-                      <a class="btn btn-sm btn-outline-primary" href="{% url 'usuarios:usuario_edit' u.id %}">Editar</a>
-
-                      <form method="post" action="{% url 'usuarios:usuario_toggle_active' u.id %}" style="display:inline;">
-                        {% csrf_token %}
-                        <button class="btn btn-sm {% if u.is_active %}btn-warning{% else %}btn-success{% endif %}" type="submit">
-                          {% if u.is_active %}Desactivar{% else %}Activar{% endif %}
-                        </button>
-                      </form>
-
-                      <form method="post" action="{% url 'usuarios:usuario_delete' u.id %}"
-                            style="display:inline;"
-                            onsubmit="return confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.');">
-                        {% csrf_token %}
-                        <button class="btn btn-sm btn-danger" type="submit">Eliminar</button>
-                      </form>
-                    </div>
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
   {% else %}
