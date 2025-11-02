@@ -107,5 +107,4 @@ urlpatterns = [
     path("postulaciones/periodos/<int:periodo_id>/toggle-activo/", views.periodo_toggle_activo, name="periodo_toggle_activo"),
     path("postulaciones/periodos/<int:periodo_id>/set-estado/", views.periodo_set_estado, name="periodo_set_estado"),
     path("postulaciones/periodos/<int:periodo_id>/cerrar-hoy/", views.periodo_cerrar_hoy, name="periodo_cerrar_hoy"),
-
 ]

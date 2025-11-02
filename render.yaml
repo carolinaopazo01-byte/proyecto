@@ -4,27 +4,7 @@ services:
     env: python
     plan: free
     buildCommand: "pip install -r requirements.txt"
-    startCommand: >-
-      bash -c '
-      python - <<PY
-import os, django
-os.environ.setdefault("DJANGO_SETTINGS_MODULE","campeones_coquimbo.settings.production")
-django.setup()
-from applications.usuarios.models import Usuario
-username = os.getenv("INIT_ADMIN_USERNAME","admin")
-email = os.getenv("INIT_ADMIN_EMAIL","admin@example.com")
-rut = os.getenv("INIT_ADMIN_RUT","207565407")   # AJUSTA AL FORMATO QUE USA TU Backend
-password = os.getenv("INIT_ADMIN_PASSWORD","campeones1")
-u, created = Usuario.objects.get_or_create(username=username, defaults={
-    "email": email, "rut": rut, "is_active": True, "is_staff": True, "is_superuser": True
-})
-if created or os.getenv("INIT_ADMIN_RESET","0")=="1":
-    u.set_password(password); u.save()
-print("ADMIN:", u.username, "created:", created)
-PY
-      && python manage.py migrate --noinput
-      && python manage.py collectstatic --noinput
-      && exec gunicorn campeones_coquimbo.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --log-file - --access-logfile -'
+    startCommand: "bash -c 'python manage.py migrate && python manage.py collectstatic --noinput && gunicorn campeones_coquimbo.wsgi:application -b 0.0.0.0:$PORT'"
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: campeones_coquimbo.settings.production
@@ -34,12 +14,3 @@ PY
         value: "${RENDER_EXTERNAL_HOSTNAME}"
       - key: CSRF_TRUSTED_ORIGINS
         value: "https://${RENDER_EXTERNAL_HOSTNAME}"
-      # 👇 Credenciales iniciales (cámbialas antes de deploy)
-      - key: INIT_ADMIN_USERNAME
-        value: "admin"
-      - key: INIT_ADMIN_EMAIL
-        value: "admin@ejemplo.com"
-      - key: INIT_ADMIN_RUT
-        value: "207565407"     # AJUSTA al formato que acepta tu RutBackend
-      - key: INIT_ADMIN_PASSWORD
-        value: "campeones1!"      # cámbiala luego en /admin
