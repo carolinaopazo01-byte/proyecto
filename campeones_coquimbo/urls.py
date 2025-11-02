@@ -1,19 +1,21 @@
 from django.contrib import admin
 from django.urls import path, include
-from django.conf import settings              # ← IMPORTANTE
+from django.views.generic import RedirectView
+from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", include("applications.core.urls", namespace="core")),
-    path("atleta/", include("applications.atleta.urls", namespace="atleta")),
-    path("usuarios/", include("applications.usuarios.urls", namespace="usuarios")),
-    path("evaluaciones/", include("applications.evaluaciones.urls", namespace="evaluaciones")),
-    path("pmul/", include("applications.pmul.urls", namespace="pmul")),
-    path("apoderado/", include("applications.apoderado.urls", namespace="apoderado")),
-    path("profesor/", include("applications.profesor.urls", namespace="profesor")),
+    path("core/", include(("applications.core.urls", "core"), namespace="core")),
+    path("atleta/", include(("applications.atleta.urls", "atleta"), namespace="atleta")),
+    path("usuarios/", include(("applications.usuarios.urls", "usuarios"), namespace="usuarios")),
+    path("evaluaciones/", include(("applications.evaluaciones.urls", "evaluaciones"), namespace="evaluaciones")),
+    path("pmul/", include(("applications.pmul.urls", "pmul"), namespace="pmul")),
+    path("apoderado/", include(("applications.apoderado.urls", "apoderado"), namespace="apoderado")),
+    path("profesor/", include(("applications.profesor.urls", "profesor"), namespace="profesor")),
 
-path("", RedirectView.as_view(pattern_name="core:home", permanent=False)),
+    # raíz -> core:home
+    path("", RedirectView.as_view(pattern_name="core:home", permanent=False)),
 ]
 
 if settings.DEBUG:
