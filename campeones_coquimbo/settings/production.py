@@ -1,13 +1,24 @@
+# campeones_coquimbo/settings/production.py
 from .base import *
+import os
 
+# --- Básicos ---
 DEBUG = False
-ALLOWED_HOSTS = ["tu-app.onrender.com"]  # cámbialo por tu dominio
-CSRF_TRUSTED_ORIGINS = ["https://tu-app.onrender.com"]
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "change-me")
 
+host = os.getenv("RENDER_EXTERNAL_HOSTNAME", "")
+ALLOWED_HOSTS = [host] if host else []
+CSRF_TRUSTED_ORIGINS = [f"https://{host}"] if host else []
+
+# --- Seguridad en prod ---
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+SECURE_SSL_REDIRECT = True
+
+# --- WhiteNoise (sirve estáticos) ---
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
-    # copia aquí el resto igual que en base.py:
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -15,5 +26,30 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
-
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+# --- Base de datos: usa Postgres si hay DATABASE_URL; si no, SQLite ---
+db_url = os.getenv("DATABASE_URL")
+if db_url:
+    try:
+        import dj_database_url
+        DATABASES = {
+            "default": dj_database_url.config(
+                default=db_url, conn_max_age=600, ssl_require=True
+            )
+        }
+    except Exception:
+        # Fallback por si falta la librería; no rompe el deploy
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": BASE_DIR / "db.sqlite3",
+            }
+        }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
