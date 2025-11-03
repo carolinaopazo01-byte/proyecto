@@ -108,6 +108,4 @@ urlpatterns = [
     path("postulaciones/periodos/<int:periodo_id>/set-estado/", views.periodo_set_estado, name="periodo_set_estado"),
     path("postulaciones/periodos/<int:periodo_id>/cerrar-hoy/", views.periodo_cerrar_hoy, name="periodo_cerrar_hoy"),
 
-# 👇 raíz del sitio -> core:home
-    path("", RedirectView.as_view(pattern_name="core:home", permanent=False)),
 ]
