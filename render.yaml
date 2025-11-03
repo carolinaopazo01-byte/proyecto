@@ -13,8 +13,8 @@ django.setup()
 from applications.usuarios.models import Usuario
 username = os.getenv("INIT_ADMIN_USERNAME","admin")
 email = os.getenv("INIT_ADMIN_EMAIL","admin@example.com")
-rut = os.getenv("INIT_ADMIN_RUT","12.345.678-9")   # AJUSTA AL FORMATO QUE USA TU Backend
-password = os.getenv("INIT_ADMIN_PASSWORD","Cambiar123")
+rut = os.getenv("INIT_ADMIN_RUT","207565407")   # AJUSTA AL FORMATO QUE USA TU Backend
+password = os.getenv("INIT_ADMIN_PASSWORD","campeones1")
 u, created = Usuario.objects.get_or_create(username=username, defaults={
     "email": email, "rut": rut, "is_active": True, "is_staff": True, "is_superuser": True
 })
@@ -40,6 +40,6 @@ PY
       - key: INIT_ADMIN_EMAIL
         value: "admin@ejemplo.com"
       - key: INIT_ADMIN_RUT
-        value: "20.756.540-7"     # AJUSTA al formato que acepta tu RutBackend
+        value: "207565407"     # AJUSTA al formato que acepta tu RutBackend
       - key: INIT_ADMIN_PASSWORD
         value: "campeones1!"      # cámbiala luego en /admin
