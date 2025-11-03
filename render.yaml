@@ -4,8 +4,7 @@ services:
     env: python
     plan: free
     buildCommand: "pip install -r requirements.txt"
-  startCommand: "bash -c 'python manage.py migrate --noinput && python manage.py collectstatic --noinput && exec gunicorn campeones_coquimbo.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --log-file -'"
-
+    startCommand: "bash -c 'python manage.py migrate --noinput && python manage.py collectstatic --noinput && exec gunicorn campeones_coquimbo.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --log-file - --access-logfile -'"
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: campeones_coquimbo.settings.production
