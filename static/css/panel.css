@@ -1,0 +1,14 @@
+form label {
+  font-weight: 500;
+  color: #555;
+}
+
+form input, form select {
+  border-radius: 8px;
+  padding: 10px;
+}
+
+form input:focus, form select:focus {
+  border-color: #4e73df;
+  box-shadow: 0 0 0 0.15rem rgba(78,115,223,0.25);
+}

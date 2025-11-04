@@ -1,0 +1,82 @@
+{% extends "base/plantilla.html" %}
+{% load static %}
+{% block title %}Documentos y protocolos{% endblock %}
+{% block header %}Documentos y protocolos{% endblock %}
+
+{% block extra_css %}
+<style>
+  .docs-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap:14px;
+  }
+  .doc-card{
+    display:flex; gap:12px; align-items:flex-start;
+    background:#fff; border:1px solid #e5e7eb; border-radius:12px;
+    padding:14px;
+    transition: box-shadow .15s ease, transform .05s ease, border-color .15s ease;
+  }
+  .doc-card:hover{ box-shadow:0 8px 24px rgba(0,0,0,.07); transform:translateY(-1px); }
+  .doc-ico{
+    flex:0 0 40px; height:40px; width:40px; border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    background:#eaf4ff; color:#0b5a66; font-size:18px;
+    border:1px solid #e0ecff;
+  }
+  .doc-text{ display:flex; flex-direction:column; gap:4px; }
+  .doc-title{ margin:0; font-weight:800; font-size:.98rem; }
+  .doc-desc{ margin:0; color:#6b7280; font-size:.9rem; }
+  .doc-actions{ display:flex; gap:8px; margin-top:6px; flex-wrap:wrap; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<p class="text-muted mb-3">
+  En esta sección encontrarás documentos oficiales, protocolos y reglamentos del programa.
+</p>
+
+<div class="docs-grid">
+
+  <!-- Reglamento interno -->
+  <div class="doc-card">
+    <div class="doc-ico"><i class="fas fa-file-pdf"></i></div>
+    <div class="doc-text">
+      <h6 class="doc-title">Reglamento interno</h6>
+      <p class="doc-desc">Normas generales de participación y conducta.</p>
+      <div class="doc-actions">
+        <a class="btn btn-sm btn-primary" href="#" target="_blank" rel="noopener">Ver</a>
+        <a class="btn btn-sm btn-outline-secondary" href="#" download>Descargar</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Protocolo de asistencia -->
+  <div class="doc-card">
+    <div class="doc-ico"><i class="fas fa-clipboard-check"></i></div>
+    <div class="doc-text">
+      <h6 class="doc-title">Protocolo de asistencia</h6>
+      <p class="doc-desc">Criterios de registro, atrasos y justificaciones.</p>
+      <div class="doc-actions">
+        <a class="btn btn-sm btn-primary" href="#" target="_blank" rel="noopener">Ver</a>
+        <a class="btn btn-sm btn-outline-secondary" href="#" download>Descargar</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Política de seguridad -->
+  <div class="doc-card">
+    <div class="doc-ico"><i class="fas fa-shield-alt"></i></div>
+    <div class="doc-text">
+      <h6 class="doc-title">Política de seguridad</h6>
+      <p class="doc-desc">Medidas de prevención y actuación ante incidentes.</p>
+      <div class="doc-actions">
+        <a class="btn btn-sm btn-primary" href="#" target="_blank" rel="noopener">Ver</a>
+        <a class="btn btn-sm btn-outline-secondary" href="#" download>Descargar</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

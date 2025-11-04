@@ -1,0 +1,222 @@
+{% extends "base/plantilla.html" %}
+{% block title %}Períodos de postulación{% endblock %}
+{% block header %}Períodos de postulación{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ===== Cabecera ===== */
+  .page-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:.75rem; }
+  .page-head-left{ display:flex; align-items:center; gap:10px; }
+  .page-head h5{ margin:0; }
+
+  /* ===== Sección filtros ===== */
+  .filters-card .card-body{ padding:.65rem .75rem; }
+  .filters-row{ --gap:.5rem; row-gap:var(--gap); }
+  .filters-row .form-label{ font-size:.85rem; margin-bottom:.2rem; }
+  .filters-actions{ display:flex; gap:.5rem; align-items:end; }
+
+  /* Forzar alto similar entre inputs/selects/botones */
+  .filters-row .form-control,
+  .filters-row .form-select{
+    padding:.55rem .7rem; border-radius:10px; border:1px solid #cfd8e3;
+    transition: box-shadow .12s, border-color .12s;
+  }
+  .filters-row .form-control:focus,
+  .filters-row .form-select:focus{
+    border-color:#0d6efd; box-shadow:0 0 0 .2rem rgba(13,110,253,.15); outline:none;
+  }
+
+  /* ===== Tabla ===== */
+  .table-wrap{ border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; }
+  .table{ margin-bottom:0; }
+  .table thead th{ white-space:nowrap; background:#f8fafc; }
+  .table td, .table th{ vertical-align:middle; }
+  .col-actions-th{ width:320px; text-align:right; }
+  .col-actions-td{ text-align:right; }
+
+  /* ===== Acciones: consistentes ===== */
+  .actions-inline{
+    display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center;
+    gap:.4rem;
+  }
+  .actions-inline > *{ flex:0 0 auto; }           /* evita estiramientos raros */
+  .actions-inline form{ margin:0; }                /* quita margen de forms inline */
+  .actions-inline .btn{
+    padding:.35rem .6rem;                          /* altura y ancho uniformes */
+    line-height:1.1;
+    border-radius:8px;
+    font-size:.875rem;
+  }
+  .actions-inline .btn i{ margin-right:.25rem; }
+
+  /* Badges auxiliares */
+  .badge-dot{ display:inline-flex; align-items:center; gap:.4ch; }
+  .badge-dot::before{ content:""; width:.5rem; height:.5rem; border-radius:999px; background:currentColor; display:inline-block; }
+
+  /* Ritmo entre secciones */
+  .section + .section{ margin-top:.75rem; }
+
+  /* Responsive */
+  @media (max-width: 1200px){
+    .col-actions-th{ width:300px; }
+  }
+  @media (max-width: 992px){
+    .col-actions-th{ width:260px; }
+    .actions-inline .btn{ padding:.3rem .5rem; font-size:.82rem; }
+  }
+  @media (max-width:576px){
+    .page-head h5{ font-size:1rem; }
+    .filters-actions{ width:100%; }
+    .col-actions-th{ width:100%; }                 /* deja respirar en móviles */
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Cabecera -->
+<div class="page-head">
+  <div class="page-head-left">
+    <h5 class="mb-0">Períodos de postulación</h5>
+  </div>
+  <a class="btn btn-primary" href="{% url 'core:periodo_create' %}">
+    <i class="fas fa-plus"></i> Nuevo período
+  </a>
+</div>
+
+<!-- Filtros -->
+<div class="card shadow-sm filters-card section">
+  <div class="card-body">
+    <form class="row filters-row align-items-end" method="get">
+      <div class="col-lg-5 col-md-6 col-sm-6">
+        <label class="form-label mb-0 small" for="id_q">Buscar</label>
+        <input id="id_q" class="form-control" name="q" value="{{ q }}" placeholder="Buscar por nombre">
+      </div>
+
+      <div class="col-lg-4 col-md-4 col-sm-6">
+        <label class="form-label mb-0 small" for="id_estado">Estado</label>
+        <select id="id_estado" name="estado" class="form-select">
+          <option value="">Todos</option>
+          <option value="PROG" {% if estado == "PROG" %}selected{% endif %}>Programados</option>
+          <option value="OPEN" {% if estado == "OPEN" %}selected{% endif %}>Abiertos</option>
+          <option value="CLOSE" {% if estado == "CLOSE" %}selected{% endif %}>Cerrados</option>
+          <option value="ACT" {% if estado == "ACT" %}selected{% endif %}>Activos</option>
+          <option value="INACT" {% if estado == "INACT" %}selected{% endif %}>Inactivos</option>
+        </select>
+      </div>
+
+      <div class="col-lg-auto col-md-auto col-12">
+        <div class="filters-actions">
+          <button class="btn btn-outline-secondary" type="submit">Filtrar</button>
+          <a class="btn btn-light" href="{% url 'core:periodos_list' %}">Limpiar</a>
+        </div>
+      </div>
+
+      {% if items %}
+        <div class="col-12 mt-2">
+          <span class="text-muted small">
+            Mostrando {{ items|length }} registro{% if items|length != 1 %}s{% endif %}
+          </span>
+        </div>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<!-- Tabla -->
+{% if items %}
+  <div class="table-wrap section">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover align-middle" style="min-width: 980px;">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Inicio</th>
+            <th>Fin</th>
+            <th>Estado</th>
+            <th>Activo</th>
+            <th>Abierto p/ público</th>
+            <th class="col-actions-th">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in items %}
+            <tr>
+              <td>{{ p.nombre }}</td>
+              <td>{{ p.inicio|date:"d/m/Y H:i" }}</td>
+              <td>{{ p.fin|date:"d/m/Y H:i" }}</td>
+              <td>
+                {% with p.get_estado_display as est %}
+                  {% if p.estado == "OPEN" %}
+                    <span class="badge bg-success">{{ est }}</span>
+                  {% elif p.estado == "PROG" %}
+                    <span class="badge bg-primary">{{ est }}</span>
+                  {% elif p.estado == "CLOSE" %}
+                    <span class="badge bg-secondary">{{ est }}</span>
+                  {% else %}
+                    <span class="badge bg-light text-dark">{{ est }}</span>
+                  {% endif %}
+                {% endwith %}
+              </td>
+              <td>
+                {% if p.activo %}
+                  <span class="badge badge-dot text-success">Activo</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if p.abierta_para_publico %}
+                  <span class="badge bg-success">Abierto</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td class="col-actions-td">
+                <span class="actions-inline">
+                  <a class="btn btn-sm btn-outline-primary" href="{% url 'core:periodo_edit' p.id %}">
+                    <i class="fas fa-pen"></i> Editar
+                  </a>
+
+                  <form class="d-inline" method="post" action="{% url 'core:periodo_toggle_activo' p.id %}">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-outline-secondary" type="submit">
+                      {% if p.activo %}Desactivar{% else %}Activar{% endif %}
+                    </button>
+                  </form>
+
+                  <form class="d-inline" method="post" action="{% url 'core:periodo_set_estado' p.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="to" value="OPEN">
+                    <button class="btn btn-sm btn-outline-success" type="submit">
+                      Abrir
+                    </button>
+                  </form>
+
+                  <form class="d-inline" method="post" action="{% url 'core:periodo_set_estado' p.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="to" value="PROG">
+                    <button class="btn btn-sm btn-outline-primary" type="submit">
+                      Programar
+                    </button>
+                  </form>
+
+                  <form class="d-inline" method="post" action="{% url 'core:periodo_cerrar_hoy' p.id %}">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-outline-danger" type="submit">
+                      Cerrar hoy
+                    </button>
+                  </form>
+                </span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% else %}
+  <div class="alert alert-info section mb-0">No hay períodos definidos.</div>
+{% endif %}
+
+{% endblock %}

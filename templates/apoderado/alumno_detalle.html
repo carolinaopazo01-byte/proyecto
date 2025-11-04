@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Perfil del deportista{% endblock %}
+{% block header %}Perfil del deportista{% endblock %}
+
+{% block content %}
+<div class="card p-3 mb-3">
+  <div class="h5 mb-2">{{ alumno.nombres }} {{ alumno.apellidos }}</div>
+  <div class="text-muted">
+    {% if alumno.edad %}Edad: {{ alumno.edad }} · {% endif %}
+    {% if alumno.curso %}
+      {{ alumno.curso.disciplina.nombre }} / {{ alumno.curso.categoria }} / {{ alumno.curso.sede.nombre }}
+      · Profesor: {{ alumno.curso.profesor.get_full_name|default:alumno.curso.profesor.username }}
+    {% endif %}
+  </div>
+
+<div class="mt-1">
+  <b>Previsión:</b> {{ alumno.get_prevision_display|default:"—" }}
+</div>
+<div>
+  <b>N° Emergencia:</b> {{ alumno.n_emergencia|default:"—" }}
+</div>
+
+<div class="mb-3" style="display:flex;gap:8px;flex-wrap:wrap">
+  <a class="btn btn-light" href="{% url 'apoderado:asistencia' %}?hijo={{ alumno.pk }}">📅 Asistencia</a>
+  <a class="btn btn-light" href="{% url 'apoderado:planificacion' %}">📘 Planificación</a>
+  <a class="btn btn-light" href="{% url 'apoderado:comunicados' %}">📄 Comunicados</a>
+  <a class="btn btn-light" href="{% url 'apoderado:evaluaciones' %}">🩺 Evaluaciones</a>
+  <a class="btn btn-light" href="{% url 'apoderado:protocolos' %}">📂 Documentos</a>
+</div>
+
+{% if proxima_clase %}
+  <div class="card p-3 mb-3">
+    <div class="text-muted">Próxima clase</div>
+    <div>{{ proxima_clase.fecha|date:"d/m" }} · {{ proxima_clase.hora|time:"H:i" }}</div>
+  </div>
+{% endif %}
+
+<div class="card p-3">
+  <div class="mb-2 h6">Planificación (semana actual)</div>
+  {% if planificaciones %}
+    <ul class="mb-0">
+      {% for p in planificaciones %}
+        <li>
+          Semana {{ p.semana|date:"d/m/Y" }}
+          {% if p.curso %} — {{ p.curso.nombre }}{% endif %}
+          {% if p.archivo %} — <a href="{{ p.archivo.url }}" target="_blank">Descargar</a>{% endif %}
+          <small class="text-muted"> (subida {{ p.creado|date:"d/m H:i" }})</small>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="text-muted">Sin planificaciones visibles.</div>
+  {% endif %}
+</div>
+{% endblock %}

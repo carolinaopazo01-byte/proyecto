@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Panel del Apoderado{% endblock %}
+{% block header %}Apoderado{% endblock %}
+
+{% block content %}
+<div class="card p-3" style="max-width:900px">
+  <h2>Bienvenido, {{ request.user.get_full_name|default:request.user.username }}</h2>
+  <p>
+    Aquí puedes consultar el avance y la información de tus atletas registrados
+    en el programa <b>Campeones para Coquimbo</b>.
+  </p>
+
+  <!-- ====== Resumen rápido ====== -->
+  <table class="table table-sm" style="margin-top:10px;">
+    <thead>
+      <tr>
+        <th>% Asistencia promedio</th>
+        <th>Próxima clase</th>
+        <th>Próximas citas (PMUL)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          {% if asistencia_pct %}{{ asistencia_pct }}%{% else %}—{% endif %}
+        </td>
+        <td>
+          {% if prox_clase %}
+            {{ prox_clase.fecha|date:"d/m/Y" }} a las {{ prox_clase.hora_inicio }}
+            <br><small>{{ prox_clase.sede_deporte.sede.nombre }} — {{ prox_clase.profesor.get_full_name }}</small>
+          {% else %}
+            Sin información
+          {% endif %}
+        </td>
+        <td>{{ prox_citas }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ====== Atletas asociados ====== -->
+  <h4 class="mt-3">👦 Mi(s) atleta(s)</h4>
+  {% if atletas %}
+    <ul style="list-style:none;padding:0;margin:0;display:grid;gap:10px;">
+      {% for a in atletas %}
+        <li class="card p-2">
+          <b>{{ a.nombres }} {{ a.apellidos }}</b> — {{ a.edad }} años
+          <br>
+          <small>Curso: {{ a.curso.nombre }} | Profesor: {{ a.curso.profesor.get_full_name }}</small>
+          <div class="mt-2 d-flex gap-2">
+            <a class="btn btn-outline-primary" href="{% url 'core:ficha_estudiante' a.id %}">Ver ficha</a>
+            <a class="btn btn-outline-primary" href="{% url 'core:reporte_inasistencias' %}?atleta={{ a.id }}">Ver asistencia</a>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-muted">No hay atletas asociados.</p>
+  {% endif %}
+
+  <!-- ====== Comunicados recientes ====== -->
+  <h4 class="mt-3">🗞️ Comunicados para apoderados</h4>
+  {% if comunicados %}
+    <ul style="list-style:none;padding:0;margin:0;display:grid;gap:10px;">
+      {% for c in comunicados %}
+        <li class="card p-2">
+          <div class="h6 mb-0">{{ c.titulo }}</div>
+          <small class="text-muted">por {{ c.autor.username }} — {{ c.creado|date:"d/m/Y H:i" }}</small>
+          <div style="margin-top:6px;">{{ c.cuerpo|truncatechars:200 }}</div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-muted">No hay comunicados recientes dirigidos a apoderados.</p>
+  {% endif %}
+</div>
+{% endblock %}

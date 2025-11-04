@@ -1,0 +1,100 @@
+{% extends "base/plantilla.html" %}
+{% load humanize %}
+{% block title %}Mis franjas publicadas{% endblock %}
+{% block header %}Mis franjas publicadas{% endblock %}
+
+{% block extra_css %}
+<style>
+  .page-actions{display:flex;gap:.5rem;flex-wrap:wrap}
+  .chip{
+    display:inline-flex;align-items:center;gap:.35rem;
+    padding:.18rem .55rem;border-radius:999px;font-size:.78rem;font-weight:700;
+    border:1px solid var(--line,#e5e7eb); background:#fff; color:#0f172a;
+  }
+  .chip--ok{ background:#ecfdf5; border-color:#a7f3d0; color:#065f46; }      /* libre/ok */
+  .chip--warn{ background:#fff7ed; border-color:#fed7aa; color:#9a3412; }    /* reservado */
+  .chip--muted{ background:#f3f4f6; border-color:#e5e7eb; color:#374151; }   /* cancelado u otros */
+  .table thead th{ white-space:nowrap; font-weight:800; color:#374151; }
+  .table tbody td{ vertical-align:middle; }
+  .empty{
+    text-align:center; padding:1.5rem; border:1px dashed var(--line,#e5e7eb);
+    border-radius:12px; color:#6b7280; background:#fff;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-actions mb-2">
+  <a class="btn btn-primary" href="{% url 'pmul:slot_nuevo' %}">
+    <i class="fas fa-plus me-1"></i> Nueva franja
+  </a>
+  <a class="btn btn-outline-primary" href="{% url 'pmul:slot_bulk' %}">
+    <i class="fas fa-sync-alt me-1"></i> Recurrencia semanal
+  </a>
+</div>
+
+{% if slots %}
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th>Inicio</th>
+          <th>Fin</th>
+          <th>Piso</th>
+          <th>Estado</th>
+          <th class="text-end">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in slots %}
+          {% with est=s.estado %}
+          <tr>
+            <td>{{ s.inicio|date:"d/m/Y H:i" }}</td>
+            <td>{{ s.fin|date:"H:i" }}</td>
+            <td>
+              {% if s.piso == 1 %}1° Piso{% elif s.piso == 2 %}2° Piso{% else %}{{ s.piso }}{% endif %}
+            </td>
+            <td>
+              {# Chip por estado #}
+              {% if est == "LIBRE" %}
+                <span class="chip chip--ok"><i class="fas fa-check-circle"></i> {{ s.get_estado_display }}</span>
+              {% elif est == "RESERV" or est == "RESERVADA" %}
+                <span class="chip chip--warn"><i class="fas fa-clock"></i> {{ s.get_estado_display }}</span>
+              {% elif est == "CANC" or est == "CANCELADA" %}
+                <span class="chip chip--muted"><i class="fas fa-ban"></i> {{ s.get_estado_display }}</span>
+              {% else %}
+                <span class="chip chip--muted">{{ s.get_estado_display }}</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              {% if s.estado == "LIBRE" %}
+                <a class="btn btn-sm btn-outline-danger"
+                   href="{% url 'pmul:slot_cancelar' s.id %}"
+                   onclick="return confirm('¿Cancelar esta franja?');">
+                  <i class="fas fa-times me-1"></i> Cancelar
+                </a>
+              {% else %}
+                <button class="btn btn-sm btn-outline-secondary" disabled>
+                  <i class="fas fa-lock me-1"></i> Sin acciones
+                </button>
+              {% endif %}
+            </td>
+          </tr>
+          {% endwith %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="empty">
+    Sin franjas publicadas.
+    <div class="mt-2">
+      <a class="btn btn-primary" href="{% url 'pmul:slot_nuevo' %}">
+        <i class="fas fa-plus me-1"></i> Publicar la primera
+      </a>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

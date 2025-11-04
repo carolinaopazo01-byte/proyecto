@@ -1,10 +1,13 @@
 # applications/usuarios/urls.py
 from django.urls import path
-from . import views#, views_equipo, views_admin
+from django.urls import path, reverse_lazy
+from . import views
+from django.contrib.auth import views as auth_views
 
 app_name = "usuarios"
 
 urlpatterns = [
+    # Login / Logout
     path("login/", views.login_rut, name="login_rut"),
     path("logout/", views.logout_view, name="logout"),
 
@@ -16,8 +19,41 @@ urlpatterns = [
     path("panel/profesional/", views.panel_prof_multidisciplinario, name="panel_prof_multidisciplinario"),
     path("panel/atleta/", views.panel_atleta, name="panel_atleta"),
 
-    # Equipo (CRUD)
-    # nombres “nuevos”
+    # Recuperar contraseña (password reset)
+    path(
+        "password_reset/",
+        auth_views.PasswordResetView.as_view(
+            template_name="usuarios/password_reset.html",
+            email_template_name="usuarios/password_reset_email.html",
+            subject_template_name="usuarios/password_reset_subject.txt",
+            success_url=reverse_lazy("usuarios:password_reset_done"),  # <<--- FIX
+        ),
+        name="password_reset",
+    ),
+    path(
+        "password_reset/done/",
+        auth_views.PasswordResetDoneView.as_view(
+            template_name="usuarios/password_reset_done.html"
+        ),
+        name="password_reset_done",
+    ),
+    path(
+        "reset/<uidb64>/<token>/",
+        auth_views.PasswordResetConfirmView.as_view(
+            template_name="usuarios/password_reset_confirm.html",
+            success_url=reverse_lazy("usuarios:password_reset_complete"),  # <<--- FIX
+        ),
+        name="password_reset_confirm",
+    ),
+    path(
+        "reset/done/",
+        auth_views.PasswordResetCompleteView.as_view(
+            template_name="usuarios/password_reset_complete.html"
+        ),
+        name="password_reset_complete",
+    ),
+
+    # Equipo (CRUD) - nombres “nuevos”
     path("equipo/", views.usuarios_list, name="usuarios_list"),
     path("equipo/nuevo/", views.usuario_create, name="usuario_create"),
     path("equipo/<int:usuario_id>/", views.usuario_detail, name="usuario_detail"),
@@ -25,7 +61,7 @@ urlpatterns = [
     path("equipo/<int:usuario_id>/toggle/", views.usuario_toggle_active, name="usuario_toggle_active"),
     path("equipo/<int:usuario_id>/eliminar/", views.usuario_delete, name="usuario_delete"),
 
-    # alias para plantillas antiguas
+    # Aliases para compatibilidad (opcional: puedes eliminarlos si ya no se usan)
     path("equipo/nuevo/", views.usuario_create, name="equipo_new"),
     path("equipo/", views.usuarios_list, name="equipo_list"),
     path("equipo/<int:usuario_id>/editar/", views.usuario_edit, name="equipo_edit"),
@@ -33,4 +69,6 @@ urlpatterns = [
     path("equipo/<int:usuario_id>/toggle/", views.usuario_toggle_active, name="equipo_toggle"),
     path("equipo/<int:usuario_id>/", views.usuario_detail, name="equipo_view"),
 
-  ]
+    # Cambiar contraseña (para todos los perfiles autenticados)
+    path("cuenta/cambiar-clave/", views.cambiar_password, name="cambiar_password"),
+]

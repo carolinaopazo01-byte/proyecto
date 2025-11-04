@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block header %}Confirmar reserva{% endblock %}
+{% block content %}
+<p>Profesional: <b>{{ slot.profesional.first_name }} {{ slot.profesional.last_name }}</b> ({{ slot.profesional.get_equipo_rol_display }})</p>
+<p>Fecha: <b>{{ slot.inicio|date:"d/m H:i" }}</b> – {{ slot.fin|date:"H:i" }}</p>
+{% if not paciente %}
+  <p class="text-muted">Si eres apoderado, primero elige el deportista.</p>
+{% else %}
+  <p>Paciente: <b>{{ paciente }}</b></p>
+{% endif %}
+<form method="post">{% csrf_token %}
+  {% if paciente %}<input type="hidden" name="hijo" value="{{ paciente.id }}">{% endif %}
+  <button class="btn btn-primary">Confirmar reserva</button>
+  <a class="btn btn-secondary" href="{% url 'pmul:reservar_listado' %}">Cancelar</a>
+</form>
+{% endblock %}

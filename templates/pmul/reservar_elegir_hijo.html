@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block header %}Elegir deportista{% endblock %}
+{% block content %}
+<p>Reserva para el bloque del <b>{{ slot.inicio|date:"d/m H:i" }}</b> con {{ slot.profesional.first_name }} {{ slot.profesional.last_name }}.</p>
+<form method="post">{% csrf_token %}
+  <label>Elige deportista:</label>
+  <select name="hijo" class="form-select">
+    {% for h in hijos %}
+      <option value="{{ h.id }}">{{ h.nombres }} {{ h.apellidos }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn btn-primary mt-3">Confirmar</button>
+</form>
+{% endblock %}

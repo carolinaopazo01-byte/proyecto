@@ -1,12 +1,160 @@
 {% extends "base/public.html" %}
+{% load static %}
 {% block title %}Inicio — Campeones{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ===== Intro del programa ===== */
+  .program-intro{ max-width:1100px; margin: 24px auto 0; }
+  .program-hero{
+    background: linear-gradient(135deg, rgba(5,99,117,.08), rgba(9,18,54,.05));
+    border: 1px solid rgba(0,0,0,.06);
+    border-radius: 14px; padding: 28px;
+  }
+  .program-hero h3{ font-weight: 800; margin-bottom:10px; letter-spacing:.2px; }
+  .program-hero p.lead{ margin:0; font-size:1.05rem; line-height:1.6; color:#222; }
+  .hi{ color: var(--cpc-teal, #056375); font-weight:700; }
+  .sc{ font-variant: small-caps; letter-spacing:.5px; }
+
+  .program-cards{ margin-top:18px; }
+  .program-card{
+    height:100%; border:1px solid rgba(0,0,0,.06);
+    border-radius:14px; background:#fff;
+    box-shadow:0 8px 28px rgba(0,0,0,.04);
+  }
+  .program-card .card-header{
+    background:#fff; border-bottom:1px dashed rgba(0,0,0,.08);
+    padding:14px 18px;
+  }
+  .program-card .card-title{
+    display:flex; align-items:center; gap:10px; margin:0;
+    font-weight:800; color:#111;
+  }
+  .program-card .card-body{ padding:16px 18px 18px; color:#333; }
+  .program-bullet{ margin:0 0 6px 0; }
+  .program-bullet:last-child{ margin-bottom:0; }
+
+  /* ===== Carrusel de Noticias (contenido completo en la página) ===== */
+  .news-carousel-wrap{ max-width:1100px; margin:28px auto 32px; }
+  .news-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+  .news-head h4{ margin:0; font-weight:900; color:#0a5a64; letter-spacing:.2px; }
+
+  .news-carousel .carousel-item{
+    position:relative;
+    border-radius:14px; overflow:hidden;
+    box-shadow:0 8px 28px rgba(0,0,0,.10);
+    background:#fff;
+  }
+
+  .news-figure{ position:relative; width:100%; aspect-ratio: 16/9; background:#f3f4f6; }
+  .news-figure img{
+    position:absolute; inset:0; width:100%; height:100%;
+    object-fit:cover; object-position:center; display:block;
+  }
+
+  .news-panel{ padding:16px; }
+  .news-title{ margin:0 0 4px; font-weight:900; line-height:1.2; color:#0b172a; }
+  .news-meta{ font-size:.9rem; color:#6b7280; margin-bottom:8px; }
+  .news-body{ color:#1f2937; line-height:1.6; }
+  .news-body p:last-child{ margin-bottom:0; }
+
+  .news-carousel .carousel-control-prev,
+  .news-carousel .carousel-control-next{ width:10%; }
+  .news-carousel .carousel-control-prev-icon,
+  .news-carousel .carousel-control-next-icon{
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,.5));
+  }
+  .news-carousel .carousel-indicators{ bottom:-28px; }
+  .news-carousel .carousel-indicators li{
+    width:10px; height:10px; border-radius:999px; background:#cbd5e1;
+  }
+  .news-carousel .carousel-indicators .active{ background:#0a5a64; }
+
+  @media (max-width:576px){
+    .news-panel{ padding:12px; }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-  <div class="mb-3">
-    <a class="btn btn-light border" href="javascript:history.back()">← Atrás</a>
-    <a class="btn btn-light border" href="{% url 'core:home' %}">🏠 Inicio</a>
-  </div>
-  <div class="bg-white p-4 rounded shadow-sm">
-    <h2 class="text-primary mb-3">Inicio</h2>
-    <p><strong>Campeones para Coquimbo</strong> es una iniciativa municipal…</p>
-  </div>
+
+  <!-- ===== Intro del programa ===== -->
+  <section class="program-intro">
+    <div class="program-hero mb-4">
+      <h3>¿Qué es <span class="hi">Campeones para Coquimbo</span>?</h3>
+      <p class="lead">
+        Es un programa que busca promover la formación integral de los niños y niñas, utilizando el deporte formativo como instrumento
+        de inclusión y mejora de la salud física y la salud mental en nuestra comuna, así como el apoyo a los deportistas de alto rendimiento.
+      </p>
+    </div>
+
+    <!-- Solo sección "Destinatarios" (se eliminan Beneficiarios directos e indirectos) -->
+
+
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Noticias (Carrusel, contenido completo) ===== -->
+  <section class="news-carousel-wrap">
+    <div class="news-head">
+      <h4>Destacado</h4>
+      <!-- sin "Ver todas" -->
+    </div>
+
+    {% if noticias %}
+      <div id="newsCarousel" class="carousel slide news-carousel" data-ride="carousel" data-interval="6000" data-pause="hover" aria-label="Carrusel de noticias">
+
+        <!-- Indicadores -->
+        <ol class="carousel-indicators">
+          {% for n in noticias %}
+            <li data-target="#newsCarousel" data-slide-to="{{ forloop.counter0 }}" class="{% if forloop.first %}active{% endif %}"></li>
+          {% endfor %}
+        </ol>
+
+        <!-- Slides (cada uno con TODO el contenido visible) -->
+        <div class="carousel-inner">
+          {% for n in noticias %}
+            <div class="carousel-item {% if forloop.first %}active{% endif %}">
+              <!-- Imagen -->
+              <figure class="news-figure">
+                {% if n.imagen %}
+                  <img src="{{ n.imagen.url }}" alt="{{ n.titulo }}">
+                {% else %}
+                  <img src="{% static 'img/placeholder-news.jpg' %}" alt="Noticia">
+                {% endif %}
+              </figure>
+
+              <!-- Contenido completo -->
+              <div class="news-panel">
+                <h5 class="news-title">{{ n.titulo }}</h5>
+                <div class="news-meta">{{ n.created_at|date:"d M Y" }}</div>
+                <div class="news-body">
+                  {% if n.resumen %}
+                    <p><strong>{{ n.resumen }}</strong></p>
+                  {% endif %}
+                  {% if n.cuerpo %}{{ n.cuerpo|safe }}{% endif %}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- Controles (sin textos) -->
+        <a class="carousel-control-prev" href="#newsCarousel" role="button" data-slide="prev" aria-label="Anterior">
+          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        </a>
+        <a class="carousel-control-next" href="#newsCarousel" role="button" data-slide="next" aria-label="Siguiente">
+          <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        </a>
+      </div>
+    {% else %}
+      <div class="alert alert-light border">Aún no hay noticias publicadas.</div>
+    {% endif %}
+  </section>
+
 {% endblock %}

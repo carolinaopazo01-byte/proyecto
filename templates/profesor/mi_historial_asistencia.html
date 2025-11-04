@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Mi historial de asistencia{% endblock %}
+{% block header %}📊 Mi historial de asistencia{% endblock %}
+
+{% block content %}
+<div class="card p-3">
+  <form method="get" class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+    <input type="date" name="ini" value="{{ f_ini }}" class="input">
+    <input type="date" name="fin" value="{{ f_fin }}" class="input">
+    <select name="sede" class="input">
+      <option value="">Todas las sedes</option>
+      {% for s in sedes %}
+        <option value="{{ s.id }}" {% if s.id == sede_sel %}selected{% endif %}>{{ s.nombre }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn">Filtrar</button>
+  </form>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Fecha</th><th>Tipo</th><th>Hora</th><th>Sede</th><th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for i in items %}
+        <tr>
+          <td>{{ i.fecha|date:"d-m-Y" }}</td>
+          <td>{% if i.tipo == "ENT" %}Entrada{% else %}Salida{% endif %}</td>
+          <td>{{ i.hora|time:"H:i" }}</td>
+          <td>{{ i.sede.nombre }}</td>
+          <td>✅</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">Sin registros.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

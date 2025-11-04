@@ -1,0 +1,56 @@
+{% extends "base/plantilla.html" %}
+{% load static %}
+
+{% block title %}Mis cursos{% endblock %}
+
+{% block extra_css %}
+<style>
+  .page-head{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; margin-bottom:.75rem;
+  }
+  .page-head h4{ margin:0; font-weight:800; font-size:1.05rem; letter-spacing:.2px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+  <!-- Cabecera simple (sin botón Atrás) -->
+  <div class="page-head">
+    <h4>Mis cursos</h4>
+  </div>
+
+  {% if inscripciones %}
+    <div class="card shadow-sm">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="thead-light">
+              <tr>
+                <th>Curso</th>
+                <th>Disciplina</th>
+                <th>Sede</th>
+                <th>Profesor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for i in inscripciones %}
+              <tr>
+                <td>{{ i.curso.nombre }}</td>
+                <td>{{ i.curso.disciplina }}</td>
+                <td>{{ i.curso.sede }}</td>
+                <td>{{ i.curso.profesor.get_full_name|default:i.curso.profesor.username }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-info mb-0">No tienes cursos inscritos.</div>
+  {% endif %}
+
+{% endblock %}
+
+{% block extra_js %}{% endblock %}

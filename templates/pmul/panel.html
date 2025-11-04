@@ -1,0 +1,31 @@
+{% extends "base/plantilla_pmul.html" %}
+{% block title %}Panel PMUL{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-3">
+  <div class="col-md-3">
+    <div class="card p-3">
+      <div class="text-muted">📅 Citas de hoy</div>
+      <div class="h4 m-0">{{ citas_hoy }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card p-3">
+      <div class="text-muted">✅ Atendidas esta semana</div>
+      <div class="h4 m-0">{{ atendidas_semana }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card p-3">
+      <div class="text-muted">🏃‍♂️ Deportistas activos</div>
+      <div class="h4 m-0">{{ deportistas_activos }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card p-3">
+      <div class="text-muted">⚠️ Pend./Reprog. semana</div>
+      <div class="h4 m-0">{{ pendientes_reprog }}</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

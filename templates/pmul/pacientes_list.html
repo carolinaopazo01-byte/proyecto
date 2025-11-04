@@ -1,0 +1,57 @@
+{% extends "base/plantilla.html" %}
+{% block title %}Pacientes{% endblock %}
+{% block header %}Pacientes{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Mantiene la paleta global; solo unifica look de inputs */
+  .filters{ display:flex; gap:10px; align-items:end; flex-wrap:wrap; }
+  .filters .grow{ flex:1 1 320px; }
+  .table-wrap{ overflow:auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+<form method="get" class="card p-3 mb-2 filters" novalidate>
+  <div class="grow">
+    <label class="form-label">Buscar</label>
+    <input class="form-control" type="text" name="q" value="{{ q }}" placeholder="Nombre / Apellido / RUT / Email">
+  </div>
+  <button class="btn btn-primary">Buscar</button>
+</form>
+
+<div class="table-wrap">
+  <table class="table table-striped align-middle">
+    <thead>
+      <tr>
+        <th>RUT</th>
+        <th>Nombre</th>
+        <th>Email</th>
+        <th>N° Emergencia</th>
+        <th>Curso</th>
+        <th>Previsión</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in items %}
+        <tr>
+          <td>{{ p.rut }}</td>
+          <td>{{ p.nombres }} {{ p.apellidos }}</td>
+          <td>{{ p.email|default:"—" }}</td>
+          <td>{{ p.n_emergencia|default:"—" }}</td>
+          <td>{{ p.curso|default:"—" }}</td>
+          <td>{{ p.get_prevision_display|default:"—" }}</td>
+          <td class="text-nowrap">
+            <a class="btn btn-sm btn-primary" href="{% url 'pmul:ficha_create' p.id %}">Nueva ficha</a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="7" class="text-muted">Sin resultados.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

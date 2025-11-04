@@ -1,0 +1,54 @@
+{# templates/apoderado/planificacion.html #}
+{% extends "base.html" %}
+{% block title %}Planificación (semana){% endblock %}
+{% block header %}Planificación de la semana{% endblock %}
+
+{% block content %}
+<div class="card p-3 mb-3">
+  <div>Atleta: <b>{{ hijo }}</b></div>
+</div>
+
+<div class="card p-3">
+  {% if items %}
+    <div class="table-responsive">
+      <table class="table table-sm align-middle">
+        <thead>
+          <tr>
+            <th>Curso</th>
+            <th>Semana</th>
+            <th>Archivo</th>
+            <th>Comentarios</th>   {# 👈 nueva columna #}
+          </tr>
+        </thead>
+ <tbody>
+  {% for p in items %}
+    <tr>
+      <td>
+        {% if p.curso %}
+          {{ p.curso.nombre }}
+        {% else %}
+          —
+        {% endif %}
+      </td>
+      <td>{{ p.semana|date:"d-m-Y" }}</td>
+      <td>
+        {% if p.archivo %}
+          <a href="{{ p.archivo.url }}" target="_blank" rel="noopener">Descargar</a>
+        {% else %}
+          —
+        {% endif %}
+      </td>
+      <td class="text-break" style="max-width: 420px;">
+        {{ p.comentarios|default:"—"|linebreaksbr }}
+      </td>
+    </tr>
+  {% endfor %}
+</tbody>
+
+      </table>
+    </div>
+  {% else %}
+    <div class="text-muted">No hay planificaciones para esta semana.</div>
+  {% endif %}
+</div>
+{% endblock %}

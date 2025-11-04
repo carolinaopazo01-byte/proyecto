@@ -1,0 +1,182 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="icon" href="{% static 'img/logo/mi_logo.png' %}">
+  <title>{% block title %}CPC - Dashboard{% endblock %}</title>
+
+  <!-- CSS global -->
+  <link href="{% static 'vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet">
+  <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="{% static 'css/cpc-uniform.css' %}" rel="stylesheet">
+
+  <style>
+    :root{
+      --topbar-h:56px;
+      --rhythm:18px;
+
+      --bg:#f5f7fb;
+      --surface:#ffffff;
+      --text:#1f2937;
+
+      --primary-50:#e8f6f7;
+      --primary-100:#d6eff1;
+      --primary-200:#aee0e5;
+      --primary-300:#7fcfd6;
+      --primary-400:#3fb6c0;
+      --primary-500:#159aa7;
+      --primary-600:#0e7c86;
+      --primary-700:#0a5a64;
+      --primary-800:#083f49;
+
+      --card-br: #cfe7ea;
+
+      --elev-shadow-1: 0 2px 10px rgba(17, 24, 39, .10);
+      --elev-shadow-2: 0 1px  2px rgba(17, 24, 39, .06);
+      --elev-shadow: var(--elev-shadow-1), var(--elev-shadow-2);
+
+      --bar-color: var(--primary-700);
+      --bar-text: #ffffff;
+      --bar-text-weak: rgba(255,255,255,.85);
+    }
+
+    html,body{height:100%;}
+    body{
+      margin:0; background:var(--bg); color:var(--text);
+      font-family:"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    }
+
+    /* ===== Layout sin sidebar ===== */
+    .app{min-height:100dvh; display:flex;}
+    .content{ flex:1 1 auto; display:flex; flex-direction:column; min-width:0; }
+
+    /* ===== Topbar ===== */
+    .topbar{
+      height:var(--topbar-h); display:flex; align-items:center; gap:10px;
+      border-bottom:0; box-shadow: var(--elev-shadow);
+      background:var(--bar-color) !important; color: var(--bar-text);
+      padding:0 12px; position:sticky; top:0; z-index:1000;
+      background-clip: padding-box;
+      will-change: transform; transform: translateZ(0); contain: paint; backface-visibility: hidden;
+    }
+    .topbar, .topbar *{ color: var(--bar-text); }
+    .topbar .spacer{ flex:1 1 auto; }
+
+    .topbar-logo{ height:28px; width:auto; display:block; object-fit:contain; }
+
+    /* ===== Botón "volver" ===== */
+    .topbar-back{
+      display:inline-flex; align-items:center; justify-content:center;
+      width:36px; height:36px; border-radius:10px; border:1px solid rgba(255,255,255,.2);
+      background: transparent; color: var(--bar-text);
+      cursor:pointer; padding:0; line-height:1; outline: none;
+      transition: background .15s ease, border-color .15s ease, transform .08s ease;
+    }
+    .topbar-back i{ font-size:14px; }
+    .topbar-back:hover{ background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.35); }
+    .topbar-back:active{ transform: translateY(1px); }
+    .topbar-back:focus-visible{ box-shadow: 0 0 0 3px rgba(255,255,255,.35); }
+
+    /* Contenido */
+    .container-page{ flex:1 1 auto; padding:var(--rhythm) 16px; }
+    .container-page > *:first-child{ margin-top:0; }
+
+    /* Footer */
+    footer.footer{
+      background: var(--bar-color) !important;
+      color: var(--bar-text) !important;
+    }
+    footer.footer b{ color: var(--bar-text) !important; }
+
+    /* Estados comunes */
+    a{ color:var(--primary-600); }
+    a:hover{ color:var(--primary-700); }
+    .btn-primary{ background:var(--primary-600); border-color:var(--primary-600); }
+    .btn-primary:hover, .btn-primary:focus{ background:var(--primary-700); border-color:var(--primary-700); }
+    .form-control:focus{ border-color:var(--primary-300); box-shadow:0 0 0 3px rgba(21,154,167,.18); }
+  </style>
+
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+<div class="app" id="app">
+  <main class="content">
+    <nav class="topbar" id="topbar">
+      <!-- Botón de flecha para retroceder -->
+      <button
+        id="backBtn"
+        class="topbar-back"
+        type="button"
+        aria-label="Volver a la página anterior"
+        title="Volver"
+        data-fallback-url="{{ back_fallback_url|default:'/' }}"
+      >
+        <i class="fas fa-arrow-left" aria-hidden="true"></i>
+      </button>
+
+      <div class="spacer"></div>
+
+      <div class="ml-auto d-flex align-items-center">
+        <img src="{% static 'img/logo/mi_logo.png' %}" class="topbar-logo" alt="Logo CPC">
+      </div>
+    </nav>
+
+    <div class="container-page">
+      {% block content %}{% endblock %}
+    </div>
+
+    <footer class="footer py-3">
+      <div class="container text-center">
+        <span>Desarrollado por <b>Campeones Para Coquimbo</b></span>
+      </div>
+    </footer>
+  </main>
+</div>
+
+<!-- Dependencias (opcional si ya las cargas en otras plantillas) -->
+<script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
+<script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+
+<script>
+  (function(){
+    var btn = document.getElementById('backBtn');
+    if(!btn) return;
+
+    function sameOrigin(ref){
+      try { return new URL(ref, window.location.href).origin === window.location.origin; }
+      catch(e){ return false; }
+    }
+
+    function goBack(){
+      var fallback = btn.getAttribute('data-fallback-url') || '/';
+      var hasHistory = (window.history && window.history.length > 1);
+      var fromSameOrigin = document.referrer && sameOrigin(document.referrer);
+
+      if (hasHistory && fromSameOrigin) {
+        window.history.back();
+      } else {
+        window.location.href = fallback;
+      }
+    }
+
+    btn.addEventListener('click', goBack);
+
+    // Accesibilidad: activar con Enter o Espacio
+    btn.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        goBack();
+      }
+    });
+  })();
+</script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

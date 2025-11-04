@@ -7,9 +7,10 @@ class AsistenciaAtletaInline(admin.TabularInline):
 
 @admin.register(Clase)
 class ClaseAdmin(admin.ModelAdmin):
-    list_display = ('sede_deporte','profesor','fecha','hora_inicio','hora_fin','tema')
-    list_filter = ('sede_deporte','profesor','fecha')
-    inlines = [AsistenciaAtletaInline]
+    list_display = ('profesor', 'fecha', 'hora_inicio', 'hora_fin', 'tema')
+    list_filter  = ('profesor', 'fecha')
+    search_fields = ('tema', 'descripcion')
+    ordering = ('-fecha', 'hora_inicio')
 
 @admin.register(Atleta)
 class AtletaAdmin(admin.ModelAdmin):

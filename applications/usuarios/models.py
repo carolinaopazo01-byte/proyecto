@@ -1,8 +1,8 @@
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.contrib.auth.models import AbstractUser
+
 # ------------------------------------------------------------------
-# 1) Roles (y "shim" compatible con Usuario.Tipo.ADMIN, etc.)
+# 1) Roles (opcional, por compatibilidad)
 # ------------------------------------------------------------------
 class Roles:
     ADMIN = "ADMIN"   # Administrador
@@ -10,34 +10,10 @@ class Roles:
     PROF  = "PROF"    # Profesor/Entrenador
     ATLE  = "ATLE"    # Atleta
     APOD  = "APOD"    # Apoderado
-    PMUL  = "PMUL"    # Profesional Multidisciplinario
+    PMUL  = "PMUL"    # Profesional Multidisciplinario (Equipo)
 
 # ------------------------------------------------------------------
-# 2) Manager de Usuario
-# ------------------------------------------------------------------
-class UsuarioManager(BaseUserManager):
-    def create_user(self, rut, password=None, **extra_fields):
-        if not rut:
-            raise ValueError("El usuario debe tener un RUT")
-        rut = rut.replace(".", "").replace(" ", "").upper()
-        if "-" not in rut and len(rut) > 1:
-            rut = rut[:-1] + "-" + rut[-1]
-        user = self.model(rut=rut, **extra_fields)
-        if password:
-            user.set_password(password)
-        else:
-            user.set_unusable_password()
-        user.save(using=self._db)
-        return user
-
-    def create_superuser(self, rut, password=None, **extra_fields):
-        # Para compatibilidad si alguna vez usas createsuperuser
-        extra_fields.setdefault("tipo_usuario", Roles.ADMIN)
-        user = self.create_user(rut, password, **extra_fields)
-        return user
-
-# ------------------------------------------------------------------
-# 3) Modelo Usuario simplificado
+# 2) Usuario (custom)
 # ------------------------------------------------------------------
 class Usuario(AbstractUser):
     class Tipo(models.TextChoices):
@@ -46,24 +22,64 @@ class Usuario(AbstractUser):
         PROF  = "PROF",  "Profesor/Entrenador"
         ATLE  = "ATLE",  "Atleta"
         APOD  = "APOD",  "Apoderado"
-        PMUL  = "PMUL",  "Profesional Multidisciplinario"  # antes PROF_MULT
+        PMUL  = "PMUL",  "Profesional Multidisciplinario"
+
+    # ---- Sub-rol SOLO para Equipo Multidisciplinario
+    class EquipoRol(models.TextChoices):
+        KINE  = "KINE", "Equipo Multidisciplinario - Kinesiólogo(a)"
+        PSICO = "PSIC", "Equipo Multidisciplinario - Psicólogo(a)"
+        NUTRI = "NUTR", "Equipo Multidisciplinario - Nutricionista"
+        TENS  = "TENS", "Equipo Multidisciplinario - TENS"
 
     # --- Campos propios del programa
-    rut = models.CharField(max_length=12, unique=True, null=False, blank=False)
+    # Guarda el RUT con puntos y guion (ej: 12.345.678-5). max_length=12 alcanza.
+    rut = models.CharField(max_length=12, unique=True, db_index=True)
     telefono = models.CharField(max_length=20, blank=True)
-    # ATENCIÓN: pon aquí el NOMBRE CORRECTO del campo (no “tipo_usuario1”)
     tipo_usuario = models.CharField(max_length=5, choices=Tipo.choices, default=Tipo.ATLE)
     fecha_inscripcion = models.DateTimeField(auto_now_add=True)
-    fecha_nacimiento = models.DateField(null=True, blank=True)  # ← añade esto
-    # Vamos a autenticar por RUT:
+    fecha_nacimiento = models.DateField(null=True, blank=True)
+
+    # Sub-rol (opcional, solo obligatorio si tipo = PMUL)
+    equipo_rol = models.CharField(
+        max_length=4,
+        choices=EquipoRol.choices,
+        blank=True,
+        null=True,
+        help_text="Solo para usuarios del Equipo Multidisciplinario."
+    )
+
+    # Autenticación por RUT
     USERNAME_FIELD = "rut"
-    REQUIRED_FIELDS = ["username", "email"]  # para que admin pueda crear usuarios
+    REQUIRED_FIELDS = ["username", "email"]
 
     def __str__(self):
-        return f"{self.rut} ({self.get_tipo_usuario_display()})"
+        # Evita fallar si cambias choices: usa value si no hay display
+        try:
+            rol = self.get_tipo_usuario_display()
+        except Exception:
+            rol = self.tipo_usuario or "—"
+        return f"{self.rut} ({rol})"
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        super().clean()
+        # Reglas de sub-rol
+        if self.tipo_usuario == self.Tipo.PMUL and not self.equipo_rol:
+            raise ValidationError({"equipo_rol": "Selecciona el sub-rol del Equipo Multidisciplinario."})
+        if self.tipo_usuario != self.Tipo.PMUL:
+            self.equipo_rol = None
+
+    # Normaliza antes de guardar por si llega por otra vía distinta al ModelForm
+    def save(self, *args, **kwargs):
+        from applications.usuarios.utils import normalizar_rut, formatear_rut
+        if self.rut:
+            # Asegura formato consistente "12.345.678-5"
+            nr = normalizar_rut(self.rut)        # "12345678-5"
+            self.rut = formatear_rut(nr)         # "12.345.678-5"
+        return super().save(*args, **kwargs)
 
 # ------------------------------------------------------------------
-# 4) Modelos vinculados (sin usar TextChoices; limit_choices_to con strings)
+# 3) Modelos vinculados
 # ------------------------------------------------------------------
 class Coordinador(models.Model):
     usuario = models.OneToOneField(

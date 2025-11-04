@@ -1,0 +1,98 @@
+{% extends "base/plantilla.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block header %}{{ titulo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Ocupa todo el ancho */
+  .form-card{ width:100%; }
+
+  /* Dos columnas para aprovechar la pantalla (md+) */
+  .row-2col{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap:12px;
+  }
+  @media (min-width: 768px){
+    .row-2col{ grid-template-columns: 1fr 1fr; }
+  }
+
+  /* Botones CENTRADOS */
+  .actions{
+    gap:.5rem;
+    justify-content:center;   /* 👈 centrado */
+    width:100%;
+  }
+
+  /* ====== Look unificado para campos nativos ====== */
+  .form-card input[type="text"],
+  .form-card input[type="email"],
+  .form-card input[type="number"],
+  .form-card input[type="password"],
+  .form-card input[type="date"],
+  .form-card input[type="time"],
+  .form-card input[type="datetime-local"],
+  .form-card input[type="search"],
+  .form-card select,
+  .form-card textarea{
+    display:block; width:100%; height:2.45rem;
+    padding:.45rem .7rem; font-size:1rem; line-height:1.5;
+    color:var(--text, #1f2937); background:#fff;
+    border:1px solid var(--line, #e5e7eb); border-radius:8px;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .form-card select{ height:2.55rem; }
+  .form-card textarea{ min-height:120px; height:auto; resize:vertical; }
+  .form-card input:hover,.form-card select:hover,.form-card textarea:hover{ border-color:var(--primary-200, #aee0e5); }
+  .form-card input:focus,.form-card select:focus,.form-card textarea:focus{
+    outline:0; border-color:var(--primary-300, #7fcfd6);
+    box-shadow:0 0 0 3px rgba(21,154,167,.18);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<form method="post" class="card p-3 form-card" novalidate>
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger mb-3">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  <div class="mb-3">
+    <label class="form-label" for="{{ form.fecha.id_for_label }}">Fecha</label>
+    {{ form.fecha }}
+  </div>
+
+  <div class="mb-3 row-2col">
+    <div>
+      <label class="form-label" for="{{ form.hora_inicio.id_for_label }}">Hora inicio</label>
+      {{ form.hora_inicio }}
+    </div>
+    <div>
+      <label class="form-label" for="{{ form.hora_fin.id_for_label }}">Hora fin</label>
+      {{ form.hora_fin }}
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label" for="{{ form.paciente.id_for_label }}">Atleta</label>
+    {{ form.paciente }}
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label" for="{{ form.observacion.id_for_label }}">Observaciones</label>
+    {{ form.observacion }}
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label" for="{{ form.estado.id_for_label }}">Estado</label>
+    {{ form.estado }}
+  </div>
+
+  <div class="d-flex flex-wrap actions">
+    <button class="btn btn-primary" type="submit">Guardar</button>
+    <a class="btn btn-outline-secondary" href="{% url 'pmul:agenda' %}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

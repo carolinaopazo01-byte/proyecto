@@ -1,18 +1,74 @@
-{% extends "base.html" %}
-{% block title %}Usuario{% endblock %}
-{% block header %}Usuario{% endblock %}
+{% extends "base/plantilla.html" %}
+
+{% block title %} Detalle Usuario{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Encabezado alineado al layout base (sin botón Atrás) */
+  .page-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:.75rem; }
+  .page-head-left { display:flex; align-items:center; gap:10px; }
+  .page-head h4 { margin:0; font-size:1.05rem; font-weight:700; }
+
+  /* Tarjetas de key/value */
+  .kv-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px; }
+  .kv { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:12px; }
+  .kv .k { color:#6b7280; font-size:.9rem; margin:0 0 4px; }
+  .kv .v { margin:0; font-weight:600; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="card p-3">
-  <p><b>RUT:</b> {{ u.rut }}</p>
-  <p><b>Nombre:</b> {{ u.first_name }} {{ u.last_name }}</p>
-  <p><b>Usuario:</b> {{ u.username }}</p>
-  <p><b>Rol:</b> {{ u.get_tipo_usuario_display }}</p>
-  <p><b>Email:</b> {{ u.email }}</p>
-  <p><b>Teléfono:</b> {{ u.telefono }}</p>
-  <p><b>Estado:</b> {{ u.is_active|yesno:"Activo,Inactivo" }}</p>
-  <div class="mt-2">
-    <a class="btn" href="{% url 'usuarios:usuario_edit' u.id %}">Editar</a>
-    <a class="btn" href="{% url 'usuarios:usuarios_list' %}">Volver</a>
+
+  <!-- Encabezado estándar (sin Atrás) -->
+  <div class="page-head">
+    <div class="page-head-left">
+      <h4>Detalle Usuario</h4>
+    </div>
+    <a class="btn btn-primary" href="{% url 'usuarios:usuario_edit' u.id %}">Editar</a>
   </div>
-</div>
+
+  <!-- Datos en tarjeta -->
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="kv-grid">
+        <div class="kv">
+          <p class="k">RUT</p>
+          <p class="v">{{ u.rut }}</p>
+        </div>
+        <div class="kv">
+          <p class="k">Nombre</p>
+          <p class="v">{{ u.first_name }} {{ u.last_name }}</p>
+        </div>
+        <div class="kv">
+          <p class="k">Usuario</p>
+          <p class="v">{{ u.username }}</p>
+        </div>
+        <div class="kv">
+          <p class="k">Rol</p>
+          <p class="v">{{ u.get_tipo_usuario_display }}</p>
+        </div>
+        <div class="kv">
+          <p class="k">Email</p>
+          <p class="v">{{ u.email|default:"—" }}</p>
+        </div>
+        <div class="kv">
+          <p class="k">Teléfono</p>
+          <p class="v">{{ u.telefono|default:"—" }}</p>
+        </div>
+        <div class="kv">
+          <p class="k">Estado</p>
+          <p class="v">
+            {% if u.is_active %}
+              <span class="badge badge-success">Activo</span>
+            {% else %}
+              <span class="badge badge-secondary">Inactivo</span>
+            {% endif %}
+          </p>
+        </div>
+      </div>
+
+
+    </div>
+  </div>
+
 {% endblock %}

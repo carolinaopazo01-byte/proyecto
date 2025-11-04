@@ -1,0 +1,10 @@
+{% extends "base/plantilla.html" %}
+{% block header %}Reserva{% endblock %}
+{% block content %}
+{% if ok %}
+  <div class="alert alert-success">¡Reserva creada! Te esperamos en la fecha seleccionada.</div>
+{% else %}
+  <div class="alert alert-danger">{{ msg|default:"No fue posible reservar." }}</div>
+{% endif %}
+<a class="btn btn-primary" href="{% url 'pmul:reservar_listado' %}">Volver a buscar horas</a>
+{% endblock %}

@@ -1,18 +1,97 @@
-{% extends "base.html" %}
+{% extends "base/plantilla.html" %}
 {% block title %}Planificación{% endblock %}
 {% block header %}Planificación{% endblock %}
 
+{% block extra_css %}
+<style>
+  /* Cabecera */
+  .page-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .page-head-left { display:flex; align-items:center; gap:10px; }
+
+  /* Tipografía y ritmo */
+  .plan-section-title{ font-weight:700; font-size:.95rem; margin:0 0 .5rem 0; color:#111827; }
+  .plan-meta dt{ width:160px; color:#6b7280; font-weight:600; }
+  .plan-meta dd{ margin-bottom:.5rem; }
+  .plan-sep{ margin:.75rem 0; }
+
+  /* En pantallas chicas reducimos ancho de etiqueta */
+  @media (max-width:576px){
+    .plan-meta dt{ width:120px; }
+    .page-head h5{ font-size:1rem; }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="card p-3">
-  <p><b>Curso:</b> {{ p.curso.nombre }} ({{ p.curso.disciplina }})</p>
-  <p><b>Sede:</b> {{ p.curso.sede }}</p>
-  <p><b>Profesor:</b> {{ p.curso.profesor }}</p>
-  <p><b>Semana:</b> {{ p.semana|date:"d/m/Y" }}</p>
-  <p><b>Subida por:</b> {{ p.autor }} — {{ p.creado|date:"d/m/Y H:i" }}</p>
-  <p><b>Archivo:</b> {% if p.archivo %}<a href="{% url 'core:planificacion_download' p.id %}">Descargar</a>{% else %}—{% endif %}</p>
-  <div class="mt-2">
-    <a class="btn" href="{% url 'core:planificacion_historial' p.id %}">Ver historial</a>
-    <a class="btn" href="{% url 'core:planificaciones_list' %}">Volver</a>
+<!-- Cabecera con acciones -->
+<div class="page-head mb-3">
+  <div class="page-head-left">
+    <h5 class="mb-0">Planificación</h5>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <!-- ========== Bloque 1: Datos del curso ========== -->
+    <h6 class="plan-section-title">Datos del curso</h6>
+    <dl class="row plan-meta">
+      <dt class="col-sm-4 col-md-3">Curso</dt>
+      <dd class="col-sm-8 col-md-9">
+        {{ p.curso.nombre }}
+        {% if p.curso.disciplina %}<span class="text-muted">({{ p.curso.disciplina }})</span>{% endif %}
+      </dd>
+
+      <dt class="col-sm-4 col-md-3">Sede</dt>
+      <dd class="col-sm-8 col-md-9">{{ p.curso.sede|default:"—" }}</dd>
+
+      <dt class="col-sm-4 col-md-3">Profesor</dt>
+      <dd class="col-sm-8 col-md-9">{{ p.curso.profesor|default:"—" }}</dd>
+
+      <dt class="col-sm-4 col-md-3">Semana</dt>
+      <dd class="col-sm-8 col-md-9">{{ p.semana|date:"d/m/Y" }}</dd>
+    </dl>
+
+    <hr class="plan-sep">
+
+    <!-- ========== Bloque 2: Publicación ========== -->
+    <h6 class="plan-section-title">Publicación</h6>
+    <dl class="row plan-meta">
+      <dt class="col-sm-4 col-md-3">Subida por</dt>
+      <dd class="col-sm-8 col-md-9">
+        {{ p.autor }} <span class="text-muted">— {{ p.creado|date:"d/m/Y H:i" }}</span>
+      </dd>
+
+      <dt class="col-sm-4 col-md-3">Pública</dt>
+      <dd class="col-sm-8 col-md-9">
+        {% if p.publica %}
+          <span class="badge bg-success">Sí</span>
+        {% else %}
+          <span class="badge bg-secondary">No</span>
+        {% endif %}
+      </dd>
+
+      <dt class="col-sm-4 col-md-3">Archivo</dt>
+      <dd class="col-sm-8 col-md-9">
+        {% if p.archivo %}
+          <a class="btn btn-sm btn-outline-primary" href="{% url 'core:planificacion_download' p.id %}">
+            <i class="fas fa-download"></i> Descargar
+          </a>
+        {% else %}
+          —
+        {% endif %}
+      </dd>
+    </dl>
+
+    <hr class="plan-sep">
+
+    <!-- ========== Comentarios ========== -->
+    <h6 class="plan-section-title">Comentarios del profesor/entrenador</h6>
+    <div class="p-3 border rounded" style="white-space:pre-wrap;">
+      {{ p.comentarios|default:"—" }}
+    </div>
   </div>
 </div>
 {% endblock %}

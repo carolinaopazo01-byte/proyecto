@@ -1,93 +1,215 @@
-{% extends "base.html" %}
+{% extends "base/plantilla.html" %}
+
 {% block title %}Reporte semanal de inasistencias{% endblock %}
-{% block header %}Reporte semanal de inasistencias{% endblock %}
+
+{% block extra_css %}
+<style>
+  .page-head{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; margin-bottom:.75rem;
+  }
+  .page-head-left{ display:flex; align-items:center; gap:10px; }
+
+  /* ===== Filtros: TODAS las cajas alineadas y con mismas distancias ===== */
+  .filters-grid{
+    display:grid;
+    grid-template-columns: repeat(6, 200px); /* 6 columnas iguales en desktop */
+    gap:12px;                                 /* misma separación en todo */
+    align-items:end;
+  }
+  /* Cada bloque ocupa 1 columna por defecto */
+  .filters-grid > .cell{ min-width:0; }
+
+  /* Fila de botones ocupa todo el ancho pero respeta gutters */
+  .filters-actions{ grid-column:1 / -1; display:flex; gap:12px; }
+
+  /* Etiquetas e inputs uniformes */
+  .form-label{ font-weight:600; font-size:.9rem; margin-bottom:.25rem; }
+  .filters-grid .form-control,
+  .filters-grid select,
+  .filters-grid input[type="date"],
+  .filters-grid input[type="number"]{
+    height:2.35rem; font-size:.92rem;
+  }
+
+  /* Umbral corto pero alineado dentro de su celda */
+  .umbral .form-control{ max-width:120px; }
+
+  /* Responsivo */
+  @media (max-width: 1400px){
+    .filters-grid{ grid-template-columns: repeat(4, 1fr); }
+  }
+  @media (max-width: 992px){
+    .filters-grid{ grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 576px){
+    .filters-grid{ grid-template-columns: 1fr; }
+    .umbral .form-control{ max-width:160px; }
+  }
+
+  /* KPIs / Tabla */
+  .kpi-grid{
+    display:grid; gap:12px;
+    grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
+  }
+  .kpi-card{ padding:16px; }
+  .kpi-label{ color:#6b7280; margin:0; }
+  .kpi-value{ margin:0; font-size:1.4rem; font-weight:700; }
+
+  .table thead th{ white-space:nowrap; }
+</style>
+{% endblock %}
 
 {% block content %}
-<form method="get" class="card p-3 mb-3" style="display:grid; grid-template-columns: 160px 170px 200px 200px 200px 140px 1fr; gap:10px; align-items:end;">
-  <div>
-    <label class="form-label">Semana (día)</label>
-    <input type="date" name="semana" value="{{ semana }}">
-  </div>
-  <div>
-    <label class="form-label">Programa</label>
-    <select name="programa">
-      <option value="">Todos</option>
-      <option value="FORM" {% if programa == 'FORM' %}selected{% endif %}>Formativo</option>
-      <option value="ALTO" {% if programa == 'ALTO' %}selected{% endif %}>Alto Rendimiento</option>
-    </select>
-  </div>
-  <div>
-    <label class="form-label">Sede</label>
-    <select name="sede">
-      <option value="">Todas</option>
-      {% for s in sedes %}<option value="{{ s.id }}" {% if s.id|stringformat:"s" == request.GET.sede %}selected{% endif %}>{{ s.nombre }}</option>{% endfor %}
-    </select>
-  </div>
-  <div>
-    <label class="form-label">Disciplina</label>
-    <select name="disciplina">
-      <option value="">Todas</option>
-      {% for d in disciplinas %}<option value="{{ d.id }}" {% if d.id|stringformat:"s" == request.GET.disciplina %}selected{% endif %}>{{ d.nombre }}</option>{% endfor %}
-    </select>
-  </div>
-  <div>
-    <label class="form-label">Profesor</label>
-    <select name="prof">
-      <option value="">Todos</option>
-      {% for p in profes %}<option value="{{ p.id }}" {% if p.id|stringformat:"s" == request.GET.prof %}selected{% endif %}>{{ p.get_full_name }}</option>{% endfor %}
-    </select>
-  </div>
-<div>
-  <label class="form-label">Marcada por</label>
-  <select name="marcador">
-    <option value="" {% if request.GET.marcador == "" %}selected{% endif %}>Todos</option>
-    <option value="prof" {% if request.GET.marcador == "prof" %}selected{% endif %}>Profesor</option>
-    <option value="alum" {% if request.GET.marcador == "alum" %}selected{% endif %}>Alumno</option>
-  </select>
-</div>
-  <div>
-    <label class="form-label">Umbral alerta</label>
-    <input type="number" name="umbral" min="1" value="{{ umbral }}">
-  </div>
-  <div style="display:flex; gap:8px;">
-    <button class="btn" type="submit">Filtrar</button>
-    <a class="btn" href="{% url 'core:reporte_inasistencias_export' %}?semana={{ semana }}&sede={{ request.GET.sede }}&disciplina={{ request.GET.disciplina }}&prof={{ request.GET.prof }}">Exportar CSV</a>
-  </div>
-</form>
 
-<div class="grid mb-3" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:10px;">
-  <div class="card p-3"><div class="text-muted">Inasistencias totales</div><div class="h4">{{ kpi_total_ausentes }}</div></div>
-  <div class="card p-3"><div class="text-muted">Alumnos con ≥1 falta</div><div class="h4">{{ kpi_alumnos_con_falta }}</div></div>
-  <div class="card p-3"><div class="text-muted">Alumnos con alerta (≥ {{ umbral }})</div><div class="h4">{{ kpi_alertas }}</div></div>
-  <div class="card p-3"><div class="text-muted">% asistencia promedio</div><div class="h4">{{ kpi_pct }}%</div></div>
-</div>
+  <!-- Cabecera -->
+  <div class="page-head">
+    <div class="page-head-left">
+      <h4 class="mb-0">Reporte semanal de inasistencias</h4>
+    </div>
+  </div>
 
-<p class="text-muted">Semana: {{ lunes|date:"d/m" }} – {{ domingo|date:"d/m/Y" }}</p>
+  <!-- Filtros (alineación perfecta) -->
+  <form method="get" class="card p-3 mb-3">
+    <div class="filters-grid">
 
-<table class="table table-striped">
-  <thead>
-    <tr>
-      <th>Curso/Actividad</th><th>Profesor</th><th>Sede</th><th>Día</th><th>Fecha</th>
-      <th>Inscritos</th><th>Presentes</th><th>Ausentes</th><th>% Asistencia</th><th>Detalle</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for r in filas %}
-      <tr>
-        <td>{{ r.curso }}</td>
-        <td>{{ r.profesor }}</td>
-        <td>{{ r.sede }}</td>
-        <td>{{ r.dia }}</td>
-        <td>{{ r.fecha }}</td>
-        <td>{{ r.inscritos }}</td>
-        <td>{{ r.presentes }}</td>
-        <td>{{ r.ausentes }}</td>
-        <td>{{ r.pct }}%</td>
-        <td><a class="btn" href="{% url 'core:reporte_inasistencias_detalle' r.clase.id %}">Ver detalle</a></td>
-      </tr>
-    {% empty %}
-      <tr><td colspan="10">No hay registros para los filtros seleccionados.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+      <div class="cell">
+        <label class="form-label">Semana (día)</label>
+        <input type="date" name="semana" value="{{ semana }}" class="form-control">
+      </div>
+
+      <div class="cell">
+        <label class="form-label">Programa</label>
+        <select name="programa" class="form-control">
+          <option value="">Todos</option>
+          <option value="FORM" {% if programa == 'FORM' %}selected{% endif %}>Formativo</option>
+          <option value="ALTO" {% if programa == 'ALTO' %}selected{% endif %}>Alto Rendimiento</option>
+        </select>
+      </div>
+
+      <div class="cell">
+        <label class="form-label">Sede</label>
+        <select name="sede" class="form-control">
+          <option value="">Todas</option>
+          {% for s in sedes %}
+            <option value="{{ s.id }}" {% if s.id|stringformat:"s" == request.GET.sede %}selected{% endif %}>{{ s.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="cell">
+        <label class="form-label">Disciplina</label>
+        <select name="disciplina" class="form-control">
+          <option value="">Todas</option>
+          {% for d in disciplinas %}
+            <option value="{{ d.id }}" {% if d.id|stringformat:"s" == request.GET.disciplina %}selected{% endif %}>{{ d.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="cell">
+        <label class="form-label">Profesor</label>
+        <select name="prof" class="form-control">
+          <option value="">Todos</option>
+          {% for p in profes %}
+            <option value="{{ p.id }}" {% if p.id|stringformat:"s" == request.GET.prof %}selected{% endif %}>{{ p.get_full_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="cell">
+        <label class="form-label">Marcada por</label>
+        <select name="marcador" class="form-control">
+          <option value="" {% if request.GET.marcador == "" %}selected{% endif %}>Todos</option>
+          <option value="prof" {% if request.GET.marcador == "prof" %}selected{% endif %}>Profesor</option>
+          <option value="alum" {% if request.GET.marcador == "alum" %}selected{% endif %}>Alumno</option>
+        </select>
+      </div>
+
+      <div class="cell umbral">
+        <label class="form-label">Umbral alerta</label>
+        <input type="number" name="umbral" min="1" value="{{ umbral }}" class="form-control">
+      </div>
+
+      <!-- Botones (misma separación, ocupan toda la fila) -->
+      <div class="filters-actions">
+        <button class="btn btn-primary" type="submit">Filtrar</button>
+        <a class="btn btn-outline-secondary"
+           href="{% url 'core:reporte_inasistencias_export' %}?semana={{ semana }}&sede={{ request.GET.sede }}&disciplina={{ request.GET.disciplina }}&prof={{ request.GET.prof }}">
+          Exportar CSV
+        </a>
+      </div>
+    </div>
+  </form>
+
+  <!-- KPIs -->
+  <div class="kpi-grid mb-3">
+    <div class="card kpi-card">
+      <p class="kpi-label">Inasistencias totales</p>
+      <p class="kpi-value">{{ kpi_total_ausentes }}</p>
+    </div>
+    <div class="card kpi-card">
+      <p class="kpi-label">Alumnos con ≥1 falta</p>
+      <p class="kpi-value">{{ kpi_alumnos_con_falta }}</p>
+    </div>
+    <div class="card kpi-card">
+      <p class="kpi-label">Alumnos con alerta (≥ {{ umbral }})</p>
+      <p class="kpi-value">{{ kpi_alertas }}</p>
+    </div>
+    <div class="card kpi-card">
+      <p class="kpi-label">% Asistencia promedio</p>
+      <p class="kpi-value">{{ kpi_pct }}%</p>
+    </div>
+  </div>
+
+  <p class="text-muted">Semana: {{ lunes|date:"d/m" }} – {{ domingo|date:"d/m/Y" }}</p>
+
+  <!-- Tabla -->
+  <div class="card">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="thead-light">
+            <tr>
+              <th>Curso/Actividad</th>
+              <th>Profesor</th>
+              <th>Sede</th>
+              <th>Día</th>
+              <th>Fecha</th>
+              <th>Inscritos</th>
+              <th>Presentes</th>
+              <th>Ausentes</th>
+              <th>% Asistencia</th>
+              <th>Detalle</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in filas %}
+              <tr>
+                <td>{{ r.curso }}</td>
+                <td>{{ r.profesor }}</td>
+                <td>{{ r.sede }}</td>
+                <td>{{ r.dia }}</td>
+                <td>{{ r.fecha }}</td>
+                <td>{{ r.inscritos }}</td>
+                <td>{{ r.presentes }}</td>
+                <td>{{ r.ausentes }}</td>
+                <td>{{ r.pct }}%</td>
+                <td>
+                  <a class="btn btn-sm btn-outline-primary" href="{% url 'core:reporte_inasistencias_detalle' r.clase.id %}">
+                    Ver detalle
+                  </a>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="10" class="text-center text-muted">No hay registros para los filtros seleccionados.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
 {% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base/plantilla.html" %}
+{% block title %}QR {{ sede.nombre }}{% endblock %}
+{% block header %}QR — {{ sede.nombre }}{% endblock %}
+
+{% block content %}
+<style>
+@media print {
+  .no-print { display: none !important; }
+  .sheet { box-shadow: none; margin: 0; }
+}
+.sheet {
+  max-width: 700px;
+  margin: 12px auto;
+  padding: 24px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0,0,0,.08);
+  text-align: center;
+}
+.sheet h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+}
+.sheet p { margin: 4px 0; color:#333; }
+.qr {
+  margin: 18px 0;
+}
+.qr img {
+  width: 360px; height: 360px; object-fit: contain;
+}
+.small { color:#666; font-size: 13px; }
+</style>
+
+<div class="sheet">
+  <h1>{{ sede.nombre }}</h1>
+  <p class="small">{{ sede.direccion|default:"" }}</p>
+
+  <div class="qr">
+    <!-- el parámetro s controla el tamaño del PNG -->
+    <img src="{% url 'profesor:qr_sede_png' sede.id %}?s=18" alt="QR {{ sede.nombre }}">
+  </div>
+
+  <p><b>Instrucciones:</b> Para marcar su asistencia, abra “📷 Marcar mi asistencia (QR)” y escanee este código.</p>
+  <p class="small">Contenido del QR: <code>SEDE:{{ sede.id }}</code></p>
+
+  <div class="no-print" style="margin-top:12px;">
+    <button class="btn" onclick="window.print()">🖨️ Imprimir</button>
+    <a class="btn" href="{% url 'profesor:sedes_qr_list' %}">Volver</a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends "base/plantilla.html" %}
+{% block title %}Mi Agenda{% endblock %}
+{% block header %}Mi Agenda{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Solo ajustes de layout, sin tocar la paleta */
+  .filters .form-control{ height: 2.25rem; }
+  .actions-row{ gap:.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<form method="get" class="card p-3 mb-3 filters">
+  <div class="row g-2 align-items-end">
+    <div class="col-sm-6 col-md-3">
+      <label class="form-label" for="f-desde">Desde</label>
+      <input id="f-desde" class="form-control" type="date" name="desde" value="{{ f_desde }}">
+    </div>
+    <div class="col-sm-6 col-md-3">
+      <label class="form-label" for="f-hasta">Hasta</label>
+      <input id="f-hasta" class="form-control" type="date" name="hasta" value="{{ f_hasta }}">
+    </div>
+    <div class="col-sm-6 col-md-3">
+      <label class="form-label" for="f-piso">Piso</label>
+      <select id="f-piso" class="form-control" name="piso">
+        <option value="">Todos</option>
+        <option value="1" {% if f_piso == "1" %}selected{% endif %}>1° piso</option>
+        <option value="2" {% if f_piso == "2" %}selected{% endif %}>2° piso</option>
+      </select>
+    </div>
+    <div class="col-sm-6 col-md-3">
+      <label class="form-label" for="f-estado">Estado</label>
+      <select id="f-estado" class="form-control" name="estado">
+        <option value="">Todos</option>
+        <option value="PEND"  {% if f_estado == "PEND" %}selected{% endif %}>Programada</option>
+        <option value="REAL"  {% if f_estado == "REAL" %}selected{% endif %}>Atendida</option>
+        <option value="REPROG" {% if f_estado == "REPROG" %}selected{% endif %}>Reprogramada</option>
+        <option value="CANC"  {% if f_estado == "CANC" %}selected{% endif %}>Cancelada</option>
+      </select>
+    </div>
+
+    <div class="col-12 d-flex flex-wrap actions-row mt-2">
+      <button class="btn btn-primary" type="submit">Filtrar</button>
+      <a class="btn btn-outline-secondary" href="?">Limpiar</a>
+      <a class="btn btn-success ms-auto" href="{% url 'pmul:cita_new' %}">➕ Nueva cita</a>
+    </div>
+  </div>
+</form>
+
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-striped align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Fecha</th>
+          <th>Hora</th>
+          <th>Atleta</th>
+          <th>Piso</th>
+          <th>Estado</th>
+          <th style="min-width:280px;">Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in items %}
+          <tr>
+            <td>{{ c.inicio|date:"d/m/Y" }}</td>
+            <td>{{ c.inicio|date:"H:i" }}</td>
+            <td>{{ c.paciente.nombres }} {{ c.paciente.apellidos }}</td>
+            <td>{% if c.piso == 1 %}1° Piso{% else %}2° Piso{% endif %}</td>
+            <td>
+              {% if c.estado == "PEND" %}
+                <span class="badge bg-warning text-dark">Programada</span>
+              {% elif c.estado == "REAL" %}
+                <span class="badge bg-success">Atendida</span>
+              {% elif c.estado == "REPROG" %}
+                <span class="badge bg-info text-dark">Reprogramada</span>
+              {% elif c.estado == "CANC" %}
+                <span class="badge bg-secondary">Cancelada</span>
+              {% else %}
+                <span class="badge bg-light text-dark">{{ c.get_estado_display }}</span>
+              {% endif %}
+            </td>
+            <td class="d-flex flex-wrap gap-2">
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'pmul:cita_edit' c.id %}">✏️ Editar</a>
+              <a class="btn btn-sm btn-outline-info" href="{% url 'pmul:cita_reprogramar' c.id %}">🔁 Reprogramar</a>
+              <a class="btn btn-sm btn-outline-danger" href="{% url 'pmul:cita_cancel' c.id %}">❌ Cancelar</a>
+              <a class="btn btn-sm btn-outline-success" href="{% url 'pmul:ficha_new' %}?paciente={{ c.paciente.id }}">🩺 Ficha</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" class="text-muted p-4">No hay citas con los filtros actuales.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

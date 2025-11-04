@@ -1,8 +1,8 @@
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from applications.core.models import SedeDeporte
 from datetime import date
+from django.utils import timezone
 
 Usuario = settings.AUTH_USER_MODEL
 
@@ -12,30 +12,30 @@ class Atleta(models.Model):
         BECADO = 'BEC', 'Becado'
         ALTO_REND = 'AR', 'Alto rendimiento'
 
-    # Relación con el usuario (nombres, email, etc. suelen vivir ahí)
+    # Relación con el usuario (nombres, email, etc.)
     usuario = models.OneToOneField(
         Usuario,
         on_delete=models.CASCADE,
-        limit_choices_to={'tipo_usuario': 'ATLE'}
+        limit_choices_to={'tipo_usuario': 'ATLE'},
+        null=True, blank=True
     )
 
     # Identificación del/la atleta
     rut = models.CharField(max_length=12, unique=True)
     fecha_nacimiento = models.DateField(null=True, blank=True)
     direccion = models.CharField(max_length=200, blank=True)
-    comuna = models.CharField(max_length=80, blank=True)  # NUEVO
-    edad = models.PositiveSmallIntegerField(null=True, blank=True, editable=False)  # NUEVO (autocalculada)
+    comuna = models.CharField(max_length=80, blank=True)
+    edad = models.PositiveSmallIntegerField(null=True, blank=True, editable=False)
 
     # Clasificación/estado
     tipo_atleta = models.CharField(max_length=3, choices=TipoAtleta.choices, default=TipoAtleta.BECADO)
     estado = models.CharField(max_length=50, blank=True)
     faltas_consecutivas = models.IntegerField(default=0)
 
-    # Tutor / representante legal (ya existente)
+    # Tutor / representante legal
     apoderado = models.ForeignKey('usuarios.Apoderado', on_delete=models.SET_NULL, null=True, blank=True)
 
-    # 3) Información deportiva del atleta (NUEVO)
-    # Ojo: Inscripción ya amarra a SedeDeporte/Deporte; estos campos son de "postulación/logros"
+    # Información deportiva (postulación/logros)
     pertenece_organizacion = models.BooleanField(default=False)
     club_nombre = models.CharField(max_length=120, blank=True)
     logro_nacional = models.BooleanField(default=False)
@@ -43,12 +43,14 @@ class Atleta(models.Model):
     categoria_competida = models.CharField(max_length=80, blank=True)
     puntaje_o_logro = models.CharField(max_length=120, blank=True)
 
+    class Meta:
+        ordering = ["rut"]
+
     def __str__(self):
-        # get_full_name puede no existir si el user model es custom; si no, usa str(self.usuario)
         try:
             nombre = self.usuario.get_full_name()
         except AttributeError:
-            nombre = str(self.usuario)
+            nombre = str(self.usuario) if self.usuario else "—"
         return f"{nombre} ({self.rut})"
 
     # --------- utilidades internas ----------
@@ -72,82 +74,131 @@ class Atleta(models.Model):
         if self.pertenece_organizacion and not self.club_nombre:
             raise ValidationError("Si pertenece a una organización deportiva, indique el nombre del club.")
 
-        # Si marca logros, sugiero completar categoría/puntaje
-        if (self.logro_nacional or self.logro_internacional) and (not self.categoria_competida or not self.puntaje_o_logro):
+        # Si marca logros, sugerir completar categoría/puntaje
+        if (self.logro_nacional or self.logro_internacional) and (
+            not self.categoria_competida or not self.puntaje_o_logro
+        ):
             raise ValidationError("Si declaró logros, complete la categoría y el puntaje o logro obtenido.")
 
     # --------- persistencia ----------
     def save(self, *args, **kwargs):
-        # calcula y persiste la edad siempre que haya fecha_nacimiento
         self.edad = self._calc_edad()
         super().save(*args, **kwargs)
 
 
 class Inscripcion(models.Model):
-    atleta = models.ForeignKey(Atleta, on_delete=models.CASCADE, related_name='inscripciones')
-    sede_deporte = models.ForeignKey(SedeDeporte, on_delete=models.CASCADE, related_name='inscripciones')
-    fecha = models.DateField(auto_now_add=True)
-    activa = models.BooleanField(default=True)
+    atleta = models.ForeignKey("atleta.Atleta", on_delete=models.CASCADE, related_name="inscripciones")
+    # Dejar null=True/blank=True si tienes datos previos sin curso; luego puedes hacerlo obligatorio
+    curso = models.ForeignKey(
+        "core.Curso",
+        on_delete=models.CASCADE,
+        related_name="inscripciones",
+        null=True, blank=True
+    )
+    fecha = models.DateField(default=timezone.now)
+    estado = models.CharField(
+        max_length=20,
+        choices=[("ACTIVA", "Activa"), ("INACTIVA", "Inactiva")],
+        default="ACTIVA",
+    )
 
     class Meta:
-        unique_together = ('atleta', 'sede_deporte')
-
-    def clean(self):
-        if self.activa:
-            ocupados = Inscripcion.objects.filter(
-                sede_deporte=self.sede_deporte, activa=True
-            ).exclude(pk=self.pk).count()
-            if ocupados >= self.sede_deporte.cupos_max:
-                raise ValidationError("No quedan cupos disponibles para esta disciplina en la sede.")
+        constraints = [
+            models.UniqueConstraint(fields=["atleta", "curso"], name="uniq_inscripcion_atleta_curso")
+        ]
+        ordering = ["-fecha", "atleta_id"]
 
     def __str__(self):
-        return f"{self.atleta} -> {self.sede_deporte}"
+        return f"{self.atleta} → {self.curso or '—'}"
 
 
 class Clase(models.Model):
-    sede_deporte = models.ForeignKey(SedeDeporte, on_delete=models.CASCADE, related_name='clases')
-    profesor = models.ForeignKey('usuarios.Profesor', on_delete=models.SET_NULL, null=True)
+    # Según el diagrama: Clase depende de la combinación Sede–Deporte
+    sede_deporte = models.ForeignKey(
+        "core.SedeDeporte",
+        on_delete=models.PROTECT,            # protege historial de clases
+        related_name="clases",
+        null=True, blank=True               # temporalmente opcional si migras desde curso
+    )
+
+    # Compatibilidad: curso opcional (puedes quitarlo luego)
+    curso = models.ForeignKey(
+        "core.Curso",
+        on_delete=models.SET_NULL,          # no romper clase si borras un curso antiguo
+        related_name="clases",
+        null=True, blank=True
+    )
+
+    profesor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     fecha = models.DateField()
     hora_inicio = models.TimeField()
     hora_fin = models.TimeField()
-    tema = models.CharField(max_length=150, blank=True)
-    descripcion = models.TextField(blank=True)
+    tema = models.CharField(max_length=100)
+    descripcion = models.TextField(blank=True, null=True)
+
+    # Control de sesión de clase
+    ESTADO = (
+        ("PEND", "Pendiente"),
+        ("ENCU", "En curso"),
+        ("CERR", "Cerrada"),
+    )
+    estado = models.CharField(max_length=4, choices=ESTADO, default="PEND")
+    inicio_real = models.DateTimeField(null=True, blank=True)
+    fin_real = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-fecha", "hora_inicio"]
 
     def __str__(self):
-        return f"{self.sede_deporte} / {self.fecha}"
+        etiqueta = self.tema or "Clase"
+        if self.sede_deporte_id:
+            return f"{etiqueta} · {self.sede_deporte.deporte} @ {self.sede_deporte.sede} ({self.fecha})"
+        if self.curso_id:
+            return f"{etiqueta} · {self.curso.disciplina} @ {self.curso.sede} ({self.fecha})"
+        return f"{etiqueta} ({self.fecha})"
 
 
 class AsistenciaAtleta(models.Model):
     clase = models.ForeignKey(Clase, on_delete=models.CASCADE, related_name='asistencias')
-    atleta = models.ForeignKey(Atleta, on_delete=models.CASCADE, related_name='asistencias')
-    presente = models.BooleanField(default=False)
-    observaciones = models.CharField(max_length=200, blank=True)
-
-    # NUEVO:
-    registrada_por = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True, blank=True,
-        related_name='asistencias_registradas'
+    atleta = models.ForeignKey(
+        "atleta.Atleta",
+        on_delete=models.CASCADE,
+        related_name='asistencias',
+        null=True, blank=True  # TEMPORAL si aún hay datos sin referencia
     )
-    registrada_en = models.DateTimeField(auto_now_add=True)
+    presente = models.BooleanField(default=False)
+    justificado = models.BooleanField(default=False)
+    observaciones = models.CharField(max_length=200, blank=True)
+    registrada_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='asistencias_registradas'
+    )
+    registrada_en = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
     class Meta:
-        unique_together = ('clase', 'atleta')
+        constraints = [
+            models.UniqueConstraint(fields=["clase", "atleta"], name="uniq_asistencia_atleta_por_clase")
+        ]
+        ordering = ["-clase__fecha", "clase_id", "atleta_id"]
 
     def __str__(self):
-        return f"{self.atleta} - {self.clase} : {'Presente' if self.presente else 'Ausente'}"
+        estado = "Presente" if self.presente else ("Justificado" if self.justificado else "Ausente")
+        return f"{self.atleta} - {self.clase} : {estado}"
+
 
 class AsistenciaProfesor(models.Model):
     profesor = models.ForeignKey('usuarios.Profesor', on_delete=models.CASCADE)
-    fecha = models.DateField()
+    fecha = models.DateField(default=timezone.now)
     hora_entrada = models.TimeField(null=True, blank=True)
     hora_salida = models.TimeField(null=True, blank=True)
     horas_trabajadas = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     observaciones = models.CharField(max_length=200, blank=True)
 
     class Meta:
-        unique_together = ('profesor', 'fecha')
+        constraints = [
+            models.UniqueConstraint(fields=["profesor", "fecha"], name="uniq_asistencia_profesor_fecha")
+        ]
+        ordering = ["-fecha", "profesor_id"]
 
     def __str__(self):
         return f"{self.profesor} {self.fecha}"
@@ -163,3 +214,6 @@ class Cita(models.Model):
 
     class Meta:
         ordering = ["-fecha", "-hora"]
+
+    def __str__(self):
+        return f"{self.fecha} {self.hora} · {self.profesional} con {self.paciente} ({self.estado})"

@@ -1,79 +1,148 @@
-{% extends "base.html" %}
+{% extends "base/plantilla.html" %}
+
 {% block title %}Atletas{% endblock %}
-{% block header %}Estudiantes{% endblock %}
+
+{% block extra_css %}
+<style>
+  .page-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .page-head-left { display:flex; align-items:center; gap:10px; }
+  .filters { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .table thead th { white-space:nowrap; }
+  .actions { display:flex; gap:8px; flex-wrap:wrap; }
+  .search-input { min-width:260px; }
+
+  /* Botón redondo para ícono (lupita) */
+  .icon-btn{
+    width:38px; height:38px; padding:0;
+    display:inline-flex; align-items:center; justify-content:center;
+    border-radius:.375rem; /* igual a .btn */
+    line-height:1;
+  }
+
+  /* Responsivo: reducir input en pantallas chicas */
+  @media (max-width: 576px){
+    .search-input{ min-width: 0; width: 100%; }
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<div style="display:flex; gap:10px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
-  <a class="btn" href="{% url 'core:estudiante_create' %}">➕ Nuevo estudiante</a>
-  <form method="get" style="display:flex; gap:8px; align-items:center;">
-    <input type="text" name="q" value="{{ q }}" placeholder="Buscar por RUT, nombre o email" style="padding:6px 8px; min-width:260px;">
-    <button class="btn">Buscar</button>
-  </form>
-  {% if estudiantes %}
-    <span style="margin-left:auto;">Mostrando {{ estudiantes|length }} registro{% if estudiantes|length != 1 %}s{% endif %}</span>
-  {% endif %}
-</div>
-
-{% if estudiantes %}
-  <div style="overflow:auto;">
-    <table class="table table-striped" style="min-width:1100px;">
-      <thead>
-        <tr>
-          <th>Nombre</th>
-          <th>RUT</th>
-          <th>Edad</th>
-          <th>Dirección</th>
-          <th>Comuna</th>
-          <th>Teléfono</th>
-          <th>Email</th>
-          <th>Organización</th>
-          <th>Club</th>
-          <th>Logros</th>
-          <th>Categoría</th>
-          <th>Puntaje/Logro</th>
-          <th>Curso</th>
-          <th>Activo</th>
-          <th style="min-width:160px;">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for e in estudiantes %}
-        <tr>
-          <td>{{ e.nombres }} {{ e.apellidos }}</td>
-          <td>{{ e.rut }}</td>
-          <td>{{ e.edad }}</td>
-          <td>{{ e.direccion }}</td>
-          <td>{{ e.comuna }}</td>
-          <td>{{ e.telefono }}</td>
-          <td>{{ e.email }}</td>
-          <td>{{ e.pertenece_organizacion|yesno:"Sí,No" }}</td>
-          <td>{{ e.club_nombre }}</td>
-          <td>
-            {% if e.logro_nacional or e.logro_internacional %}
-              {% if e.logro_nacional %}Nacional{% endif %}{% if e.logro_nacional and e.logro_internacional %} / {% endif %}{% if e.logro_internacional %}Internacional{% endif %}
-            {% else %}
-              —
-            {% endif %}
-          </td>
-          <td>{{ e.categoria_competida }}</td>
-          <td>{{ e.puntaje_o_logro }}</td>
-          <td>{{ e.curso }}</td>
-          <td>{{ e.activo|yesno:"Sí,No" }}</td>
-          <td class="text-end">
-            <a class="btn" href="{% url 'core:estudiante_edit' e.id %}">✏️ Editar</a>
-            <form method="post" action="{% url 'core:estudiante_delete' e.id %}" style="display:inline;">
-              {% csrf_token %}
-              <button class="btn" type="submit" onclick="return confirm('¿Eliminar este estudiante?');" style="background:#d9534f; color:white;">
-                🗑️ Eliminar
-              </button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <!-- Cabecera con mismas distancias que "Cursos" (sin botón Atrás) -->
+  <div class="page-head mb-3">
+    <div class="page-head-left">
+      <h4 class="mb-0">Estudiantes</h4>
+    </div>
+    <a class="btn btn-primary" href="{% url 'core:estudiante_create' %}">Nuevo estudiante</a>
   </div>
-{% else %}
-  <p>No hay estudiantes registrados.</p>
-{% endif %}
+
+  <!-- Filtros / buscador -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+      <div class="filters">
+        <form method="get" class="d-flex align-items-center" style="gap:8px;">
+          <input type="text"
+                 name="q"
+                 value="{{ q }}"
+                 class="form-control search-input"
+                 placeholder="Buscar por RUT, nombre o email">
+          <!-- Botón con ícono (lupita) -->
+          <button class="btn btn-outline-primary icon-btn" type="submit" aria-label="Buscar" title="Buscar">
+            <i class="fas fa-search"></i>
+          </button>
+        </form>
+        {% if estudiantes %}
+          <span class="ml-auto text-muted small">
+            Mostrando {{ estudiantes|length }} registro{% if estudiantes|length != 1 %}s{% endif %}
+          </span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if estudiantes %}
+    <div class="card shadow-sm">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0" style="min-width:1100px;">
+            <thead class="thead-light">
+              <tr>
+                <th>Nombre</th>
+                <th>RUT</th>
+                <th>Edad</th>
+                <th>Dirección</th>
+                <th>Comuna</th>
+                <th>Teléfono</th>
+                <th>Email</th>
+                <th>Organización</th>
+                <th>Club</th>
+                <th>Logros</th>
+                <th>Categoría</th>
+                <th>Puntaje/Logro</th>
+                <th>Curso</th>
+                <th>Activo</th>
+                <th style="min-width:160px;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for e in estudiantes %}
+              <tr>
+                <td>{{ e.nombres }} {{ e.apellidos }}</td>
+                <td>{{ e.rut }}</td>
+                <td>{{ e.edad }}</td>
+                <td>{{ e.direccion }}</td>
+                <td>{{ e.comuna }}</td>
+                <td>{{ e.telefono }}</td>
+                <td>{{ e.email }}</td>
+                <td>
+                  {% if e.pertenece_organizacion %}
+                    <span class="badge badge-success">Sí</span>
+                  {% else %}
+                    <span class="badge badge-secondary">No</span>
+                  {% endif %}
+                </td>
+                <td>{{ e.club_nombre }}</td>
+                <td>
+                  {% if e.logro_nacional or e.logro_internacional %}
+                    {% if e.logro_nacional %}Nacional{% endif %}{% if e.logro_nacional and e.logro_internacional %} / {% endif %}{% if e.logro_internacional %}Internacional{% endif %}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                <td>{{ e.categoria_competida }}</td>
+                <td>{{ e.puntaje_o_logro }}</td>
+                <td>{{ e.curso }}</td>
+                <td>
+                  {% if e.activo %}
+                    <span class="badge badge-success">Sí</span>
+                  {% else %}
+                    <span class="badge badge-secondary">No</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="actions">
+                    <a class="btn btn-sm btn-outline-primary" href="{% url 'core:estudiante_edit' e.id %}">
+                      <i class="fas fa-pen"></i> Editar
+                    </a>
+                    <form method="post" action="{% url 'core:estudiante_delete' e.id %}" style="display:inline;">
+                      {% csrf_token %}
+                      <button class="btn btn-sm btn-danger"
+                              type="submit"
+                              onclick="return confirm('¿Eliminar este estudiante?');">
+                        <i class="fas fa-trash-alt"></i> Eliminar
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-info mb-0">No hay estudiantes registrados.</div>
+  {% endif %}
 {% endblock %}
+
+{% block extra_js %}{% endblock %}

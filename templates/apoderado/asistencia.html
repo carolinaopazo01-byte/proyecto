@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Mi Atleta / Asistencia{% endblock %}
+{% block header %}Mi Atleta / Asistencia{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    {% if items %}
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Profesor</th>
+              <th>Presente</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in items %}
+              <tr>
+                <td>{{ r.asistencia.fecha|date:"d-m-Y" }}</td>
+                <td>
+                  {% if r.asistencia.profesor %}
+                    {{ r.asistencia.profesor.get_full_name|default:r.asistencia.profesor }}
+                  {% else %}—{% endif %}
+                </td>
+                <td>
+                  {% if r.presente %}
+                    <span class="badge text-bg-success">Sí</span>
+                  {% else %}
+                    <span class="badge text-bg-danger">No</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-muted">No hay asistencias para el período seleccionado.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

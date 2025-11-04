@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block header %}QR de sedes{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h3>QR por sede</h3>
+  <p>Escanea estos QR desde “📷 Marcar mi asistencia (QR)”.</p>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Sede</th>
+        <th>Dirección</th>
+        <th>Descargar</th>
+        <th>Imprimir placard</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in sedes %}
+      <tr>
+        <td>{{ s.nombre }}</td>
+        <td>{{ s.direccion|default:"—" }}</td>
+        <td>
+          <a class="btn" href="{% url 'profesor:qr_sede_png' s.id %}?s=16">PNG</a>
+        </td>
+        <td>
+          <a class="btn" href="{% url 'profesor:placard_sede_qr' s.id %}" target="_blank">Abrir</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4">No hay sedes.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
