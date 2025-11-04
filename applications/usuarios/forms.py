@@ -1,9 +1,8 @@
 # applications/usuarios/forms.py
-from datetime import date
-
 from django import forms
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 
 # Helpers centralizados
 from .utils import normalizar_rut, formatear_rut
@@ -88,11 +87,11 @@ class UsuarioCreateForm(forms.ModelForm):
         - La base queda como solo dígitos; ignora cualquier 'K' intermedia pegada por error.
         """
         rut_raw = (self.cleaned_data.get("rut") or "").strip()
-        # Mantén una copia humana para mensajes si quisieras
+
         # 1) Quita TODO salvo dígitos y letras K/k
         tokens = [c for c in rut_raw if c.isdigit() or c.upper() == "K"]
         if len(tokens) < 2:
-            raise ValidationError("RUT inválido.")
+            raise DjangoValidationError("RUT inválido.")
 
         # 2) La ÚLTIMA es el DV; la base = dígitos del resto
         dv = tokens[-1].upper()
@@ -100,20 +99,20 @@ class UsuarioCreateForm(forms.ModelForm):
         base = "".join(base_digits)
 
         if not base.isdigit() or len(base) < 6:
-            raise ValidationError("RUT inválido.")
+            raise DjangoValidationError("RUT inválido.")
 
         dv_ok = _rut_calc_dv(base)
         if dv != dv_ok:
-            # Mensaje explícito con el DV correcto para depurar carga
-            raise ValidationError(f"Dígito verificador incorrecto. Debe ser “{dv_ok}”.")
+            # Mensaje explícito con el DV correcto
+            raise DjangoValidationError(f"Dígito verificador incorrecto. Debe ser “{dv_ok}”.")
 
-        # 3) Construye el RUT normalizado "base-dv" y formateado "12.345.678-9"
+        # 3) Normaliza y formatea
         rut_norm = f"{base}-{dv}"
-        rut_fmt = formatear_rut(rut_norm)
+        rut_fmt = formatear_rut(rut_norm)  # "12.345.678-9"
 
-        # 4) Unicidad por RUT (mismo formato)
+        # 4) Unicidad por RUT con formato final
         if Usuario.objects.filter(rut__iexact=rut_fmt).exists():
-            raise ValidationError("Ya existe un usuario con ese RUT.")
+            raise DjangoValidationError("Ya existe un usuario con ese RUT.")
 
         return rut_fmt
 
@@ -134,10 +133,17 @@ class UsuarioCreateForm(forms.ModelForm):
             user.is_staff = False
             user.is_superuser = False
 
-        # Password por fecha (DDMMAAAA)
+        # Password por fecha (DDMMAAAA) validada contra políticas
         fn = self.cleaned_data.get("fecha_nacimiento")
         if fn:
             pwd = f"{fn.day:02d}{fn.month:02d}{fn.year:04d}"
+            try:
+                validate_password(pwd, user=user)
+            except DjangoValidationError as e:
+                # Bloquea la creación si no cumple políticas (puedes cambiar por generación de temporal)
+                raise DjangoValidationError(
+                    {"fecha_nacimiento": ["La contraseña inicial no cumple la política."] + e.messages}
+                )
             user.set_password(pwd)
 
         if commit:
@@ -214,4 +220,56 @@ class UsuarioUpdateForm(forms.ModelForm):
 
         if commit:
             user.save()
+        return user
+
+
+# ====================== Cambio de contraseña ================================
+class CambioPasswordForm(forms.Form):
+    """
+    Form para el template templates/atletas/cambiar_password.html
+    Campos esperados: email, pwd_old, pwd1, pwd2
+    """
+    email = forms.EmailField(required=False, label="Correo electrónico")
+    pwd_old = forms.CharField(widget=forms.PasswordInput, required=True, label="Contraseña actual")
+    pwd1 = forms.CharField(widget=forms.PasswordInput, required=True, label="Nueva contraseña")
+    pwd2 = forms.CharField(widget=forms.PasswordInput, required=True, label="Confirmar nueva contraseña")
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user")
+        super().__init__(*args, **kwargs)
+        if not (self.user and self.user.email):
+            self.fields["email"].required = True
+
+    def clean(self):
+        cleaned = super().clean()
+        user = self.user
+
+        old = cleaned.get("pwd_old")
+        new1 = cleaned.get("pwd1")
+        new2 = cleaned.get("pwd2")
+
+        # Verifica contraseña actual
+        if old and not user.check_password(old):
+            self.add_error("pwd_old", "Contraseña actual incorrecta.")
+
+        # Confirmación
+        if new1 and new2 and new1 != new2:
+            self.add_error("pwd2", "Las contraseñas no coinciden.")
+
+        # Políticas de Django
+        if new1:
+            try:
+                validate_password(new1, user=user)
+            except DjangoValidationError as e:
+                self.add_error("pwd1", e)
+
+        return cleaned
+
+    def save(self):
+        user = self.user
+        email = self.cleaned_data.get("email")
+        if email and not user.email:
+            user.email = email
+        user.set_password(self.cleaned_data["pwd1"])
+        user.save()
         return user

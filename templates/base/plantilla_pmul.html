@@ -322,6 +322,16 @@
           </a>
         </div>
       </section>
+
+      <!-- ===== Mi cuenta (Cambiar contraseña) ===== -->
+      <section class="sb-section">
+        <div class="sb-head"><i class="fas fa-user-cog"></i><span>Mi cuenta</span></div>
+        <div class="sb-body">
+          <a class="sb-link" href="{% url 'usuarios:cambiar_password' %}?next={{ request.get_full_path|urlencode }}">
+            <i class="fas fa-key"></i><span>Cambiar contraseña</span>
+          </a>
+        </div>
+      </section>
       <!-- ===== FIN SECCIONES ===== -->
     </div>
 

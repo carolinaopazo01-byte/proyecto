@@ -7,11 +7,13 @@ from django.db.models import Q
 from django.views.decorators.http import require_http_methods
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.contrib import messages
+from django.template.loader import select_template, TemplateDoesNotExist
+from django.contrib.auth import update_session_auth_hash
 
 from applications.usuarios.utils import role_required
 from applications.core.models import Comunicado
 from .utils import normalizar_rut, formatear_rut
-from .forms import UsuarioCreateForm, UsuarioUpdateForm
+from .forms import UsuarioCreateForm, UsuarioUpdateForm, CambioPasswordForm
 
 Usuario = get_user_model()
 
@@ -215,3 +217,43 @@ def usuario_toggle_active(request, usuario_id: int):
 def usuario_delete(request, usuario_id: int):
     get_object_or_404(Usuario, pk=usuario_id).delete()
     return redirect("usuarios:usuarios_list")
+@login_required
+def cambiar_password(request):
+    if request.method == "POST":
+        form = CambioPasswordForm(request.POST, user=request.user)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)  # mantener sesión tras cambio
+            messages.success(request, "Contraseña actualizada correctamente.")
+
+            # 1) Si viene ?next= volver ahí (si es seguro)
+            next_url = request.POST.get("next") or request.GET.get("next")
+            if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+                return redirect(next_url)
+
+            # 2) Si no, redirigir al panel según rol
+            return _redirigir_por_tipo(request.user)
+        else:
+            messages.error(request, "Revisa los errores del formulario.")
+    else:
+        form = CambioPasswordForm(user=request.user)
+
+    try:
+        tpl = select_template([
+            "atleta/cambiar_password.html",   # tu ruta actual
+            "atletas/cambiar_password.html",  # tolerante por si lo mueves
+            "usuarios/cambiar_password.html",
+            "cambiar_password.html",
+        ])
+        return HttpResponse(tpl.render({"form": form}, request))
+    except TemplateDoesNotExist:
+        # Fallback mínimo (no te bloquea si aún no existe el template)
+        html = """
+        <h2>Cambiar contraseña</h2>
+        <form method="post">
+          {%% csrf_token %%}
+          %s
+          <p><button type="submit">Actualizar</button></p>
+        </form>
+        """ % (form.as_p(),)
+        return HttpResponse(html)

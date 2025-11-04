@@ -386,6 +386,12 @@
     </div>
 
     <div class="sb-foot">
+      {% if request.user.is_authenticated %}
+          <a class="sb-link" href="{% url 'usuarios:cambiar_password' %}">Cambiar Contraseña</a>
+          <i class="fas fa-key"></i><span>Cambiar contraseña</span>
+        </a>
+      {% endif %}
+
       <a class="sb-logout" href="{% url 'usuarios:logout' %}"><i class="fas fa-sign-out-alt"></i><span>Cerrar sesión</span></a>
       <div class="sb-meta">© {% now "Y" %}</div>
     </div>
