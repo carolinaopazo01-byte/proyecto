@@ -1,0 +1,214 @@
+{% extends "base/plantilla.html" %}
+{% block title %}Ingresar alumno temporal{% endblock %}
+{% block header %}Ingresar alumno temporal{% endblock %}
+
+{% block content %}
+<form method="post" class="card p-3" style="max-width:900px" novalidate>
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger mb-3">
+      {% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- 1) Identificación -->
+  <fieldset class="mb-3">
+    <legend>1. Identificación del/la atleta</legend>
+    <div class="row g-2">
+      <div class="col-md-6">
+        <label class="form-label">Nombres</label>
+        {{ form.nombres }}
+        {% for e in form.nombres.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Apellidos</label>
+        {{ form.apellidos }}
+        {% for e in form.apellidos.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label">Fecha de nacimiento</label>
+        {{ form.fecha_nacimiento }}
+        {% for e in form.fecha_nacimiento.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Edad</label>
+        <input id="id_edad_preview" class="form-control" type="number" readonly>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">RUT</label>
+        {{ form.rut }}
+        {% for e in form.rut.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+
+      <div class="col-md-8">
+        <label class="form-label">Dirección</label>
+        {{ form.direccion }}
+        {% for e in form.direccion.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Comuna</label>
+        {{ form.comuna }}
+        {% for e in form.comuna.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label">Teléfono</label>
+        {{ form.telefono }}
+        {% for e in form.telefono.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Email</label>
+        {{ form.email }}
+        {% for e in form.email.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Número de emergencia</label>
+        {{ form.n_emergencia }}
+        {% for e in form.n_emergencia.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Previsión de salud</label>
+        {{ form.prevision }}
+        {% for e in form.prevision.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+    </div>
+  </fieldset>
+
+  <!-- 2) Tutor -->
+  <fieldset class="mb-3">
+    <legend>2. Tutor/a (si es menor de edad)</legend>
+    <div class="row g-2">
+      <div class="col-md-6">
+        <label class="form-label">Nombre completo</label>
+        {{ form.apoderado_nombre }}
+        {% for e in form.apoderado_nombre.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Teléfono</label>
+        {{ form.apoderado_telefono }}
+        {% for e in form.apoderado_telefono.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Correo electrónico</label>
+        {{ form.apoderado_email }}
+        {% for e in form.apoderado_email.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Fecha de nacimiento</label>
+        {{ form.apoderado_fecha_nacimiento }}
+        {% for e in form.apoderado_fecha_nacimiento.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">RUT del/la tutor(a)</label>
+        {{ form.apoderado_rut }}
+        {% for e in form.apoderado_rut.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+    </div>
+  </fieldset>
+
+  <!-- 3) Curso -->
+  <fieldset class="mb-3">
+    <legend>3. Curso y sede al cual postula</legend>
+    <div class="row g-2">
+      <div class="col-md-6">
+        <label class="form-label">{{ form.curso.label }}</label>
+        {{ form.curso }}
+        {% for e in form.curso.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+    </div>
+  </fieldset>
+
+  <!-- (Opcional) Campos deportivos condicionales si tu form los incluye y quieres mostrarlos aquí:
+  <fieldset class="mb-3">
+    <legend>Información deportiva (opcional)</legend>
+    <div class="row g-2">
+      <div class="col-md-6">
+        <label class="form-label">¿Pertenece a organización?</label>
+        {{ form.pertenece_organizacion }}
+        {% for e in form.pertenece_organizacion.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Nombre del club</label>
+        {{ form.club_nombre }}
+        {% for e in form.club_nombre.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Logro nacional</label>
+        {{ form.logro_nacional }}
+        {% for e in form.logro_nacional.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Logro internacional</label>
+        {{ form.logro_internacional }}
+        {% for e in form.logro_internacional.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Categoría competida</label>
+        {{ form.categoria_competida }}
+        {% for e in form.categoria_competida.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-12">
+        <label class="form-label">Puntaje o logro</label>
+        {{ form.puntaje_o_logro }}
+        {% for e in form.puntaje_o_logro.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+    </div>
+  </fieldset>
+  -->
+
+  {% for h in form.hidden_fields %}{{ h }}{% endfor %}
+
+  <div class="d-flex gap-2">
+    <button class="btn btn-primary" type="submit"><i class="fas fa-save"></i> Guardar</button>
+    <a class="btn btn-light" href="{% url 'usuarios:panel_profesor' %}">Cancelar</a>
+    <a class="btn btn-outline-secondary" href="{% url 'core:estudiantes_list_prof' %}">
+      <i class="fas fa-list"></i> Ver estudiantes
+    </a>
+  </div>
+</form>
+
+<script>
+  (function(){
+    // Edad en vivo
+    const fnac = document.getElementById("id_fecha_nacimiento");
+    const edadOut = document.getElementById("id_edad_preview");
+    function calcEdad(){
+      if(!fnac || !fnac.value){ if(edadOut) edadOut.value=""; return; }
+      const d = new Date(fnac.value); if(isNaN(d)){ if(edadOut) edadOut.value=""; return; }
+      const h = new Date();
+      let e = h.getFullYear() - d.getFullYear();
+      const m = h.getMonth() - d.getMonth();
+      if(m < 0 || (m === 0 && h.getDate() < d.getDate())) e--;
+      if(edadOut) edadOut.value = e >= 0 ? e : "";
+    }
+    fnac && fnac.addEventListener("change", calcEdad);
+    calcEdad();
+
+    // Formateo RUT
+    const inputRut = document.getElementById("id_rut");
+    if(inputRut){
+      function limpiar(v){ return v.replace(/[.\s]/g,"").replace(/-/g,"").toUpperCase(); }
+      function fmt(v){
+        v = limpiar(v); if(!v) return "";
+        const dv = v.slice(-1), base = v.slice(0,-1);
+        let out = "", c = 0;
+        for(let i = base.length-1; i>=0; i--){
+          out = base[i] + out; c++;
+          if(c === 3 && i !== 0){ out = "." + out; c = 0; }
+        }
+        return out + "-" + dv;
+      }
+      inputRut.addEventListener("input", ()=>{
+        const b = inputRut.value;
+        const pos = inputRut.selectionStart;
+        inputRut.value = fmt(b);
+        // Coloca el cursor al final
+        inputRut.selectionStart = inputRut.selectionEnd = inputRut.value.length;
+      });
+    }
+  })();
+</script>
+{% endblock %}

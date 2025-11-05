@@ -1,15 +1,72 @@
-{% extends "base.html" %}
-{% block header %}📅 Asistencia — seleccionar curso{% endblock %}
+{% extends "base/plantilla.html" %}
+{% block title %}Asistencia{% endblock %}
+{% block header %}📋 Listado de asistencia por curso{% endblock %}
+
 {% block content %}
-<p>Elige un curso para registrar asistencia hoy.</p>
-<ul>
-  {% for c in cursos %}
-    <li style="margin:6px 0;">
-      <a class="btn" href="{% url 'profesor:asistencia_tomar' c.id %}">{{ c.nombre }}</a>
-      <small style="color:#666;">(Inscritos: {{ c.inscripciones.count }})</small>
-    </li>
-  {% empty %}
-    <li>No tienes cursos asignados.</li>
-  {% endfor %}
-</ul>
+<p class="mb-3">A continuación se muestran tus cursos con los alumnos inscritos y su último estado de asistencia registrado.</p>
+
+<div class="cpc-safe">
+  {% if cursos %}
+    {% for c in cursos %}
+      <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title mb-1">{{ c.nombre }}</h5>
+          <p class="text-muted mb-2">
+            {{ c.sede.nombre }} · {{ c.disciplina.nombre }}<br>
+            Programa: {{ c.get_programa_display }} — Cupos: {{ c.cupos }}
+          </p>
+
+          {% with detalles=c.asistencias.last.detalles.all %}
+            {% if detalles %}
+              <table class="table table-striped table-sm align-middle mb-3">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Nombre</th>
+                    <th>RUT</th>
+                    <th>Estado asistencia</th>
+                    <th>Observaciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for d in detalles %}
+                    <tr>
+                      <td>{{ forloop.counter }}</td>
+                      <td>{{ d.estudiante.nombres }} {{ d.estudiante.apellidos }}</td>
+                      <td>{{ d.estudiante.rut }}</td>
+                      <td>
+                        {% if d.estado == "P" %}
+                          <span class="badge bg-success">Presente</span>
+                        {% elif d.estado == "A" %}
+                          <span class="badge bg-danger">Ausente</span>
+                        {% elif d.estado == "J" %}
+                          <span class="badge bg-warning text-dark">Justificado</span>
+                        {% else %}
+                          <span class="badge bg-secondary">Sin registro</span>
+                        {% endif %}
+                      </td>
+                      <td>{{ d.observaciones|default:"—" }}</td>
+                    </tr>
+                  {% empty %}
+                    <tr><td colspan="5">No hay registros de asistencia aún.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <p class="text-muted">No hay asistencias registradas todavía.</p>
+            {% endif %}
+          {% endwith %}
+
+          <div class="text-end">
+            <a class="btn btn-primary btn-sm" href="{% url 'core:asistencia_tomar' c.id %}">
+              Tomar asistencia
+            </a>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p>No tienes cursos asignados.</p>
+  {% endif %}
+</div>
 {% endblock %}

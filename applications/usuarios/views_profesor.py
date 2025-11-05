@@ -182,7 +182,7 @@ def asistencia_tomar(request, curso_id):
 
             messages.success(request, f"Asistencia guardada para {guardados} alumno(s).")
 
-        return redirect("usuarios:asistencia_tomar", curso_id=curso.id)
+        return redirect("core:asistencia_tomar", curso_id=curso.id)
 
     p_count = sum(1 for r in rows if r["code"] == "P")
     j_count = sum(1 for r in rows if r["code"] == "J")

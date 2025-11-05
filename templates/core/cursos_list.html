@@ -15,18 +15,21 @@
   .table td, .table th{ vertical-align:middle; }
 
   /* Columna acciones */
-  .col-actions-th{ width:180px; text-align:right; }
+  .col-actions-th{ width:320px; text-align:right; }
   .col-actions-td{ text-align:right; }
 
-  /* Acciones consistentes */
+  /* Acciones */
   .actions-inline{ display:flex; justify-content:flex-end; align-items:center; gap:.4rem; flex-wrap:wrap; }
   .actions-inline form{ margin:0; }
   .btn-action{ padding:.35rem .6rem; line-height:1.1; border-radius:8px; font-size:.875rem; }
   .btn-action[disabled]{ opacity:.6; pointer-events:none; }
 
+  /* Separador entre grupos */
+  .actions-sep{ width:1px; height:18px; background:#e5e7eb; margin:0 .25rem; }
+
   /* Cupos */
   .badge-cupos{ font-weight:600; }
-  .mini-hint{ font-size:12px; color:#6b7280; margin-top:.25rem; }
+  .mini-hint{ font-size:12px; color:#6b7280; margin-top:.25rem; text-align:right; }
 </style>
 {% endblock %}
 
@@ -37,9 +40,13 @@
   <div class="page-head-left">
     <h5 class="mb-0">Cursos</h5>
   </div>
-  <a class="btn btn-primary" href="{% url 'core:curso_create' %}">
-    <i class="fas fa-plus"></i> Nuevo curso
-  </a>
+
+  {# Solo ADMIN/COORD pueden crear cursos #}
+  {% if user.tipo_usuario == 'ADMIN' or user.tipo_usuario == 'COORD' %}
+    <a class="btn btn-primary" href="{% url 'core:curso_create' %}">
+      <i class="fas fa-plus"></i> Nuevo curso
+    </a>
+  {% endif %}
 </div>
 
 {% if cursos %}
@@ -66,7 +73,8 @@
               <td>{{ c.disciplina }}</td>
               <td>{{ c.profesor.get_full_name|default:c.profesor.username }}</td>
               <td>
-                {% for h in c.cursohorario_set.all %}
+                {# Si tu related_name no es "horarios", cambia por c.cursohorario_set.all #}
+                {% for h in c.horarios.all %}
                   {{ h.get_dia_display }} {{ h.hora_inicio|time:"H:i" }}–{{ h.hora_fin|time:"H:i" }}{% if not forloop.last %}<br>{% endif %}
                 {% empty %}
                   <span class="text-muted">—</span>
@@ -85,25 +93,54 @@
 
               <!-- Acciones -->
               <td class="col-actions-td">
-                <span class="actions-inline">
-                  {% if alumno %}
-                    {% if c.cupos and c.cupos_disponibles|default:0 <= 0 %}
-                      <span class="badge bg-secondary">Lleno</span>
-                    {% else %}
-                      <form method="post" action="{% url 'core:inscribir_en_curso' c.id alumno.id %}" class="d-inline" onsubmit="this.querySelector('button').disabled=true;">
-                        {% csrf_token %}
-                        <button class="btn btn-outline-primary btn-action" type="submit">
-                          <i class="fas fa-user-plus"></i> Inscribir
-                        </button>
-                      </form>
-                      {% if c.cupos %}
-                        <div class="mini-hint">Disp: {{ c.cupos_disponibles }}</div>
+                <div class="actions-inline">
+
+                  {# ===== PROFESOR: Tomar asistencia / Ver alumnos ===== #}
+                  {% if request.user.tipo_usuario == 'PROF' %}
+                    <a class="btn btn-primary btn-action" href="{% url 'core:asistencia_profesor' c.id %}">
+                      <i class="fas fa-clipboard-check"></i> Tomar asistencia
+                    </a>
+                    <a class="btn btn-outline-secondary btn-action" href="{% url 'core:asistencia_estudiantes' c.id %}">
+                      <i class="fas fa-users"></i> Ver alumnos
+                    </a>
+
+                  {# ===== ADMIN / COORD: Inscribir (si hay alumno), Editar, Eliminar ===== #}
+                  {% elif request.user.tipo_usuario == 'ADMIN' or request.user.tipo_usuario == 'COORD' %}
+
+                    {# Grupo 1: Inscribir (si viene 'alumno' en el contexto) #}
+                    {% if alumno %}
+                      {% if c.cupos and c.cupos_disponibles|default:0 <= 0 %}
+                        <span class="badge bg-secondary">Lleno</span>
+                      {% else %}
+                        <form method="post" action="{% url 'core:inscribir_en_curso' c.id alumno.id %}" class="d-inline" onsubmit="this.querySelector('button').disabled=true;">
+                          {% csrf_token %}
+                          <button class="btn btn-outline-primary btn-action" type="submit" title="Inscribir alumno en este curso">
+                            <i class="fas fa-user-plus"></i> Inscribir
+                          </button>
+                        </form>
                       {% endif %}
+                      <span class="actions-sep" aria-hidden="true"></span>
                     {% endif %}
-                  {% else %}
-                    <span class="mini-hint">Selecciona un alumno para inscribir.</span>
+
+                    {# Grupo 2: Editar / Eliminar #}
+                    <a class="btn btn-outline-secondary btn-action" href="{% url 'core:curso_edit' c.id %}" title="Editar curso">
+                      <i class="fas fa-edit"></i> Editar
+                    </a>
+
+                    <form method="post" action="{% url 'core:curso_delete' c.id %}" class="d-inline"
+                          onsubmit="return confirm('¿Eliminar el curso «{{ c.nombre }}»? Esta acción no se puede deshacer.');">
+                      {% csrf_token %}
+                      <button class="btn btn-outline-danger btn-action" type="submit" title="Eliminar curso">
+                        <i class="fas fa-trash-alt"></i> Eliminar
+                      </button>
+                    </form>
                   {% endif %}
-                </span>
+                </div>
+
+                {# Hint de cupos (solo si hay alumno para inscribir) #}
+                {% if alumno and c.cupos %}
+                  <div class="mini-hint">Disp: {{ c.cupos_disponibles }}</div>
+                {% endif %}
               </td>
             </tr>
           {% endfor %}

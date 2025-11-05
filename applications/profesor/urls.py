@@ -21,4 +21,5 @@ urlpatterns = [
     path("sedes/<int:sede_id>/qr.png", views.qr_sede_png, name="qr_sede_png"),
     path("sedes/<int:sede_id>/placard/", views.placard_sede_qr, name="placard_sede_qr"),
     path("alumnos/temporal/nuevo/", views.alumno_temporal_new, name="alumno_temporal_new"),
+
 ]

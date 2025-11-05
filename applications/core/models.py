@@ -1,6 +1,4 @@
-# applications/core/models.py
 from datetime import date
-
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -9,7 +7,6 @@ from django.contrib.auth.models import Group  # para audiencia por grupos
 Usuario = settings.AUTH_USER_MODEL
 
 # ====== Códigos de audiencia por tipo de usuario ======
-# (PROF = Profesor, PMUL = Equipo Multi, ATLE = Alumno/Atleta, APOD = Apoderado)
 AUDIENCIA_CODIGOS = ["PROF", "PMUL", "ATLE", "APOD"]
 
 
@@ -18,12 +15,9 @@ class Sede(models.Model):
     nombre = models.CharField(max_length=200)
     comuna = models.CharField(max_length=120, blank=True)
     direccion = models.CharField(max_length=240, blank=True)
-
     latitud = models.FloatField(null=True, blank=True)
     longitud = models.FloatField(null=True, blank=True)
-    radio_metros = models.PositiveIntegerField(default=150)  # geofencing
-
-    # Permitir None para que el form pueda dejarlo vacío
+    radio_metros = models.PositiveIntegerField(default=150)
     capacidad = models.PositiveIntegerField(null=True, blank=True, default=None)
     activa = models.BooleanField(default=True)
     descripcion = models.TextField(blank=True)
@@ -81,12 +75,11 @@ class Evento(models.Model):
 # ===================== NOTICIAS (portada) =====================
 class Noticia(models.Model):
     titulo = models.CharField(max_length=180)
-    bajada = models.CharField(max_length=280, blank=True)   # subtítulo/resumen corto
-    cuerpo = models.TextField(blank=True)                   # texto largo (opcional)
+    bajada = models.CharField(max_length=280, blank=True)
+    cuerpo = models.TextField(blank=True)
     imagen = models.ImageField(upload_to="noticias/", blank=True, null=True)
     publicada = models.BooleanField(default=True)
     publicada_en = models.DateTimeField(null=True, blank=True)
-
     autor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     creado = models.DateTimeField(auto_now_add=True)
     modificado = models.DateTimeField(auto_now=True)
@@ -101,22 +94,13 @@ class Noticia(models.Model):
 # ===================== COMUNICADOS =====================
 class ComunicadoQuerySet(models.QuerySet):
     def for_user(self, user):
-        """
-        Visibilidad:
-        - is_superuser, ADMIN y COORD ven todo.
-        - Resto: ven si su tipo_usuario (p.ej. 'PROF') está en audiencia_codigos
-          o si pertenece a un Group con el mismo nombre del código (PROF/PMUL/ATLE/APOD).
-        """
         tu = getattr(user, "tipo_usuario", None)
         if getattr(user, "is_superuser", False) or tu in ("ADMIN", "COORD"):
             return self
 
         q_tu = models.Q(audiencia_codigos__icontains=tu) if tu else models.Q(pk__in=[])
-
-        # Cruzar contra los grupos del usuario
         user_group_ids = getattr(user, "groups", Group.objects.none()).values_list("id", flat=True)
         q_grp = models.Q(audiencia_roles__in=Group.objects.filter(id__in=user_group_ids, name__in=AUDIENCIA_CODIGOS))
-
         return self.filter(q_tu | q_grp).distinct()
 
 
@@ -125,14 +109,8 @@ class Comunicado(models.Model):
     cuerpo = models.TextField()
     autor = models.ForeignKey(Usuario, on_delete=models.PROTECT)
     creado = models.DateTimeField(auto_now_add=True)
-
-    # CSV de códigos de audiencia seleccionados: p.ej. "PROF,ATLE"
     audiencia_codigos = models.CharField(max_length=100, default="", blank=True)
-
-    # Soporte opcional por grupos con el MISMO nombre del código (PROF/PMUL/ATLE/APOD)
-    audiencia_roles = models.ManyToManyField(
-        Group, blank=True, related_name="comunicados_dirigidos"
-    )
+    audiencia_roles = models.ManyToManyField(Group, blank=True, related_name="comunicados_dirigidos")
 
     objects = ComunicadoQuerySet.as_manager()
 
@@ -142,7 +120,6 @@ class Comunicado(models.Model):
     def __str__(self):
         return self.titulo
 
-    # Helpers de audiencia
     def set_audiencia_codigos(self, codigos):
         cods = [c for c in (codigos or []) if c in AUDIENCIA_CODIGOS]
         self.audiencia_codigos = ",".join(sorted(set(cods)))
@@ -152,15 +129,6 @@ class Comunicado(models.Model):
             return []
         return [c for c in self.audiencia_codigos.split(",") if c]
 
-    def visible_para(self, user) -> bool:
-        tu = getattr(user, "tipo_usuario", None)
-        if getattr(user, "is_superuser", False) or tu in ("ADMIN", "COORD"):
-            return True
-        if tu and tu in self.get_audiencia_codigos():
-            return True
-        user_group_ids = getattr(user, "groups", Group.objects.none()).values_list("id", flat=True)
-        return self.audiencia_roles.filter(id__in=user_group_ids, name__in=AUDIENCIA_CODIGOS).exists()
-
 
 # ===================== CURSOS =====================
 class Curso(models.Model):
@@ -169,12 +137,11 @@ class Curso(models.Model):
         ALTO_REND = "ALTO", "Alto rendimiento"
 
     class Estado(models.TextChoices):
-        BORRADOR  = "BOR",  "Borrador"
-        PUBLICADO = "PUB",  "Publicado"
-        CERRADAS  = "CER",  "Inscripciones cerradas"
-        ARCHIVADO = "ARC",  "Archivado"
+        BORRADOR = "BOR", "Borrador"
+        PUBLICADO = "PUB", "Publicado"
+        CERRADAS = "CER", "Inscripciones cerradas"
+        ARCHIVADO = "ARC", "Archivado"
 
-    # -------- Identificación --------
     nombre = models.CharField(max_length=120)
     programa = models.CharField(max_length=5, choices=Programa.choices, default=Programa.FORMATIVO)
     disciplina = models.ForeignKey("core.Deporte", on_delete=models.PROTECT)
@@ -189,40 +156,18 @@ class Curso(models.Model):
         blank=True,
         related_name="cursos_apoyo",
         limit_choices_to={"tipo_usuario": "PROF"},
-        help_text="Profesores de apoyo (opcional, múltiple)",
     )
     categoria = models.CharField(max_length=80, blank=True)
     sede = models.ForeignKey("core.Sede", on_delete=models.PROTECT)
-
-    # -------- Calendario --------
     fecha_inicio = models.DateField(null=True, blank=True)
     fecha_termino = models.DateField(null=True, blank=True)
-
-    # -------- Cupos e inscripciones --------
     cupos = models.PositiveIntegerField(default=20)
-    cupos_espera = models.PositiveIntegerField(default=0, help_text="Opcional: cupos de lista de espera")
-    permitir_inscripcion_rapida = models.BooleanField(
-        default=False,
-        help_text="Permitir inscripción rápida del profesor en 1ra clase",
-    )
-
-    # -------- Estado --------
+    cupos_espera = models.PositiveIntegerField(default=0)
+    permitir_inscripcion_rapida = models.BooleanField(default=False)
     publicado = models.BooleanField(default=False)
     estado = models.CharField(max_length=3, choices=Estado.choices, default=Estado.BORRADOR)
-
-    # -------- Compatibilidad (antiguos) --------
-    horario = models.CharField(
-        max_length=120,
-        blank=True,
-        default="",
-        help_text="(Deprecado) Ej: Lun y Mié 18:00-19:30. Usar horarios estructurados.",
-    )
-    lista_espera = models.BooleanField(
-        default=True,
-        help_text="(Deprecado) Usa 'cupos_espera' en su lugar.",
-    )
-
-    # meta
+    horario = models.CharField(max_length=120, blank=True, default="")
+    lista_espera = models.BooleanField(default=True)
     creado = models.DateTimeField(auto_now_add=True)
     modificado = models.DateTimeField(auto_now=True)
 
@@ -232,26 +177,22 @@ class Curso(models.Model):
     def __str__(self):
         return f"{self.nombre} - {self.get_programa_display()} - {self.disciplina}"
 
-    # helper para mostrar horarios en listados
-    def horarios_str(self) -> str:
+    def horarios_str(self):
         qs = self.horarios.all().order_by("dia", "hora_inicio")
         if not qs.exists():
             return self.horario or "—"
-        return " · ".join(
-            f"{h.get_dia_display()} {h.hora_inicio:%H:%M}-{h.hora_fin:%H:%M}"
-            for h in qs
-        )
+        return " · ".join(f"{h.get_dia_display()} {h.hora_inicio:%H:%M}-{h.hora_fin:%H:%M}" for h in qs)
 
 
 class CursoHorario(models.Model):
     class Dia(models.IntegerChoices):
-        LUNES      = 0, "Lunes"
-        MARTES     = 1, "Martes"
-        MIERCOLES  = 2, "Miércoles"
-        JUEVES     = 3, "Jueves"
-        VIERNES    = 4, "Viernes"
-        SABADO     = 5, "Sábado"
-        DOMINGO    = 6, "Domingo"
+        LUNES = 0, "Lunes"
+        MARTES = 1, "Martes"
+        MIERCOLES = 2, "Miércoles"
+        JUEVES = 3, "Jueves"
+        VIERNES = 4, "Viernes"
+        SABADO = 5, "Sábado"
+        DOMINGO = 6, "Domingo"
 
     curso = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name="horarios")
     dia = models.IntegerField(choices=Dia.choices)
@@ -267,14 +208,8 @@ class CursoHorario(models.Model):
 
 # ===================== PLANIFICACIONES =====================
 class Planificacion(models.Model):
-    curso = models.ForeignKey(
-        "core.Curso",
-        on_delete=models.CASCADE,
-        related_name="planificaciones",
-        null=True,
-        blank=True,
-    )
-    semana = models.DateField(null=True, blank=True, help_text="Fecha del lunes de la semana")
+    curso = models.ForeignKey("core.Curso", on_delete=models.CASCADE, related_name="planificaciones", null=True, blank=True)
+    semana = models.DateField(null=True, blank=True)
     semana_iso = models.CharField(max_length=10, blank=True, default="", db_index=True)
     archivo = models.FileField(upload_to="planificaciones/", blank=True, null=True)
     comentarios = models.TextField(blank=True, null=True)
@@ -284,25 +219,14 @@ class Planificacion(models.Model):
 
     class Meta:
         ordering = ["-semana", "-creado"]
-        indexes = [
-            models.Index(fields=["curso", "semana"]),
-            models.Index(fields=["semana_iso"]),
-        ]
-        # Si quieres forzar único por semana y curso, descomenta:
-        # constraints = [
-        #     models.UniqueConstraint(fields=["curso", "semana"], name="uniq_plan_curso_semana"),
-        # ]
 
     def __str__(self):
         return f"{self.curso} · semana {self.semana}"
 
-    def set_semana_iso(self):
+    def save(self, *args, **kwargs):
         if self.semana:
             iso_year, iso_week, _ = self.semana.isocalendar()
             self.semana_iso = f"{iso_year}-W{int(iso_week):02d}"
-
-    def save(self, *args, **kwargs):
-        self.set_semana_iso()
         super().save(*args, **kwargs)
 
 
@@ -319,7 +243,7 @@ class PlanificacionVersion(models.Model):
         return f"Versión {self.id} de {self.planificacion}"
 
 
-# ===================== ASISTENCIAS (placeholders) =====================
+# ===================== ASISTENCIAS =====================
 class AsistenciaClase(models.Model):
     curso_id = models.IntegerField()
     fecha = models.DateField()
@@ -344,41 +268,21 @@ class Estudiante(models.Model):
     telefono = models.CharField(max_length=20, blank=True, null=True)
     curso = models.ForeignKey("core.Curso", on_delete=models.SET_NULL, blank=True, null=True)
     activo = models.BooleanField(default=True)
-
     direccion = models.CharField(max_length=150, blank=True, null=True)
     comuna = models.CharField(max_length=80, blank=True, null=True)
     edad = models.PositiveSmallIntegerField(null=True, blank=True, editable=False)
-
-    n_emergencia = models.CharField(
-        max_length=30,
-        blank=True,
-        verbose_name="Número de emergencia"
-    )
-    PREVISION_CHOICES = [
-        ("FONASA", "Fonasa"),
-        ("ISAPRE", "Isapre"),
-        ("NINGUNA", "Ninguna"),
-    ]
-    prevision = models.CharField(
-        max_length=20,
-        choices=PREVISION_CHOICES,
-        default="NINGUNA",
-        verbose_name="Previsión de salud"
-    )
-
-    # Tutor/a
+    n_emergencia = models.CharField(max_length=30, blank=True, verbose_name="Número de emergencia")
+    PREVISION_CHOICES = [("FONASA", "Fonasa"), ("ISAPRE", "Isapre"), ("NINGUNA", "Ninguna")]
+    prevision = models.CharField(max_length=20, choices=PREVISION_CHOICES, default="NINGUNA", verbose_name="Previsión de salud")
     apoderado_nombre = models.CharField(max_length=200, blank=True, default="")
     apoderado_telefono = models.CharField(max_length=30, blank=True, default="")
     apoderado_rut = models.CharField(max_length=12, blank=True, default="")
     apoderado_email = models.EmailField(blank=True, null=True)
     apoderado_fecha_nacimiento = models.DateField(blank=True, null=True)
-
     pertenece_organizacion = models.BooleanField(default=False)
     club_nombre = models.CharField(max_length=120, blank=True, default="")
     logro_nacional = models.BooleanField(default=False)
     logro_internacional = models.BooleanField(default=False)
-
-    # metadatos
     creado = models.DateTimeField(default=timezone.now, null=True, blank=True)
     modificado = models.DateTimeField(auto_now=True)
     categoria_competida = models.CharField(max_length=80, blank=True, default="")
@@ -394,9 +298,7 @@ class Estudiante(models.Model):
         if not self.fecha_nacimiento:
             return None
         hoy = date.today()
-        e = hoy.year - self.fecha_nacimiento.year - (
-            (hoy.month, hoy.day) < (self.fecha_nacimiento.month, self.fecha_nacimiento.day)
-        )
+        e = hoy.year - self.fecha_nacimiento.year - ((hoy.month, hoy.day) < (self.fecha_nacimiento.month, self.fecha_nacimiento.day))
         return max(e, 0)
 
     def save(self, *args, **kwargs):
@@ -404,35 +306,24 @@ class Estudiante(models.Model):
         super().save(*args, **kwargs)
 
 
-# ===================== POSTULACIONES (formulario público / intake) =====================
+# ===================== POSTULACIONES =====================
 class PostulacionEstudiante(models.Model):
     class Estado(models.TextChoices):
-        NUEVA      = "NEW",  "Nueva"
-        CONTACTADA = "CON",  "Contactada"
-        ACEPTADA   = "ACE",  "Aceptada"
-        RECHAZADA  = "REC",  "Rechazada"
+        NUEVA = "NEW", "Nueva"
+        CONTACTADA = "CON", "Contactada"
+        ACEPTADA = "ACE", "Aceptada"
+        RECHAZADA = "REC", "Rechazada"
 
-    periodo = models.ForeignKey(
-        "core.RegistroPeriodo",
-        on_delete=models.SET_NULL,
-        null=True, blank=True,
-        related_name="postulaciones"
-    )
-    # Datos básicos del postulante
+    periodo = models.ForeignKey("core.RegistroPeriodo", on_delete=models.SET_NULL, null=True, blank=True, related_name="postulaciones")
     rut = models.CharField(max_length=12, unique=True)
     nombres = models.CharField(max_length=120)
     apellidos = models.CharField(max_length=120)
     fecha_nacimiento = models.DateField(null=True, blank=True)
-
     email = models.EmailField(blank=True, null=True)
     telefono = models.CharField(max_length=30, blank=True, default="")
     comuna = models.CharField(max_length=80, blank=True, default="")
-
-    # Interés deportivo
     deporte_interes = models.ForeignKey("core.Deporte", on_delete=models.SET_NULL, null=True, blank=True)
     sede_interes = models.ForeignKey("core.Sede", on_delete=models.SET_NULL, null=True, blank=True)
-
-    # Gestión
     estado = models.CharField(max_length=3, choices=Estado.choices, default=Estado.NUEVA, db_index=True)
     comentarios = models.TextField(blank=True, default="")
     creado = models.DateTimeField(auto_now_add=True)
@@ -441,10 +332,6 @@ class PostulacionEstudiante(models.Model):
 
     class Meta:
         ordering = ["-creado"]
-        indexes = [
-            models.Index(fields=["estado"]),
-            models.Index(fields=["rut"]),
-        ]
 
     def __str__(self):
         return f"Postulación {self.rut} - {self.nombres} {self.apellidos}"
@@ -452,15 +339,15 @@ class PostulacionEstudiante(models.Model):
 
 class RegistroPeriodo(models.Model):
     class Estado(models.TextChoices):
-        PROGRAMADA = "PROG",  "Programada"
-        ABIERTA    = "OPEN",  "Abierta"
-        CERRADA    = "CLOSE", "Cerrada"
+        PROGRAMADA = "PROG", "Programada"
+        ABIERTA = "OPEN", "Abierta"
+        CERRADA = "CLOSE", "Cerrada"
 
     nombre = models.CharField(max_length=120)
     inicio = models.DateTimeField(null=True, blank=True)
     fin = models.DateTimeField(null=True, blank=True)
     estado = models.CharField(max_length=5, choices=Estado.choices, default=Estado.PROGRAMADA, db_index=True)
-    activo = models.BooleanField(default=True, help_text="Si está desactivado, nunca se usará para recepción.")
+    activo = models.BooleanField(default=True)
     creado = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -478,6 +365,51 @@ class RegistroPeriodo(models.Model):
             return False
         return True
 
-    def abierta_para_publico(self) -> bool:
-        """Debe estar activa, en rango (si hay fechas) y en estado OPEN."""
+    def abierta_para_publico(self):
         return self.activo and self.estado == self.Estado.ABIERTA and self.esta_en_rango
+
+
+# ===================== ASISTENCIA CURSO =====================
+class AsistenciaCurso(models.Model):
+    class Estado(models.TextChoices):
+        PEND = "PEND", "Pendiente"
+        ENCU = "ENCU", "En curso"
+        CERR = "CERR", "Cerrada"
+
+    curso = models.ForeignKey("core.Curso", on_delete=models.CASCADE, related_name="asistencias")
+    fecha = models.DateField()
+    estado = models.CharField(max_length=4, choices=Estado.choices, default=Estado.PEND)
+    inicio_real = models.TimeField(null=True, blank=True)
+    fin_real = models.TimeField(null=True, blank=True)
+    creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+
+    class Meta:
+        unique_together = (("curso", "fecha"),)
+        ordering = ("-fecha", "curso_id")
+
+    def __str__(self):
+        return f"Asistencia {self.curso} {self.fecha:%Y-%m-%d}"
+
+    @property
+    def resumen(self):
+        agg = {"P": 0, "A": 0, "J": 0, "total": 0}
+        for d in self.detalles.all():
+            agg["total"] += 1
+            agg[d.estado] = agg.get(d.estado, 0) + 1
+        return agg
+class AsistenciaCursoDetalle(models.Model):
+    ESTADOS = (
+        ("P", "Presente"),
+        ("A", "Ausente"),
+        ("J", "Justificado"),
+    )
+    asistencia = models.ForeignKey(AsistenciaCurso, on_delete=models.CASCADE, related_name="detalles")
+    estudiante = models.ForeignKey("core.Estudiante", on_delete=models.CASCADE, related_name="asistencias_curso")
+    estado = models.CharField(max_length=1, choices=ESTADOS, default="P")
+    observaciones = models.CharField(max_length=255, blank=True, default="")
+
+    class Meta:
+        unique_together = (("asistencia", "estudiante"),)
+
+    def __str__(self):
+        return f"{self.estudiante} - {self.asistencia.fecha} ({self.estado})"

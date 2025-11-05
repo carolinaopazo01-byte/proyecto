@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.db import models
 from django.apps import apps
 
-# Importa sólo modelos que no generan ciclos directos
+# Importa solo modelos que no generan ciclos directos
 from .models import (
     Sede,
     Comunicado,
@@ -121,15 +121,12 @@ def _rut_igual(a: str, b: str) -> bool:
 
 # ========================= Sede =========================
 class SedeForm(forms.ModelForm):
-    # Coherente con modelo (capacidad puede ir vacía)
     capacidad = forms.IntegerField(required=False, min_value=0, label="Capacidad")
-
-    # Campo oculto con default (si no viene en el POST, se pone 150)
     radio_metros = forms.IntegerField(
         required=False,
         min_value=1,
         initial=150,
-        widget=forms.HiddenInput()  # <-- paréntesis corregidos
+        widget=forms.HiddenInput()
     )
 
     class Meta:
@@ -140,9 +137,6 @@ class SedeForm(forms.ModelForm):
         widgets = {
             "latitud": forms.HiddenInput(),
             "longitud": forms.HiddenInput(),
-        }
-        labels = {
-            "radio_metros": "Radio de validación (m)",
         }
 
     def clean_nombre(self):
@@ -157,50 +151,21 @@ class SedeForm(forms.ModelForm):
             raise ValidationError("La dirección es obligatoria.")
         return v
 
-    def clean_comuna(self):
-        return (self.cleaned_data.get("comuna") or "").strip()
-
-    def clean_capacidad(self):
-        v = self.cleaned_data.get("capacidad")
-        if v in ("", None):
-            return None
-        if v < 0:
-            raise ValidationError("La capacidad no puede ser negativa.")
-        return v
-
-    def clean_radio_metros(self):
-        v = self.cleaned_data.get("radio_metros")
-        return 150 if v in (None, "") else v
-
 # ========================= Curso y horarios =========================
 class CursoForm(forms.ModelForm):
     class Meta:
         model = Curso
         fields = [
-            "nombre",
-            "programa",
-            "disciplina",
-            "categoria",
-            "sede",
-            "fecha_inicio",
-            "fecha_termino",
-            "profesor",
-            "profesores_apoyo",
-            "cupos",
-            "cupos_espera",
-            "permitir_inscripcion_rapida",
-            "publicado",
-            "estado",
+            "nombre", "programa", "disciplina", "categoria", "sede",
+            "fecha_inicio", "fecha_termino",
+            "profesor", "profesores_apoyo",
+            "cupos", "cupos_espera", "permitir_inscripcion_rapida",
+            "publicado", "estado",
         ]
         widgets = {
             "fecha_inicio": forms.DateInput(attrs={"type": "date"}),
             "fecha_termino": forms.DateInput(attrs={"type": "date"}),
             "profesores_apoyo": forms.SelectMultiple(attrs={"size": 6}),
-        }
-        labels = {
-            "disciplina": "Disciplina",
-            "categoria": "Categoría (Sub-12, Adulto, Mixto)",
-            "sede": "Sede/Recinto",
         }
 
     def clean(self):
@@ -227,56 +192,8 @@ CursoHorarioFormSet = inlineformset_factory(
     can_delete=True,
 )
 
-# ========================= Inscripción a curso =========================
-if InscripcionCursoModel is not None:
-    class InscripcionCursoForm(forms.ModelForm):
-        class Meta:
-            model = InscripcionCursoModel
-            fields = ["estudiante", "curso"]
-            labels = {"estudiante": "Estudiante", "curso": "Curso"}
-
-        def clean(self):
-            cleaned = super().clean()
-            # Forzar validaciones del modelo (UniqueConstraint, etc.)
-            inst = self.instance if getattr(self, "instance", None) else InscripcionCursoModel()
-            for k, v in cleaned.items():
-                setattr(inst, k, v)
-            inst.full_clean(exclude=None)
-            return cleaned
-else:
-    class InscripcionCursoForm(forms.Form):
-        estudiante = forms.ModelChoiceField(queryset=Estudiante.objects.all(), label="Estudiante")
-        curso = forms.ModelChoiceField(queryset=Curso.objects.all(), label="Curso")
-
-        def clean(self):
-            cleaned = super().clean()
-            estudiante = cleaned.get("estudiante")
-            curso = cleaned.get("curso")
-            if not estudiante or not curso:
-                return cleaned
-            model = _get_model('core', 'InscripcionCurso')
-            if model:
-                exists = model.objects.filter(estudiante=estudiante, curso=curso).exists()
-                if exists:
-                    raise ValidationError("El/la estudiante ya está inscrito/a en ese curso.")
-            return cleaned
-
-        def save(self, commit=True):
-            model = _get_model('core', 'InscripcionCurso')
-            if not model:
-                raise ValidationError("No se pudo crear la inscripción (modelo no disponible).")
-            obj = model(estudiante=self.cleaned_data["estudiante"], curso=self.cleaned_data["curso"])
-            if commit:
-                obj.full_clean()
-                obj.save()
-            return obj
-
 # ========================= Estudiante =========================
 class EstudianteForm(forms.ModelForm):
-    """
-    Se piden datos de tutor/a SOLO si el/la estudiante es menor de 18 años.
-    Además, el modelo incluye apoderado_email y apoderado_fecha_nacimiento.
-    """
     class Meta:
         model = Estudiante
         fields = [
@@ -284,7 +201,7 @@ class EstudianteForm(forms.ModelForm):
             "direccion", "comuna", "telefono", "email",
             "n_emergencia", "prevision",
             "apoderado_nombre", "apoderado_telefono", "apoderado_rut",
-            "apoderado_email", "apoderado_fecha_nacimiento",   # <-- añadidos
+            "apoderado_email", "apoderado_fecha_nacimiento",
             "pertenece_organizacion", "club_nombre",
             "logro_nacional", "logro_internacional",
             "categoria_competida", "puntaje_o_logro",
@@ -294,96 +211,6 @@ class EstudianteForm(forms.ModelForm):
             "fecha_nacimiento": forms.DateInput(attrs={"type": "date"}),
             "apoderado_fecha_nacimiento": forms.DateInput(attrs={"type": "date"}),
         }
-        labels = {
-            "rut": "RUT",
-            "direccion": "Dirección",
-            "comuna": "Comuna",
-            "telefono": "Teléfono",
-            "email": "Email",
-            "n_emergencia": "Número de emergencia",
-            "prevision": "Previsión de salud",
-            "apoderado_nombre": "Nombre del/la tutor(a)",
-            "apoderado_telefono": "Teléfono del/la tutor(a)",
-            "apoderado_rut": "RUT del/la tutor(a)",
-            "apoderado_email": "Correo electrónico del/la tutor(a)",
-            "apoderado_fecha_nacimiento": "Fecha de nacimiento del/la tutor(a)",
-            "pertenece_organizacion": "¿Pertenece a una organización deportiva?",
-            "club_nombre": "Nombre del club",
-            "logro_nacional": "Logro nacional",
-            "logro_internacional": "Logro internacional",
-            "categoria_competida": "Categoría en la cual compitió",
-            "puntaje_o_logro": "Puntaje o logro obtenido",
-        }
-
-    # ---------- RUT ----------
-    def clean_rut(self):
-        rut = (self.cleaned_data.get("rut") or "").strip()
-        if not rut:
-            raise ValidationError("Debes ingresar el RUT.")
-        rut_norm = _rut_normaliza(rut)
-        try:
-            base, dv = rut_norm.split("-")
-        except ValueError:
-            raise ValidationError("RUT inválido.")
-        if not base.isdigit() or len(base) < 6:
-            raise ValidationError("RUT inválido.")
-        if _rut_calc_dv(base) != dv:
-            raise ValidationError("Dígito verificador incorrecto.")
-
-        qs = Estudiante.objects.all()
-        if self.instance.pk:
-            qs = qs.exclude(pk=self.instance.pk)
-        for e in qs.only("rut"):
-            if _rut_igual(e.rut, rut_norm):
-                raise ValidationError("Ya existe un estudiante con ese RUT.")
-        return rut_norm
-
-    def clean_apoderado_rut(self):
-        rut = (self.cleaned_data.get("apoderado_rut") or "").strip()
-        if not rut:
-            return ""
-        rut_norm = _rut_normaliza(rut)
-        try:
-            base, dv = rut_norm.split("-")
-        except ValueError:
-            raise ValidationError("RUT de apoderado inválido.")
-        if not base.isdigit() or _rut_calc_dv(base) != dv:
-            raise ValidationError("RUT de apoderado inválido.")
-        return rut_norm
-
-    def clean(self):
-        cleaned = super().clean()
-
-        # Edad para reglas de apoderado por minoría de edad (solo si < 18)
-        fnac = cleaned.get("fecha_nacimiento")
-        if fnac:
-            hoy = timezone.localdate()
-            edad = hoy.year - fnac.year - ((hoy.month, hoy.day) < (fnac.month, fnac.day))
-        else:
-            edad = None
-
-        if edad is not None and edad < 18:
-            if not (cleaned.get("apoderado_nombre") or "").strip():
-                self.add_error("apoderado_nombre", "Obligatorio para menores de edad.")
-            if not (cleaned.get("apoderado_telefono") or "").strip():
-                self.add_error("apoderado_telefono", "Obligatorio para menores de edad.")
-            if not (cleaned.get("apoderado_rut") or "").strip():
-                self.add_error("apoderado_rut", "Obligatorio para menores de edad.")
-            if not (cleaned.get("apoderado_email") or "").strip():
-                self.add_error("apoderado_email", "Obligatorio para menores de edad.")
-            if not cleaned.get("apoderado_fecha_nacimiento"):
-                self.add_error("apoderado_fecha_nacimiento", "Obligatorio para menores de edad.")
-
-        # Reglas deportivas condicionales
-        if cleaned.get("pertenece_organizacion") and not (cleaned.get("club_nombre") or "").strip():
-            self.add_error("club_nombre", "Indica el nombre del club.")
-        if cleaned.get("logro_nacional") or cleaned.get("logro_internacional"):
-            if not (cleaned.get("categoria_competida") or "").strip():
-                self.add_error("categoria_competida", "Completa la categoría en la cual compitió.")
-            if not (cleaned.get("puntaje_o_logro") or "").strip():
-                self.add_error("puntaje_o_logro", "Indica el puntaje o logro obtenido.")
-
-        return cleaned
 
 # ========================= Deporte =========================
 class DeporteForm(forms.ModelForm):
@@ -403,21 +230,7 @@ class ComunicadoForm(forms.ModelForm):
     class Meta:
         model = Comunicado
         fields = ['titulo', 'cuerpo', 'autor', 'audiencia_codigos', 'audiencia_roles']
-        widgets = {
-            'audiencia_roles': forms.SelectMultiple(attrs={'size': 6}),
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance and (self.instance.audiencia_codigos or "").strip():
-            self.initial['audiencia_codigos'] = [
-                c for c in (self.instance.audiencia_codigos or "").split(",") if c
-            ]
-
-    def clean_audiencia_codigos(self):
-        cods = self.cleaned_data.get("audiencia_codigos") or []
-        cods = [c for c in cods if c in AUDIENCIA_CODIGOS]
-        return ",".join(sorted(set(cods)))
+        widgets = {'audiencia_roles': forms.SelectMultiple(attrs={'size': 6})}
 
 # ========================= Registro público (Postulación) =========================
 if PostulacionEstudianteModel is not None:
@@ -430,45 +243,29 @@ if PostulacionEstudianteModel is not None:
                 "deporte_interes", "sede_interes",
                 "comentarios",
             ]
-            widgets = {
-                "fecha_nacimiento": forms.DateInput(attrs={"type": "date"}),
-                "comentarios": forms.Textarea(attrs={"rows": 4}),
-            }
-            labels = {
-                "deporte_interes": "Deporte de interés",
-                "sede_interes": "Sede de interés",
-                "comentarios": "Comentarios / Observaciones",
-            }
 else:
     class RegistroPublicoForm(forms.Form):
-        rut = forms.CharField()
-        nombres = forms.CharField()
-        apellidos = forms.CharField()
-        fecha_nacimiento = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}), required=False)
-        email = forms.EmailField(required=False)
-        telefono = forms.CharField(required=False)
-        comuna = forms.CharField(required=False)
-        deporte_interes = forms.ModelChoiceField(queryset=Deporte.objects.all(), required=False)
-        sede_interes = forms.ModelChoiceField(queryset=Sede.objects.all(), required=False)
-        comentarios = forms.CharField(widget=forms.Textarea(attrs={"rows": 4}), required=False)
+        pass
 
-        def save(self, commit=True):
-            model = _get_model('core', 'PostulacionEstudiante')
-            if not model:
-                raise ValidationError("No se pudo crear la postulación (modelo no disponible).")
-            obj = model(**self.cleaned_data)
-            if commit:
-                obj.full_clean()
-                obj.save()
-            return obj
-
-# ========================= Noticia (por si tu vista lo usa) =========================
+# ========================= Noticia =========================
 if NoticiaModel is not None:
     class NoticiaForm(forms.ModelForm):
         class Meta:
             model = NoticiaModel
             fields = ["titulo", "bajada", "cuerpo", "imagen", "publicada"]
+            labels = {
+                "titulo": "Título",
+                "bajada": "Bajada / subtítulo",
+                "cuerpo": "Cuerpo del texto",
+                "imagen": "Imagen destacada",
+                "publicada": "¿Publicada?",
+            }
+            widgets = {
+                "bajada": forms.Textarea(attrs={"rows": 3}),
+                "cuerpo": forms.Textarea(attrs={"rows": 8}),
+            }
 
+# ========================= RegistroPeriodo =========================
 class RegistroPeriodoForm(forms.ModelForm):
     class Meta:
         model = RegistroPeriodo

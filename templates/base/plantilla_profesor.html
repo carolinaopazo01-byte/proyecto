@@ -190,7 +190,7 @@
         </div>
       </div>
 
-      <!-- ====== Sidebar Profesor (4 secciones) ====== -->
+      <!-- ====== Sidebar Profesor (Panel) ====== -->
       <section class="sb-section">
         <div class="sb-head"><i class="fas fa-th-large"></i><span>Panel</span></div>
         <div class="sb-body">
@@ -212,6 +212,27 @@
           <!-- Comunicados -->
           <a class="sb-link" href="{% url 'profesor:comunicados_prof' %}">
             <i class="fas fa-bullhorn"></i><span>Comunicados</span>
+          </a>
+
+        <!--misestudiantes -->
+
+<a class="sb-link" href="{% url 'core:estudiantes_list_prof' %}">
+  <i class="fas fa-users"></i><span>Mis estudiantes</span>
+</a>
+
+          <!-- Mis cursos -->
+          <a class="sb-link" href="{% url 'profesor:mis_cursos_prof' %}">
+            <i class="fas fa-book"></i><span>Mis cursos</span>
+          </a>
+
+          <!-- Ingresar alumno temporalmente -->
+          <a class="sb-link" href="{% url 'profesor:alumno_temporal_new' %}">
+            <i class="fas fa-user-plus"></i><span>Ingresar alumno temporalmente</span>
+          </a>
+
+          <!-- Cambiar contraseña (NUEVO) -->
+          <a class="sb-link" href="{% url 'usuarios:cambiar_password' %}">
+            <i class="fas fa-key"></i><span>Cambiar contraseña</span>
           </a>
         </div>
       </section>

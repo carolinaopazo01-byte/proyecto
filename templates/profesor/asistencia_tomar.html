@@ -1,8 +1,9 @@
-{% extends "base.html" %}
+{% extends "base/plantilla.html" %}
 {% load static %}
 
+{% block title %}Asistencia{% endblock %}
 {% block header %}
-Asistencia — {{ curso.nombre }} ({{ clase.fecha|date:"d/m/Y" }})
+Asistencia — {{ curso.nombre|default:"(Curso)" }}{% if clase %} ({{ clase.fecha|date:"d/m/Y" }}){% endif %}
 {% endblock %}
 
 {% block content %}
@@ -19,33 +20,36 @@ Asistencia — {{ curso.nombre }} ({{ clase.fecha|date:"d/m/Y" }})
   <p style="margin-top:0;">
     Estado:
     <strong>
-      {% if clase.estado == "PEND" %}Pendiente{% elif clase.estado == "ENCU" %}En curso{% else %}Cerrada{% endif %}
+      {% if clase and clase.estado == "PEND" %}Pendiente
+      {% elif clase and clase.estado == "ENCU" %}En curso
+      {% elif clase %}Cerrada
+      {% else %}—{% endif %}
     </strong>
-    {% if clase.inicio_real %} · Inicio real: {{ clase.inicio_real|date:"H:i" }}{% endif %}
-    {% if clase.fin_real %} · Fin real: {{ clase.fin_real|date:"H:i" }}{% endif %}
+    {% if clase and clase.inicio_real %} · Inicio real: {{ clase.inicio_real|date:"H:i" }}{% endif %}
+    {% if clase and clase.fin_real %} · Fin real: {{ clase.fin_real|date:"H:i" }}{% endif %}
   </p>
 
   <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
     <form method="post" style="display:inline;">
       {% csrf_token %}
       <input type="hidden" name="accion" value="entrada">
-      <button class="btn">✅ Registrar entrada</button>
+      <button class="btn btn-primary">✅ Registrar entrada</button>
     </form>
 
     <form method="post" style="display:inline;">
       {% csrf_token %}
       <input type="hidden" name="accion" value="salida">
-      <button class="btn">⏹️ Registrar salida</button>
+      <button class="btn btn-secondary">⏹️ Registrar salida</button>
     </form>
   </div>
 
-<div style="margin-top:10px; font-weight:600;">
-  Resumen guardado:
-  <span>{{ resumen.P }} presentes</span> ·
-  <span>{{ resumen.A }} ausentes</span> ·
-  <span>{{ resumen.J }} justificados</span>
-  <span style="color:#666;">(de {{ resumen.total }})</span>
-</div>
+  <div style="margin-top:10px; font-weight:600;">
+    Resumen guardado:
+    <span>{{ resumen.P|default:0 }} presentes</span> ·
+    <span>{{ resumen.A|default:0 }} ausentes</span> ·
+    <span>{{ resumen.J|default:0 }} justificados</span>
+    <span style="color:#666;">(de {{ resumen.total|default:0 }})</span>
+  </div>
 
   <form method="post">
     {% csrf_token %}
@@ -61,34 +65,22 @@ Asistencia — {{ curso.nombre }} ({{ clase.fecha|date:"d/m/Y" }})
           <th>Observaciones</th>
         </tr>
       </thead>
-      <tbody>
-        {# IMPORTANTE: iteramos 'rows', que viene preparado desde la vista #}
-        {% for row in rows %}
-          {% with ins=row.ins a=row.ins.atleta u=a.usuario %}
-          <tr>
-            <td>
-            {% if a.usuario %}
-  {{ a.usuario.first_name }} {{ a.usuario.last_name }}
-{% elif a.nombres or a.apellidos %}
-  {{ a.nombres }} {{ a.apellidos }}
-{% else %}
-  {{ a.rut }}
-{% endif %}
-            </td>
-
-            <td><input type="radio" name="estado_{{ ins.pk }}" value="P" {% if row.code == "P" %}checked{% endif %}></td>
-            <td><input type="radio" name="estado_{{ ins.pk }}" value="A" {% if row.code == "A" %}checked{% endif %}></td>
-            <td><input type="radio" name="estado_{{ ins.pk }}" value="J" {% if row.code == "J" %}checked{% endif %}></td>
-            <td><input type="text" name="obs_{{ ins.pk }}" value="{{ row.obs }}" style="width:100%"></td>
-          </tr>
-          {% endwith %}
-        {% empty %}
-          <tr><td colspan="5">No hay alumnos inscritos.</td></tr>
-        {% endfor %}
-      </tbody>
+    <tbody>
+  {% for row in rows %}
+    <tr>
+      <td>{{ row.nombre }}</td>
+      <td><input type="radio" name="estado_{{ row.ins.id }}" value="P" {% if row.code == "P" %}checked{% endif %}></td>
+      <td><input type="radio" name="estado_{{ row.ins.id }}" value="A" {% if row.code == "A" %}checked{% endif %}></td>
+      <td><input type="radio" name="estado_{{ row.ins.id }}" value="J" {% if row.code == "J" %}checked{% endif %}></td>
+      <td><input type="text" name="obs_{{ row.ins.id }}" value="{{ row.obs }}" style="width:100%"></td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="5">No hay alumnos inscritos.</td></tr>
+  {% endfor %}
+</tbody>
     </table>
 
-    <button class="btn">💾 Guardar asistencia alumnos</button>
+    <button class="btn btn-success">💾 Guardar asistencia alumnos</button>
   </form>
 </div>
 

@@ -80,6 +80,45 @@ def _back_to_url(request, fallback_name: str) -> str:
         return fallback_name
 
 
+# === Helper: obtener alumnos de un curso, con o sin tabla de inscripciones ===
+def _estudiantes_del_curso(curso):
+    """
+    Devuelve los estudiantes asociados al curso.
+    Funciona tanto con InscripcionCurso como con la FK directa curso en Estudiante.
+    """
+    EstudianteModel = apps.get_model('core', 'Estudiante')
+
+    # 1) Si existe modelo InscripcionCurso
+    try:
+        InscripcionCurso = apps.get_model('core', 'InscripcionCurso')
+        if InscripcionCurso:
+            ins = (InscripcionCurso.objects
+                   .filter(curso=curso)
+                   .select_related("estudiante__usuario"))
+            if ins.exists():
+                return [i.estudiante for i in ins]
+    except Exception:
+        pass
+
+    # 2) Si el curso tiene relación directa (FK) con Estudiante
+    try:
+        directos = EstudianteModel.objects.filter(curso=curso, activo=True).select_related("usuario")
+        if directos.exists():
+            return list(directos)
+    except Exception:
+        pass
+
+    # 3) Relación M2M genérica
+    for attr in ("estudiantes", "alumnos", "inscritos"):
+        if hasattr(curso, attr):
+            try:
+                return list(getattr(curso, attr).all().select_related("usuario"))
+            except Exception:
+                return list(getattr(curso, attr).all())
+
+    return EstudianteModel.objects.none()
+
+
 # ------- Home (informativo) -------
 @require_http_methods(["GET"])
 def home(request):
@@ -121,6 +160,36 @@ def estudiantes_list(request):
     return render(
         request,
         "core/estudiantes_list.html",
+        {
+            "estudiantes": page_obj,
+            "q": q,
+            "page_obj": page_obj,
+        },
+    )
+
+
+# --- (Opcional) Listado visible para PROF: muestra solo sus alumnos ---
+@role_required(Usuario.Tipo.PROF)
+@require_http_methods(["GET"])
+def estudiantes_list_prof(request):
+    q = (request.GET.get("q") or "").strip()
+    # alumnos asociados a los cursos donde el request.user es profesor
+    qs = Estudiante.objects.filter(
+        Q(curso__profesor=request.user) | Q(curso__profesores_apoyo=request.user)
+    ).distinct().order_by("apellidos", "nombres")
+    if q:
+        qs = qs.filter(
+            Q(rut__icontains=q) |
+            Q(nombres__icontains=q) |
+            Q(apellidos__icontains=q) |
+            Q(email__icontains=q)
+        )
+    page_number = request.GET.get("page") or 1
+    paginator = Paginator(qs, 30)
+    page_obj = paginator.get_page(page_number)
+    return render(
+        request,
+        "core/estudiantes_list.html",  # reutilizamos la misma plantilla
         {
             "estudiantes": page_obj,
             "q": q,
@@ -187,6 +256,20 @@ def cursos_list(request):
         .select_related("sede", "profesor", "disciplina")
         .prefetch_related("horarios")
         .all()
+    )
+    return render(request, "core/cursos_list.html", {"cursos": cursos})
+
+
+# === Mis cursos (perfil profesor) ===
+@role_required(Usuario.Tipo.PROF)
+@require_http_methods(["GET"])
+def cursos_mios(request):
+    cursos = (
+        Curso.objects
+        .select_related("sede", "profesor", "disciplina")
+        .prefetch_related("horarios")  # usa "cursohorario_set" si no definiste related_name
+        .filter(Q(profesor=request.user) | Q(profesores_apoyo=request.user))
+        .distinct()
     )
     return render(request, "core/cursos_list.html", {"cursos": cursos})
 
@@ -1120,21 +1203,126 @@ def mi_asistencia_qr(request):
     })
 
 
-# ====== Asistencia (stubs para rutas) ======
+# ====== Asistencia (visualizar alumnos del curso) ======
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF)
+@require_http_methods(["GET"])
+def asistencia_estudiantes(request, curso_id: int):
+    curso = get_object_or_404(Curso, pk=curso_id)
+
+    # Seguridad: profesor solo ve sus cursos
+    if _es_prof(request.user) and not (
+        curso.profesor_id == request.user.id or curso.profesores_apoyo.filter(id=request.user.id).exists()
+    ):
+        return HttpResponseForbidden("No puedes ver alumnos de este curso.")
+
+    alumnos = _estudiantes_del_curso(curso)
+    rows = []
+    for est in alumnos:
+        if getattr(est, "usuario_id", None):
+            nombre = (f"{est.usuario.first_name} {est.usuario.last_name}".strip()
+                      or est.usuario.get_username())
+        else:
+            nombre = f"{getattr(est, 'nombres', '')} {getattr(est, 'apellidos', '')}".strip() or getattr(est, "rut", "—")
+        rows.append({"est": est, "nombre": nombre, "rut": getattr(est, "rut", "—")})
+
+    return render(request, "profesor/asistencia_estudiantes.html", {"curso": curso, "rows": rows})
+
+
+# ====== Tomar asistencia del día ======
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF)
+@require_http_methods(["GET", "POST"])
+def asistencia_tomar(request, curso_id: int):
+    from .models import AsistenciaCurso, AsistenciaCursoDetalle
+    from applications.core.models import Estudiante
+
+    curso = get_object_or_404(Curso, pk=curso_id)
+
+    # Seguridad: solo el profesor o apoyo pueden verla
+    if _es_prof(request.user) and not (
+        curso.profesor_id == request.user.id or curso.profesores_apoyo.filter(id=request.user.id).exists()
+    ):
+        return HttpResponseForbidden("No puedes tomar asistencia de este curso.")
+
+    hoy = timezone.localdate()
+
+    # 🧠 Buscar o crear la asistencia de hoy
+    asistencia, creada = AsistenciaCurso.objects.get_or_create(
+        curso=curso, fecha=hoy, defaults={"creado_por": request.user}
+    )
+
+    # 🧩 Siempre sincronizar los alumnos del curso
+    alumnos_curso = list(Estudiante.objects.filter(curso=curso))
+    existentes = set(asistencia.detalles.values_list("estudiante_id", flat=True))
+    nuevos = [a for a in alumnos_curso if a.id not in existentes]
+
+    if nuevos:
+        AsistenciaCursoDetalle.objects.bulk_create([
+            AsistenciaCursoDetalle(asistencia=asistencia, estudiante=a)
+            for a in nuevos
+        ])
+        print(f"DEBUG: se agregaron {len(nuevos)} nuevos alumnos al detalle")
+
+    # 🧾 Procesar acciones POST
+    if request.method == "POST":
+        accion = (request.POST.get("accion") or "").lower()
+
+        if accion == "entrada":
+            asistencia.estado = AsistenciaCurso.Estado.ENCU
+            asistencia.inicio_real = timezone.localtime().time()
+            asistencia.save(update_fields=["estado", "inicio_real"])
+            messages.success(request, "Entrada registrada.")
+            return redirect("core:asistencia_tomar", curso_id=curso.id)
+
+        elif accion == "salida":
+            asistencia.estado = AsistenciaCurso.Estado.CERR
+            asistencia.fin_real = timezone.localtime().time()
+            asistencia.save(update_fields=["estado", "fin_real"])
+            messages.success(request, "Salida registrada.")
+            return redirect("core:asistencia_tomar", curso_id=curso.id)
+
+        elif accion == "guardar":
+            for d in asistencia.detalles.all():
+                estado = request.POST.get(f"estado_{d.estudiante_id}")
+                obs = (request.POST.get(f"obs_{d.estudiante_id}") or "").strip()
+                if estado in ("P", "A", "J"):
+                    d.estado = estado
+                    d.observaciones = obs
+                    d.save(update_fields=["estado", "observaciones"])
+            messages.success(request, "Asistencia guardada.")
+            return redirect("core:asistencia_tomar", curso_id=curso.id)
+
+    # 🧍‍♂️ Construir la lista de alumnos para la tabla
+    detalles = asistencia.detalles.select_related("estudiante")
+    rows = []
+    for d in detalles:
+        est = d.estudiante
+        nombre = (
+                f"{getattr(est, 'nombres', '')} {getattr(est, 'apellidos', '')}".strip()
+                or getattr(est, "rut", "—")
+        )
+        rows.append({
+            "ins": d,
+            "est": est,
+            "nombre": nombre,
+            "code": d.estado,
+            "obs": d.observaciones,
+        })
+
+    print(f"DEBUG: curso={curso}, alumnos={len(rows)}")
+
+    ctx = {
+        "curso": curso,
+        "clase": asistencia,
+        "rows": rows,
+        "resumen": asistencia.resumen,
+    }
+    return render(request, "profesor/asistencia_tomar.html", ctx)
+
+# --- Compat: si tu urls antiguas apuntan a 'asistencia_profesor', redirige al tomar ---
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF)
 @require_http_methods(["GET", "POST"])
 def asistencia_profesor(request, curso_id: int):
-    if request.method == "POST":
-        return HttpResponse(f"CORE / Asistencia PROFESOR curso_id={curso_id} (POST) -> registrada")
-    return HttpResponse(f"CORE / Asistencia PROFESOR curso_id={curso_id} (GET) -> pantalla tomar asistencia")
-
-
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF)
-@require_http_methods(["GET", "POST"])
-def asistencia_estudiantes(request, curso_id: int):
-    if request.method == "POST":
-        return HttpResponse(f"CORE / Asistencia ESTUDIANTES curso_id={curso_id} (POST) -> registrada")
-    return HttpResponse(f"CORE / Asistencia ESTUDIANTES curso_id={curso_id} (GET) -> lista alumnos")
+    return redirect("core:asistencia_tomar", curso_id=curso_id)
 
 
 # ====== Ficha estudiante (stub) ======
@@ -1148,16 +1336,16 @@ def ficha_estudiante(request, estudiante_id: int):
 
 @login_required
 def inscribir_en_curso(request, curso_id: int, estudiante_id: int):
-    Curso = apps.get_model('core', 'Curso')
-    Estudiante = apps.get_model('core', 'Estudiante')
+    CursoModel = apps.get_model('core', 'Curso')
+    EstudianteModel = apps.get_model('core', 'Estudiante')
     InscripcionCurso = apps.get_model('core', 'InscripcionCurso')
 
-    if not (Curso and Estudiante and InscripcionCurso):
+    if not (CursoModel and EstudianteModel and InscripcionCurso):
         messages.error(request, "Modelos no disponibles. Revisa INSTALLED_APPS y apps.py (label='core').")
         return redirect("/")
 
-    curso = get_object_or_404(Curso, pk=curso_id)
-    estudiante = get_object_or_404(Estudiante, pk=estudiante_id)
+    curso = get_object_or_404(CursoModel, pk=curso_id)
+    estudiante = get_object_or_404(EstudianteModel, pk=estudiante_id)
 
     try:
         _, created = InscripcionCurso.objects.get_or_create(curso=curso, estudiante=estudiante)

@@ -1,26 +1,47 @@
-{% extends "base.html" %}
-{% block header %}Mis cursos{% endblock %}
+{% extends "base/plantilla.html" %}
+{% block title %}Mis cursos{% endblock %}
 
 {% block content %}
-<table class="table">
+<h4 class="mb-3">Mis cursos</h4>
+
+<table class="table table-sm table-hover align-middle">
   <thead>
     <tr>
-      <th>Curso</th><th>Disciplina</th><th>Categoría</th>
-      <th>Sede</th><th>Días / Horarios</th><th>Alumnos</th><th>Acciones</th>
+      <th>Nombre</th>
+      <th>Disciplina</th>
+      <th>Categoría</th>
+      <th>Sede</th>
+      <th>Horarios</th>
+      <th>Alumnos</th>
+      <th style="width:220px">Acciones</th>
     </tr>
   </thead>
   <tbody>
   {% for c in cursos %}
     <tr>
       <td>{{ c.nombre }}</td>
-      <td>{{ c.disciplina.nombre }}</td>
+      <td>{{ c.disciplina }}</td>
       <td>{{ c.categoria|default:"—" }}</td>
-      <td>{{ c.sede.nombre }}</td>
-      <td>{{ c.horarios_str }}</td>
-      <td>{{ c.alumnos_count }}</td>
+      <td>{{ c.sede }}</td>
       <td>
-        <a class="btn" href="{% url 'usuarios:asistencia_tomar' c.id %}">Tomar asistencia</a>
-        <a class="btn" href="{% url 'usuarios:planificaciones_prof' %}?curso={{ c.id }}">Planificación</a>
+        {# si tu related_name de los horarios es "horarios" #}
+        {% for h in c.horarios.all %}
+          {{ h.get_dia_display }} {{ h.hora_inicio|time:"H:i" }}–{{ h.hora_fin|time:"H:i" }}{% if not forloop.last %}<br>{% endif %}
+        {% empty %}
+          <span class="text-muted">—</span>
+        {% endfor %}
+        {# si no tienes related_name, usa: c.cursohorario_set.all #}
+      </td>
+      <td>{{ c.alumnos_count|default:"—" }}</td>
+      <td class="text-end">
+        <a class="btn btn-outline-secondary btn-sm"
+           href="{% url 'core:asistencia_estudiantes' c.id %}">
+          Ver alumnos
+        </a>
+        <a class="btn btn-outline-secondary btn-sm"
+           href="{% url 'core:planificaciones_list' %}?curso={{ c.id }}">
+          Ver planificación
+        </a>
       </td>
     </tr>
   {% empty %}

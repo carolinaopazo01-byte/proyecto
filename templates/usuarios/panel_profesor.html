@@ -42,6 +42,11 @@
   .item{display:flex;gap:10px;align-items:flex-start}
   .badge-soft{background:#eef2ff;border:1px solid #e5e7eb;border-radius:8px;padding:.15rem .45rem;font-size:.8rem}
   .muted{color:#6b7280}
+
+  /* Barra de accesos y alertas */
+  .quickbar{display:flex;flex-wrap:wrap;gap:8px;margin:.75rem 0}
+  .quickbar .btn{font-weight:700}
+  .alerts{display:flex;flex-wrap:wrap;gap:8px;margin:.5rem 0 1rem}
 </style>
 {% endblock %}
 
@@ -52,7 +57,32 @@
     <div></div>
   </div>
 
-  {# === ÚNICA tarjeta: Comunicados === #}
+  {# === Saludo === #}
+  <p>Hola, <strong>{{ request.user.username }}</strong>.</p>
+
+  {# === Alertas === #}
+  {% if alertas.planificaciones or alertas.inasistencias %}
+    <div class="alerts">
+      {% if alertas.planificaciones %}
+        <span class="btn btn-warning">Tienes {{ alertas.planificaciones }} planificaciones pendientes.</span>
+      {% endif %}
+      {% if alertas.inasistencias %}
+        <span class="btn btn-warning">Clases sin asistencia cargada: {{ alertas.inasistencias }}.</span>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {# === Accesos rápidos === #}
+  <div class="quickbar">
+    <a class="btn btn-outline-primary" href="{% url 'profesor:mi_asistencia_qr' %}">📷 Marcar mi asistencia (QR)</a>
+    <a class="btn btn-outline-primary" href="{% url 'profesor:planificaciones_prof' %}">📝 Planificaciones</a>
+    <a class="btn btn-outline-primary" href="{% url 'profesor:comunicados_prof' %}">📣 Comunicados</a>
+    <a class="btn btn-outline-primary" href="{% url 'profesor:perfil_profesor' %}">🔐 Mi perfil</a>
+    <a class="btn btn-outline-primary" href="{% url 'profesor:mis_cursos_prof' %}">📚 Mis cursos</a>
+    <a class="btn btn-outline-success" href="{% url 'profesor:alumno_temporal_new' %}">➕ Ingresar alumno temporalmente</a>
+  </div>
+
+  {# === Tarjeta: Comunicados === #}
   <div class="tile mb-3">
     <div class="tile__head">
       <span class="tile__icon"><i class="fas fa-bullhorn"></i></span>

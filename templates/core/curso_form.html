@@ -180,6 +180,7 @@
         <div class="rows" id="horarios-forms">
           {% for f in formset %}
             <div class="row-box">
+              {{ f.id }} {# 👈 necesario para que Django actualice filas existentes #}
               <div class="form-grid">
                 <div class="col-4 stack">
                   <label class="form-label" for="{{ f.dia.id_for_label }}">Día</label>
@@ -214,6 +215,7 @@
         <template id="empty-form-template">
           {% with ef=formset.empty_form %}
           <div class="row-box">
+            {{ ef.id }} {# 👈 mantiene el id hidden con __prefix__ #}
             <div class="form-grid">
               <div class="col-4 stack">
                 <label class="form-label" for="{{ ef.dia.id_for_label }}">Día</label>{{ ef.dia }}
@@ -283,6 +285,8 @@
         {% if is_edit %}Guardar cambios{% else %}Guardar{% endif %}
       </button>
     </div>
+
+    {{ form.media }} {# por si hay widgets con JS/CSS #}
   </form>
 {% endblock %}
 

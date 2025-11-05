@@ -3,6 +3,8 @@ from django.urls import path
 from django.urls import path, reverse_lazy
 from . import views
 from django.contrib.auth import views as auth_views
+from applications.usuarios import views_profesor as vp
+
 
 app_name = "usuarios"
 
@@ -71,4 +73,7 @@ urlpatterns = [
 
     # Cambiar contraseña (para todos los perfiles autenticados)
     path("cuenta/cambiar-clave/", views.cambiar_password, name="cambiar_password"),
+# Alias para compatibilidad con templates que usan {% url 'mis_cursos' %}
+path("panel/profesor/miscursos/", vp.mis_cursos, name="mis_cursos"),
+
 ]

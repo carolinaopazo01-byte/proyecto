@@ -1,4 +1,3 @@
-# applications/profesor/views.py
 from datetime import datetime
 from collections import defaultdict
 from math import radians, sin, cos, asin, sqrt
@@ -6,26 +5,32 @@ from io import BytesIO
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseForbidden
-from django.shortcuts import render, get_object_or_404, redirect  # ← agregado redirect
+from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
-from django.contrib import messages  # ← agregado messages
+from django.contrib import messages
 
 import qrcode
 from qrcode.constants import ERROR_CORRECT_M
 
-from applications.core.models import Sede, Curso
+from applications.core.models import (
+    Sede,
+    Curso,
+    Estudiante,
+    AsistenciaCurso,
+    AsistenciaCursoDetalle,
+)
 from .models import AsistenciaProfesor
 
 
+# ===================== UTILIDADES =====================
 def _es_prof(user) -> bool:
     """Retorna True si el usuario es de tipo PROF."""
     return (getattr(user, "tipo_usuario", "") or "").upper() == "PROF"
 
 
-# -------- utilidades geolocalización --------
 def _haversine_m(lat1, lon1, lat2, lon2) -> float:
-    """Distancia en metros entre (lat1, lon1) y (lat2, lon2)."""
+    """Distancia en metros entre dos coordenadas."""
     R = 6371000.0
     dlat = radians(lat2 - lat1)
     dlon = radians(lon2 - lon1)
@@ -35,10 +40,7 @@ def _haversine_m(lat1, lon1, lat2, lon2) -> float:
 
 
 def _nearest_sede(lat, lng):
-    """
-    Devuelve (sede, distancia_m) más cercana con coordenadas válidas, o (None, None)
-    si no hay sedes con lat/lng.
-    """
+    """Devuelve la sede más cercana dentro del radio permitido."""
     qs = Sede.objects.exclude(latitud__isnull=True).exclude(longitud__isnull=True)
     best, best_d = None, None
     for s in qs:
@@ -48,34 +50,33 @@ def _nearest_sede(lat, lng):
     return best, best_d
 
 
-# ===================== 1) Marcar mi asistencia (QR / Geo) =====================
+# ===================== 1) Marcar asistencia (QR / Geo) =====================
 @login_required
 @require_http_methods(["GET", "POST"])
 def mi_asistencia_qr(request):
     if not _es_prof(request.user):
         return HttpResponseForbidden("Solo profesores.")
 
-    # últimas marcas para mostrar en pantalla
     ultima_entrada = (
-        AsistenciaProfesor.objects
-        .filter(usuario=request.user, tipo=AsistenciaProfesor.Tipo.ENTRADA)
-        .order_by("-fecha", "-hora").first()
+        AsistenciaProfesor.objects.filter(usuario=request.user, tipo=AsistenciaProfesor.Tipo.ENTRADA)
+        .order_by("-fecha", "-hora")
+        .first()
     )
     ultima_salida = (
-        AsistenciaProfesor.objects
-        .filter(usuario=request.user, tipo=AsistenciaProfesor.Tipo.SALIDA)
-        .order_by("-fecha", "-hora").first()
+        AsistenciaProfesor.objects.filter(usuario=request.user, tipo=AsistenciaProfesor.Tipo.SALIDA)
+        .order_by("-fecha", "-hora")
+        .first()
     )
 
     mensaje, ok = None, False
 
     if request.method == "POST":
-        action = (request.POST.get("action") or "").strip()       # 'entrada'|'salida'
+        action = (request.POST.get("action") or "").strip()
         qr_text = (request.POST.get("qr_text") or "").strip()
         lat_str = request.POST.get("geo_lat")
         lng_str = request.POST.get("geo_lng")
 
-        # 1) Intento por QR
+        # Intento con QR
         sede = None
         if qr_text.startswith("SEDE:"):
             try:
@@ -84,7 +85,7 @@ def mi_asistencia_qr(request):
             except ValueError:
                 sede = None
 
-        # 2) Si QR no vino o es inválido, intento por geolocalización
+        # Intento con geolocalización
         if not sede and lat_str and lng_str:
             try:
                 lat, lng = float(lat_str), float(lng_str)
@@ -131,7 +132,6 @@ def mi_asistencia_qr(request):
                 pref = "Entrada" if tipo == AsistenciaProfesor.Tipo.ENTRADA else "Salida"
                 mensaje = f"{pref} registrada correctamente — {hhmm} en {sede.nombre}"
 
-                # refresca “últimas”
                 if tipo == AsistenciaProfesor.Tipo.ENTRADA:
                     ultima_entrada = AsistenciaProfesor.objects.filter(
                         usuario=request.user, tipo=AsistenciaProfesor.Tipo.ENTRADA
@@ -143,20 +143,20 @@ def mi_asistencia_qr(request):
 
     return render(request, "profesor/mi_asistencia_qr.html", {
         "ultima_entrada": ultima_entrada,
-        "ultima_salida":  ultima_salida,
-        "mensaje":        mensaje,
-        "ok":             ok,
+        "ultima_salida": ultima_salida,
+        "mensaje": mensaje,
+        "ok": ok,
     })
 
 
+# ===================== 2) Historial de asistencia =====================
 @login_required
 def mi_historial_asistencia(request):
     if not _es_prof(request.user):
         return HttpResponseForbidden("Solo profesores.")
 
     qs = (
-        AsistenciaProfesor.objects
-        .select_related("sede")
+        AsistenciaProfesor.objects.select_related("sede")
         .filter(usuario=request.user)
         .order_by("-fecha", "-hora")
     )
@@ -164,7 +164,8 @@ def mi_historial_asistencia(request):
     # filtros opcionales
     f_ini = request.GET.get("ini")
     f_fin = request.GET.get("fin")
-    sede  = request.GET.get("sede")
+    sede = request.GET.get("sede")
+
     if f_ini:
         qs = qs.filter(fecha__gte=f_ini)
     if f_fin:
@@ -172,7 +173,7 @@ def mi_historial_asistencia(request):
     if sede:
         qs = qs.filter(sede_id=sede)
 
-    # horas trabajadas por día (si hay ENT y SAL)
+    # cálculo de horas por día
     by_day = defaultdict(list)
     for a in qs:
         by_day[a.fecha].append(a)
@@ -200,6 +201,7 @@ def mi_historial_asistencia(request):
     })
 
 
+# ===================== 3) Sedes y QR =====================
 @login_required
 def sedes_qr_list(request):
     if not _es_prof(request.user):
@@ -214,7 +216,7 @@ def qr_sede_png(request, sede_id: int):
         return HttpResponseForbidden("Solo profesores.")
 
     sede = get_object_or_404(Sede, pk=sede_id)
-    size = int(request.GET.get("s", 12))  # escala
+    size = int(request.GET.get("s", 12))
 
     payload = f"SEDE:{sede.id}"
     qr = qrcode.QRCode(
@@ -244,40 +246,118 @@ def placard_sede_qr(request, sede_id: int):
     return render(request, "profesor/placard_sede_qr.html", {"sede": sede})
 
 
+# ===================== 4) Mis cursos =====================
 @login_required
 def mis_cursos_prof(request):
     if not _es_prof(request.user):
         return HttpResponseForbidden("Solo profesores.")
-    cursos = Curso.objects.filter(profesor=request.user).order_by('-creado')
+    cursos = Curso.objects.filter(profesor=request.user).order_by("-creado")
     return render(request, "profesor/mis_cursos_prof.html", {"cursos": cursos})
 
 
-# ===================== 2) (NUEVO) Alumno temporal – stub seguro =====================
+# ===================== 5) Toma de asistencia con alumnos =====================
+
+
+@login_required
+def asistencia_tomar(request, curso_id):
+    """Toma asistencia mostrando alumnos y guardando estados + observaciones."""
+    if not _es_prof(request.user):
+        return HttpResponseForbidden("Solo profesores.")
+
+    profesor = request.user
+    curso = get_object_or_404(Curso, pk=curso_id)
+
+    # crear o recuperar asistencia del día
+    hoy = timezone.localdate()
+    asistencia, _ = AsistenciaCurso.objects.get_or_create(
+        curso=curso,
+        fecha=hoy,
+        defaults={"creado_por": profesor, "estado": AsistenciaCurso.Estado.PEND},
+    )
+
+    # alumnos activos del curso
+    alumnos = Estudiante.objects.filter(curso=curso, activo=True).order_by("apellidos", "nombres")
+
+    # ============ GUARDAR CAMBIOS ============
+    if request.method == "POST":
+        accion = request.POST.get("accion", "").strip().lower()
+
+        # Guardar estados y observaciones
+        if accion == "guardar":
+            for est in alumnos:
+                # busca el detalle o lo crea
+                detalle, _ = AsistenciaCursoDetalle.objects.get_or_create(
+                    asistencia=asistencia,
+                    estudiante=est,
+                )
+                estado = request.POST.get(f"estado_{detalle.id}", detalle.estado)
+                obs = request.POST.get(f"obs_{detalle.id}", detalle.observaciones)
+                detalle.estado = estado or "P"
+                detalle.observaciones = obs or ""
+                detalle.save()
+            messages.success(request, "✅ Asistencia de alumnos guardada correctamente.")
+            return redirect("profesor:asistencia_tomar", curso_id=curso.id)
+
+        # Marcar entrada / salida del profesor
+        if accion == "entrada":
+            asistencia.estado = AsistenciaCurso.Estado.ENCU
+            asistencia.inicio_real = timezone.localtime().time()
+            asistencia.save()
+            messages.info(request, "Entrada registrada correctamente.")
+            return redirect("profesor:asistencia_tomar", curso_id=curso.id)
+
+        if accion == "salida":
+            asistencia.estado = AsistenciaCurso.Estado.CERR
+            asistencia.fin_real = timezone.localtime().time()
+            asistencia.save()
+            messages.info(request, "Salida registrada correctamente.")
+            return redirect("profesor:asistencia_tomar", curso_id=curso.id)
+
+    # ============ CONSTRUCCIÓN DE CONTEXTO PARA EL TEMPLATE ============
+    rows = []
+    for est in alumnos:
+        detalle, _ = AsistenciaCursoDetalle.objects.get_or_create(
+            asistencia=asistencia,
+            estudiante=est,
+            defaults={"estado": "P", "observaciones": ""},
+        )
+        rows.append({
+            "ins": {"id": detalle.id, "estudiante": est},
+            "code": detalle.estado,
+            "obs": detalle.observaciones,
+        })
+
+    resumen = asistencia.resumen if hasattr(asistencia, "resumen") else {"P": 0, "A": 0, "J": 0, "total": len(rows)}
+
+    context = {
+        "curso": curso,
+        "clase": asistencia,
+        "rows": rows,
+        "resumen": resumen,
+    }
+    return render(request, "profesor/asistencia_tomar.html", context)
+
+# ===================== 6) Alumno temporal =====================
 @login_required
 @require_http_methods(["GET", "POST"])
 def alumno_temporal_new(request):
-    """
-    Formulario 'rápido' para crear un alumno temporal.
-    Se apoya en el AlumnoTemporalForm definido en applications.core.forms.
-    Import local para evitar import circular.
-    """
+    """Formulario rápido para crear un alumno temporal."""
+    if not _es_prof(request.user):
+        return HttpResponseForbidden("Solo profesores.")
+
     try:
         from applications.core.forms import AlumnoTemporalForm
     except Exception:
-        return HttpResponse("No se pudo cargar AlumnoTemporalForm (applications.core.forms).", status=500)
+        return HttpResponse("No se pudo cargar AlumnoTemporalForm.", status=500)
 
     if request.method == "POST":
         form = AlumnoTemporalForm(request.POST)
         if form.is_valid():
             est = form.save()
-            messages.success(
-                request,
-                f"Alumno temporal creado: {getattr(est, 'nombres', '')} {getattr(est, 'apellidos', '')}."
-            )
-            # Redirige a un listado seguro; ajusta si tienes otra vista de destino
-            return redirect("core:estudiantes_list")
+            messages.success(request, f"Alumno temporal creado: {est.nombres} {est.apellidos}.")
+            return redirect("core:estudiantes_list_prof")
         messages.error(request, "Revisa los errores del formulario.")
     else:
         form = AlumnoTemporalForm()
 
-    return render(request, "profesor/alumno_temporal_form.html", {"form": form})
+    return render(request, "profesor/alumno_temporal_new.html", {"form": form})

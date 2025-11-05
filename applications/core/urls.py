@@ -16,7 +16,7 @@ urlpatterns = [
     # nombre "oficial"
     path("procesos-inscripcion/", views.procesos_inscripcion, name="procesos_inscripcion"),
     # alias para compatibilidad con templates antiguos ({% url 'core:procesos' %})
-    path("procesos-inscripcion/", views.procesos_inscripcion, name="procesos"),
+    path("procesos/", views.procesos_inscripcion, name="procesos"),
     path("deportes-y-recintos/", views.deportes_recintos, name="deportes"),
     path("equipo-multidisciplinario/", views.equipo_multidisciplinario, name="equipo"),
 
@@ -28,6 +28,8 @@ urlpatterns = [
     path("estudiantes/nuevo/", views.estudiante_create, name="estudiante_create"),
     path("estudiantes/<int:estudiante_id>/editar/", views.estudiante_edit, name="estudiante_edit"),
     path("estudiantes/<int:estudiante_id>/eliminar/", views.estudiante_delete, name="estudiante_delete"),
+    # listado para profesores (solo sus alumnos)
+    path("estudiantes/mios/", views.estudiantes_list_prof, name="estudiantes_list_prof"),
 
     # ===== Cursos =====
     path("cursos/", views.cursos_list, name="cursos_list"),
@@ -57,8 +59,12 @@ urlpatterns = [
     path("planificaciones/<int:plan_id>/download/", planificacion_download, name="planificacion_download"),
     path("planificaciones/<int:plan_id>/historial/", views.planificacion_historial, name="planificacion_historial"),
 
-    # ===== Asistencia (stubs) =====
-    path("asistencia/profesor/<int:curso_id>/", views.asistencia_profesor, name="asistencia_profesor"),
+    # ===== Asistencia =====
+    # Ruta canónica para tomar asistencia (la que deben usar los templates)
+    path("asistencia/<int:curso_id>/tomar/", views.asistencia_tomar, name="asistencia_tomar"),
+    # Compatibilidad con rutas antiguas: misma vista pero con otro nombre
+    path("asistencia/profesor/<int:curso_id>/", views.asistencia_tomar, name="asistencia_profesor"),
+    # Visualizar alumnos del curso
     path("asistencia/estudiantes/<int:curso_id>/", views.asistencia_estudiantes, name="asistencia_estudiantes"),
 
     # ===== Ficha estudiante (stub) =====
@@ -96,7 +102,7 @@ urlpatterns = [
     path("solicitudes/<int:pk>/", views.solicitud_detail, name="solicitud_detail"),
     path("solicitudes/<int:pk>/gestionar/", views.solicitud_marcar_gestionada, name="solicitud_marcar_gestionada"),
 
-    # ===== Postulaciones (admin) — templates: registro_list / registro_detail =====
+    # ===== Postulaciones (admin) =====
     path("postulaciones/", views.registro_list, name="registro_list"),
     path("postulaciones/<int:pk>/", views.registro_detail, name="registro_detail"),
 
@@ -108,4 +114,6 @@ urlpatterns = [
     path("postulaciones/periodos/<int:periodo_id>/set-estado/", views.periodo_set_estado, name="periodo_set_estado"),
     path("postulaciones/periodos/<int:periodo_id>/cerrar-hoy/", views.periodo_cerrar_hoy, name="periodo_cerrar_hoy"),
 
+    # ===== Mis cursos (perfil profesor) =====
+    path("cursos/mios/", views.cursos_mios, name="cursos_mios"),
 ]
