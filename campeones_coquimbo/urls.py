@@ -16,11 +16,6 @@ urlpatterns = [
 
     # raíz -> core:home
     path("", RedirectView.as_view(pattern_name="core:home", permanent=False)),
-
-    path("cuenta/cambiar-clave/",
-        RedirectView.as_view(pattern_name="usuarios:cambiar_password", permanent=False),
-        name="cambiar_password",
-         ),
 ]
 
 if settings.DEBUG:

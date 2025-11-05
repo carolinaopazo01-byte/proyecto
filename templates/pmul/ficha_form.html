@@ -1,66 +1,9 @@
-{% extends "base/plantilla.html" %}
+{% extends "base.html" %}
 {% block title %}Nueva ficha{% endblock %}
 {% block header %}Nueva ficha{% endblock %}
 
-{% block extra_css %}
-<style>
-  .form-card{ max-width:900px; }
-
-  /* ====== Look unificado para inputs/select/textarea ====== */
-  .form-card input[type="text"],
-  .form-card input[type="email"],
-  .form-card input[type="number"],
-  .form-card input[type="password"],
-  .form-card input[type="date"],
-  .form-card input[type="time"],
-  .form-card input[type="datetime-local"],
-  .form-card input[list],
-  .form-card select,
-  .form-card textarea {
-    display:block;
-    width:100%;
-    height:2.45rem;
-    padding:.45rem .7rem;
-    font-size:1rem;
-    line-height:1.5;
-    color:var(--text, #1f2937);
-    background:#fff;
-    border:1px solid var(--line, #e5e7eb);
-    border-radius:8px;
-    box-shadow:none;
-    transition:border-color .15s ease, box-shadow .15s ease;
-  }
-  .form-card select{ height:2.55rem; }
-  .form-card textarea{ min-height:120px; height:auto; resize:vertical; }
-
-  .form-card input:hover,
-  .form-card select:hover,
-  .form-card textarea:hover{ border-color:var(--primary-200, #aee0e5); }
-  .form-card input:focus,
-  .form-card select:focus,
-  .form-card textarea:focus{
-    outline:0;
-    border-color:var(--primary-300, #7fcfd6);
-    box-shadow:0 0 0 3px rgba(21,154,167,.18);
-  }
-
-  /* Fieldset de publicación */
-  .pub-box{
-    border:1px solid #e5e7eb; border-radius:8px; padding:10px;
-  }
-  .pub-legend{
-    font-size:14px; margin:0; padding:0 .4rem; width:auto;
-  }
-
-  /* Botones centrados */
-  .actions{
-    display:flex; justify-content:center; gap:.5rem; margin-top:.25rem;
-  }
-</style>
-{% endblock %}
-
 {% block content %}
-<form method="post" enctype="multipart/form-data" class="card p-3 form-card" novalidate>
+<form method="post" enctype="multipart/form-data" class="card p-3" style="max-width:900px;">
   {% csrf_token %}
 
   <!-- ================= Atleta con BUSCADOR ================= -->
@@ -97,6 +40,7 @@
         if(!s) return '';
         let r = s.toString().trim()
           .replace(/\./g,'').replace(/\s+/g,'').replace(/[–—]/g,'-').toUpperCase();
+        // Si viene sin guión y tiene largo suficiente, insertarlo
         if(!r.includes('-') && r.length >= 2) r = r.slice(0,-1) + '-' + r.slice(-1);
         return r;
       };
@@ -114,7 +58,7 @@
         {% endfor %}
       };
 
-      // Índices de búsqueda
+      // Índices de búsqueda (por texto y por RUT normalizado)
       const IDX = [];
       const IDX_RUT = {};
       for (const id in PACS) {
@@ -135,6 +79,7 @@
         if (id && PACS[id]) {
           $prev.textContent = PACS[id].prevision || '—';
           $emer.textContent = PACS[id].emergencia || '—';
+          // Mostrar etiqueta “bonita” en el finder
           $finder.value = `${PACS[id].name} — ${PACS[id].rut}`;
         } else {
           $prev.textContent = '—';
@@ -144,20 +89,25 @@
 
       function buscarYSeleccionar() {
         const q = $finder.value || '';
+        // 1) Intento exacto por RUT (con o sin puntos/guión)
         const idRut = IDX_RUT[normRut(q)];
         if (idRut) { setPaciente(idRut); return; }
 
+        // 2) Intento por etiqueta completa (como viene del datalist)
         const hit = IDX.find(x => x.label === q);
         if (hit) { setPaciente(hit.id); return; }
 
+        // 3) Intento por inclusión "inteligente" de nombre/apellido
         const k = norm(q);
         const hit2 = IDX.find(x => x.key.includes(k));
         setPaciente(hit2 ? hit2.id : '');
       }
 
+      // Eventos
       $finder.addEventListener('change', buscarYSeleccionar);
       $finder.addEventListener('blur', buscarYSeleccionar);
 
+      // Si el form viene con un valor preseleccionado (edición), sincronizar
       (function init(){
         const current = $sel && $sel.value;
         if (current) setPaciente(current); else setPaciente('');
@@ -192,16 +142,16 @@
     {{ form.adjuntos }}
   </div>
 
-  <fieldset class="mb-3 pub-box">
-    <legend class="float-none w-auto px-2 pub-legend">Publicación (visibilidad)</legend>
+  <fieldset class="mb-3" style="border:1px solid #eee; border-radius:8px; padding:10px;">
+    <legend class="float-none w-auto px-2" style="font-size:14px;">Publicación (visibilidad)</legend>
     <label><input type="checkbox" name="publicar_profesor" {% if form.instance.publicar_profesor %}checked{% endif %}> Profesor/Entrenador</label><br>
     <label><input type="checkbox" name="publicar_coordinador" {% if form.instance.publicar_coordinador %}checked{% endif %}> Coordinador</label><br>
     <label><input type="checkbox" name="publicar_admin" {% if form.instance.publicar_admin %}checked{% endif %}> Administrador</label>
   </fieldset>
 
-  <div class="actions">
-    <button class="btn btn-primary" type="submit">Guardar</button>
-    <a class="btn btn-outline-secondary" href="{% url 'pmul:fichas_list' %}">Cancelar</a>
+  <div class="d-flex gap-2">
+    <button class="btn" type="submit">Guardar</button>
+    <a class="btn" href="{% url 'pmul:fichas_list' %}">Cancelar</a>
   </div>
 </form>
 {% endblock %}

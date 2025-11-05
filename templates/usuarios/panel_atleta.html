@@ -1,96 +1,153 @@
-{% extends "base/plantilla_atleta.html" %}
+{% extends "base/app.html" %}
 {% load static %}
 
 {% block title %}Panel Atleta{% endblock %}
 
-{# ============== SIDEBAR SOLO CON ASISTENCIA Y COMUNICADOS ============== #}
-{% block sidebar %}
-<ul class="navbar-nav sidebar sidebar-light accordion" id="accordionSidebar">
-
-  <a class="sidebar-brand d-flex align-items-center justify-content-between px-3" href="{% url 'usuarios:panel_atleta' %}">
-    <div class="sidebar-brand-icon">
-      <img src="{% static 'img/logo/mi_logo.png' %}" alt="Logo" style="height:40px;object-fit:contain;">
-    </div>
-    <span class="small text-muted d-none d-lg-inline">Atleta</span>
-  </a>
-
-  <li class="nav-item cpc-mini-profile px-3 py-2">
-    <div class="mp-wrap">
-      <div class="mp-avatar" aria-hidden="true"><i class="fas fa-user"></i></div>
-      <div class="mp-info">
-        <div class="mp-name">{{ request.user.get_full_name|default:request.user.username }}</div>
-        <div class="mp-mail">{{ request.user.email|default:"Sin correo" }}</div>
-      </div>
-    </div>
-  </li>
-
-  <div class="cpc-section-label">Mi panel</div>
-  <li class="nav-item">
-    <a class="nav-link" href="{% url 'atleta:asistencia_semana' %}?semana={% now 'Y-m-d' %}">
-      <i class="fas fa-user-check"></i><span>Mi asistencia</span>
-    </a>
-  </li>
-
-  <div class="cpc-section-label">Comunicaciones</div>
-  <li class="nav-item">
-    <a class="nav-link" href="{% url 'core:comunicados_list' %}">
-      <i class="fas fa-bullhorn"></i><span>Comunicados</span>
-    </a>
-  </li>
-
-  <hr class="sidebar-divider">
-  <li class="nav-item">
-    <a class="nav-link text-danger" href="{% url 'usuarios:logout' %}">
-      <i class="fas fa-sign-out-alt"></i><span>Cerrar sesión</span>
-    </a>
-  </li>
-  <div class="version text-center small">© {% now "Y" %}</div>
-</ul>
-{% endblock %}
-
-{# =================== CSS compacto opcional =================== #}
 {% block extra_css %}
 <style>
-  .cpc-section-label{
-    padding:.65rem 1rem .25rem; font-size:.72rem; letter-spacing:.06em;
-    text-transform:uppercase; color:#64748b; font-weight:800;
+  /* ===== Paleta propia del atleta (verde) ===== */
+  :root{
+    --ath-accent:#0E9F6E;         /* verde principal */
+    --ath-accent-weak:#E8FFF1;    /* verde muy claro */
+    --tile-border:#e5e7eb;
+    --tile-bg:#fff;
+    --tile-head:#f8fafc;
   }
-  .page-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:.75rem}
-  .page-head h4{margin:0;font-weight:800;font-size:1.05rem}
-  .cards{display:grid;grid-template-columns:1fr;gap:14px}
-  .card-tile{border:1px solid #e5e7eb;border-radius:12px;background:#fff;padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.04)}
-  .card-tile h6{margin:0 0 .35rem 0;font-weight:800}
-  @media (min-width: 992px){ .cards{ grid-template-columns: 1fr 1fr; } }
+
+  .page-head{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:12px;margin-bottom:.75rem
+  }
+  .page-head h4{margin:0;font-weight:800;font-size:1.1rem;letter-spacing:.2px}
+  .page-sub{color:#6b7280;font-size:.92rem}
+
+  /* Próxima cita */
+  .next-appt{
+    background:var(--ath-accent-weak);
+    border:1px solid #b8f0cf;
+    padding:12px;border-radius:10px;margin:.6rem 0 1rem 0;
+  }
+
+  /* Tiles */
+  .tiles{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+    gap:14px
+  }
+  .tile{
+    display:flex;flex-direction:column;gap:.6rem;
+    border:1px solid var(--tile-border);border-radius:12px;background:var(--tile-bg);
+    padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.04)
+  }
+  .tile__head{
+    display:flex;align-items:center;gap:.6rem;background:var(--tile-head);
+    padding:.55rem .7rem;border-radius:10px;border:1px solid #eef2f7
+  }
+  .tile__icon{
+    width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;
+    border-radius:6px;background:rgba(14,159,110,.12); color:var(--ath-accent);
+  }
+  .tile__title{margin:0;font-size:.98rem;font-weight:800}
+  .tile__desc{margin:0;color:#6b7280;font-size:.9rem;min-height:2.2em}
+  .tile .btn{align-self:flex-start}
+
+  /* Botón principal con alto contraste */
+  .btn-ath{
+    background:var(--ath-accent);
+    border-color:var(--ath-accent);
+    color:#ffffff !important;               /* texto blanco para contraste */
+    font-weight:700;
+  }
+  .btn-ath:hover,
+  .btn-ath:focus{
+    background:#0b8a5f;
+    border-color:#0b8a5f;
+    color:#ffffff !important;
+    box-shadow:0 0 0 .2rem rgba(14,159,110,.25);
+  }
 </style>
 {% endblock %}
 
-{# =================== CONTENIDO: SOLO ASISTENCIA + COMUNICADOS =================== #}
 {% block content %}
-  <div class="page-head"><h4>Panel Atleta</h4></div>
+  <div class="page-head">
+    <div>
+      <h4>Panel Atleta</h4>
+    </div>
+    <div></div>
+  </div>
 
-  <div class="cards">
-    {# ----- Acceso rápido a asistencia ----- #}
-    <div class="card-tile">
-      <h6><i class="fas fa-user-check mr-1"></i> Mi asistencia</h6>
-      <p class="text-muted mb-2">Revisa tu asistencia de la semana.</p>
-      <a class="btn btn-primary" href="{% url 'atleta:asistencia_semana' %}?semana={% now 'Y-m-d' %}">
-        Ver asistencia
-      </a>
+  {# Próxima cita (si existe) #}
+  {% if proxima_cita %}
+    <div class="next-appt">
+      <strong>Próxima cita:</strong>
+      {{ proxima_cita.inicio|date:"D d/m H:i" }} – {{ proxima_cita.fin|date:"H:i" }}
+      con {{ proxima_cita.profesional.get_full_name|default:proxima_cita.profesional.username }}
+    </div>
+  {% endif %}
+
+  <div class="tiles">
+    <div class="tile">
+      <div class="tile__head">
+        <span class="tile__icon"><i class="fas fa-calendar-check"></i></span>
+        <h6 class="tile__title mb-0">Tomar hora (Equipo Multidisciplinario)</h6>
+      </div>
+      <p class="tile__desc">Agenda con Kinesiología, Psicología, Nutrición o TENS.</p>
+      <a class="btn btn-ath" href="{% url 'pmul:reservar_listado' %}?semana={% now 'Y-m-d' %}">Abrir agenda</a>
     </div>
 
-    {# ----- Comunicados recientes ----- #}
-    <div class="card-tile">
-      <h6><i class="fas fa-bullhorn mr-1"></i> Comunicados recientes</h6>
+    <div class="tile">
+      <div class="tile__head">
+        <span class="tile__icon"><i class="fas fa-bullhorn"></i></span>
+        <h6 class="tile__title mb-0">Comunicados</h6>
+      </div>
+      <p class="tile__desc">Avisos y novedades de tus cursos y sedes.</p>
+      <a class="btn btn-ath" href="{% url 'core:comunicados_list' %}">Ver comunicados</a>
+    </div>
 
-      {# Opción A: si tu include acepta limitar, pásale un límite #}
-      {% include "base/includes/comunicados_online.html" with limit=5 %}
+    <div class="tile">
+      <div class="tile__head">
+        <span class="tile__icon"><i class="fas fa-book"></i></span>
+        <h6 class="tile__title mb-0">Mi curso</h6>
+      </div>
+      <p class="tile__desc">Consulta tu curso y detalles de la actividad.</p>
+      <a class="btn btn-ath" href="{% url 'atleta:mis_cursos' %}">Abrir</a>
+    </div>
 
+    <div class="tile">
+      <div class="tile__head">
+        <span class="tile__icon"><i class="fas fa-user-check"></i></span>
+        <h6 class="tile__title mb-0">Asistencia</h6>
+      </div>
+      <p class="tile__desc">Revisa tu asistencia de la semana.</p>
+      <a class="btn btn-ath" href="{% url 'atleta:asistencia_semana' %}?semana={% now 'Y-m-d' %}">Ver asistencia</a>
+    </div>
 
-      <a class="btn btn-outline-primary btn-sm" href="{% url 'core:comunicados_list' %}">
-        Ver todos los comunicados
-      </a>
+    <div class="tile">
+      <div class="tile__head">
+        <span class="tile__icon"><i class="fas fa-clipboard-list"></i></span>
+        <h6 class="tile__title mb-0">Planificación</h6>
+      </div>
+      <p class="tile__desc">Contenidos y objetivos de las sesiones.</p>
+      <a class="btn btn-ath" href="{% url 'atleta:planificacion_semana' %}?semana={% now 'Y-m-d' %}">Ver planificación</a>
+    </div>
+
+    <div class="tile">
+      <div class="tile__head">
+        <span class="tile__icon"><i class="fas fa-file-alt"></i></span>
+        <h6 class="tile__title mb-0">Documentos y protocolos</h6>
+      </div>
+      <p class="tile__desc">Descarga de documentos oficiales del programa.</p>
+      <a class="btn btn-ath" href="{% url 'atleta:documentos_protocolos' %}">Abrir</a>
+    </div>
+
+    <!-- NUEVA: Cambiar contraseña -->
+    <div class="tile">
+      <div class="tile__head">
+        <span class="tile__icon"><i class="fas fa-lock"></i></span>
+        <h6 class="tile__title mb-0">Cambiar contraseña</h6>
+      </div>
+      <p class="tile__desc">Actualiza tu contraseña de acceso.</p>
+      <a class="btn btn-ath" href="{% url 'atleta:cambiar_password' %}">Cambiar</a>
     </div>
   </div>
-{% endblock %}
 
-{% block extra_js %}{% endblock %}
+{% endblock %}

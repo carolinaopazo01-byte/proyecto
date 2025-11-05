@@ -9,66 +9,51 @@
 <style>
   :root{
     --chip:#eef2f7; --chip-t:#0f172a; --muted:#6b7280;
-    --card:#fff; --border:#e5e7eb;
+    --card:#fff; --border:#e5e7eb; --bg: #035761;
     --radius:12px;
-    --gutter-x:16px;
   }
-
   .page-head{
     display:flex; align-items:center; justify-content:space-between;
-    gap:.75rem; margin:0 0 .9rem 0; padding:0 var(--gutter-x);
+    gap:.75rem; margin:0 0 .9rem 0; padding:0 16px;
   }
   .page-head h4{ margin:0; font-size:clamp(18px, 3vw, 22px); }
 
-  .list{ display:grid; gap:.75rem; padding:0 var(--gutter-x); }
-
+  .list{ display:grid; gap:.75rem; }
   .card{
     border:1px solid var(--border); border-radius:var(--radius);
     background:var(--card); overflow:hidden;
   }
   .card-body{ padding:.9rem; }
-
   .title{
     margin:0 0 .25rem 0; font-weight:800; font-size:1.02rem; line-height:1.2;
     word-break:break-word;
   }
   .meta{ color:var(--muted); font-size:.9rem; display:flex; gap:.6rem; flex-wrap:wrap; }
-
   .chips{ display:flex; gap:.35rem; flex-wrap:wrap; margin-top:.45rem; }
   .chip{
     background:var(--chip); color:var(--chip-t); border:1px solid var(--border);
     border-radius:999px; padding:.18rem .5rem; font-size:.78rem; font-weight:600;
   }
-
-  /* Cuerpo con clamp para tarjetas parejas */
-  .body{
-    margin-top:.55rem; color:#111827; line-height:1.45;
-    display:-webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow:hidden;
+  .body{ margin-top:.55rem; color:#111827; line-height:1.45; }
+  .actions{
+    display:flex; gap:.4rem; flex-wrap:wrap; margin-top:.65rem;
   }
-
-  .actions{ display:flex; gap:.4rem; flex-wrap:wrap; margin-top:.65rem; }
-  .actions form{ display:inline; margin:0; }
-  .btn-compact{ padding:.4rem .7rem; border-radius:8px; }
-
+  .actions form{ display:inline; }
   .empty{
-    margin:0 var(--gutter-x);
-    text-align:center; padding:2rem 1rem; color:var(--muted);
-    border:1px dashed var(--border); border-radius:12px; background:#fff;
+    text-align:center; padding:2rem 1rem; color:var(--muted); border:1px dashed var(--border);
+    border-radius:12px; background:var(--bg);
   }
-
-  /* Responsive: 2 columnas en md, 3 en lg si quisieras (opcional) */
-  @media (min-width: 768px){ .list{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
-  @media (min-width: 1200px){ .list{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
+  .btn-compact{ padding:.4rem .7rem; border-radius:8px; }
 </style>
 {% endblock %}
 
 {% block content %}
 
   <div class="page-head">
-    <h4 class="mb-0">Comunicados</h4>
+    <h4>Comunicados</h4>
     {% if puede_crear %}
       <a href="{% url 'core:comunicado_create' %}" class="btn btn-primary btn-compact">
-        <i class="fas fa-plus me-1"></i> Nuevo comunicado
+        <i class="fas fa-plus mr-1"></i> Nuevo comunicado
       </a>
     {% endif %}
   </div>
@@ -81,8 +66,8 @@
             <h5 class="title">{{ c.titulo }}</h5>
 
             <div class="meta">
-              <span><i class="far fa-user me-1"></i> {{ c.autor.get_full_name|default:c.autor.username }}</span>
-              <span><i class="far fa-clock me-1"></i> {{ c.creado|naturaltime }}</span>
+              <span><i class="far fa-user"></i> {{ c.autor.get_full_name|default:c.autor.username }}</span>
+              <span><i class="far fa-clock"></i> {{ c.creado|naturaltime }}</span>
             </div>
 
             <div class="chips">
@@ -91,6 +76,8 @@
               {% empty %}
                 <span class="chip">SIN AUDIENCIA</span>
               {% endfor %}
+              {# Opcional: si también usas grupos (PROF/PMUL/ATLE/APOD) #}
+              {# <span class="chip">Grupos: {{ c.audiencia_roles.all|join:", " }}</span> #}
             </div>
 
             <div class="body">
@@ -100,13 +87,12 @@
             {% if puede_crear %}
               <div class="actions">
                 <a class="btn btn-outline-primary btn-compact" href="{% url 'core:comunicado_edit' c.id %}">
-                  <i class="far fa-edit me-1"></i> Editar
+                  <i class="far fa-edit mr-1"></i> Editar
                 </a>
-                <form action="{% url 'core:comunicado_delete' c.id %}" method="post"
-                      onsubmit="this.querySelector('button').disabled=true; return confirm('¿Eliminar este comunicado?');">
+                <form action="{% url 'core:comunicado_delete' c.id %}" method="post" onsubmit="return confirm('¿Eliminar este comunicado?');">
                   {% csrf_token %}
                   <button class="btn btn-outline-danger btn-compact" type="submit">
-                    <i class="far fa-trash-alt me-1"></i> Eliminar
+                    <i class="far fa-trash-alt mr-1"></i> Eliminar
                   </button>
                 </form>
               </div>

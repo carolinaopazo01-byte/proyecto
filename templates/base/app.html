@@ -23,11 +23,11 @@
       --rhythm:18px;
 
       /* Neutros y texto */
-      --bg:#f5f7fb;
-      --surface:#ffffff;
-      --line:#e5e7eb;
-      --text:#1f2937;
-      --text-weak:#6b7280;
+      --bg:#f5f7fb;            /* fondo app */
+      --surface:#ffffff;       /* tarjetas, topbar, sidebar */
+      --line:#e5e7eb;          /* líneas sutiles cuando se necesiten */
+      --text:#1f2937;          /* texto principal */
+      --text-weak:#6b7280;     /* texto secundario */
 
       /* Primario CPC (teal profesional) en escala */
       --primary-50:#e8f6f7;
@@ -41,7 +41,7 @@
       --primary-800:#083f49;
 
       /* Borde tarjetas sutil alineado a primario */
-      --card-br: #cfe7ea;
+      --card-br: #cfe7ea;     /* borde suave, toma el tono light del primario */
       --card-shadow:0 2px 6px rgba(0,0,0,.04);
 
       /* Sombras idénticas (doble capa) para topbar y sidebar */
@@ -248,30 +248,40 @@
     }
 
     /* === Unificar color de barras superior e inferior === */
-    :root{
-      --bar-color: var(--primary-700);
-      --bar-text: #ffffff;
-    }
-    .topbar{
-      background: var(--bar-color) !important;
-      color: var(--bar-text);
-      box-shadow: var(--elev-shadow);
-    }
-    .topbar, .topbar *{ color: var(--bar-text); }
-    .sb-brand{
-      background: var(--bar-color) !important;
-      color: var(--bar-text);
-      border-bottom: none;
-    }
-    .sb-brand, .sb-brand *{ color: var(--bar-text); }
-    footer.footer{
-      background: var(--bar-color) !important;
-      color: var(--bar-text) !important;
-    }
-    footer.footer b{ color: var(--bar-text) !important; }
-    @media (max-width: 991.98px){
-      #menuBtn{ color: var(--bar-text) !important; }
-    }
+:root{
+  /* usa el mismo color del footer */
+  --bar-color: var(--primary-700);
+  --bar-text: #ffffff;
+}
+
+/* Topbar con el mismo color del footer */
+.topbar{
+  background: var(--bar-color) !important;
+  color: var(--bar-text);
+  box-shadow: var(--elev-shadow);
+}
+.topbar, .topbar *{ color: var(--bar-text); }
+
+/* Franja superior del sidebar con el mismo color */
+.sb-brand{
+  background: var(--bar-color) !important;
+  color: var(--bar-text);
+  border-bottom: none;
+}
+.sb-brand, .sb-brand *{ color: var(--bar-text); }
+
+/* Footer ya usaba var(--primary-700); lo atamos a la misma variable */
+footer.footer{
+  background: var(--bar-color) !important;
+  color: var(--bar-text) !important;
+}
+footer.footer b{ color: var(--bar-text) !important; }
+
+/* Accesibilidad del botón hamburguesa en móvil (contraste sobre la topbar) */
+@media (max-width: 991.98px){
+  #menuBtn{ color: var(--bar-text) !important; }
+}
+
   </style>
 
   {% block extra_css %}{% endblock %}
@@ -302,65 +312,27 @@
         <div class="sb-head"><i class="fas fa-user-graduate"></i><span>Gestión de estudiantes</span></div>
         <div class="sb-body">
           <a class="sb-link" href="{% url 'core:estudiantes_list' %}"><i class="fas fa-list-ul"></i><span>Registros</span></a>
-
-          {# --- Sub-sección Postulaciones (solo ADMIN/COORD) --- #}
-          {% if request.user.is_authenticated %}
-            {% with tu=request.user.tipo_usuario|default:''|upper %}
-              {% if tu == 'ADMIN' or tu == 'COORD' %}
-                <div style="font-size:11px;font-weight:800;color:#6b7280;padding:2px 2px 0 2px;">Postulaciones</div>
-                <a class="sb-link" href="{% url 'core:registro_list' %}">
-                  <i class="fas fa-inbox"></i><span>Solicitudes</span>
-                </a>
-                <a class="sb-link" href="{% url 'core:periodos_list' %}">
-                  <i class="fas fa-calendar-alt"></i><span>Períodos</span>
-                </a>
-              {% endif %}
-            {% endwith %}
-          {% endif %}
         </div>
       </section>
 
       <section class="sb-section">
         <div class="sb-head"><i class="fas fa-layer-group"></i><span>Gestión de cursos</span></div>
         <div class="sb-body">
-          <a class="sb-link" href="{% url 'core:cursos_list' %}">
-            <i class="fas fa-table"></i><span>Registros de cursos</span>
-          </a>
-          <a class="sb-link" href="{% url 'core:planificaciones_list' %}">
-            <i class="fas fa-clipboard-check"></i><span>Planificaciones</span>
-          </a>
-          <a class="sb-link" href="{% url 'core:sedes_list' %}">
-            <i class="fas fa-map-marker-alt"></i><span>Sedes</span>
-          </a>
-
-          {# ===== Sub-sección: Deportes (solo ADMIN/COORD) ===== #}
-          {% if request.user.is_authenticated %}
-            {% with tu=request.user.tipo_usuario|default:''|upper %}
-              {% if tu == 'ADMIN' or tu == 'COORD' %}
-                <div style="font-size:11px;font-weight:800;color:#6b7280;padding:6px 2px 0 2px;">Deportes</div>
-                <a class="sb-link" href="{% url 'core:deportes_list' %}">
-                  <i class="fas fa-dumbbell"></i><span>Listado de deportes</span>
-                </a>
-                <a class="sb-link" href="{% url 'core:deporte_create' %}">
-                  <i class="fas fa-plus-circle"></i><span>Nuevo deporte</span>
-                </a>
-              {% endif %}
-            {% endwith %}
-          {% endif %}
+          <a class="sb-link" href="{% url 'core:cursos_list' %}"><i class="fas fa-table"></i><span>Registros de cursos</span></a>
+          <a class="sb-link" href="{% url 'core:planificaciones_list' %}"><i class="fas fa-clipboard-check"></i><span>Planificaciones</span></a>
+          <a class="sb-link" href="{% url 'core:sedes_list' %}"><i class="fas fa-map-marker-alt"></i><span>Sedes</span></a>
         </div>
       </section>
 
       {% if request.user.is_authenticated %}
-        {% with tu=request.user.tipo_usuario|default:''|upper %}
-          {% if tu == 'ADMIN' or tu == 'COORD' %}
-            <section class="sb-section">
-              <div class="sb-head"><i class="fas fa-newspaper"></i><span>Contenido</span></div>
-              <div class="sb-body">
-                <a class="sb-link" href="{% url 'core:noticias_list' %}"><i class="fas fa-newspaper"></i><span>Noticias (Portada)</span></a>
-              </div>
-            </section>
-          {% endif %}
-        {% endwith %}
+        {% if request.user.tipo_usuario == 'ADMIN' or request.user.tipo_usuario == 'COORD' %}
+          <section class="sb-section">
+            <div class="sb-head"><i class="fas fa-newspaper"></i><span>Contenido</span></div>
+            <div class="sb-body">
+              <a class="sb-link" href="{% url 'core:noticias_list' %}"><i class="fas fa-newspaper"></i><span>Noticias (Portada)</span></a>
+            </div>
+          </section>
+        {% endif %}
       {% endif %}
 
       <section class="sb-section">
@@ -386,12 +358,6 @@
     </div>
 
     <div class="sb-foot">
-      {% if request.user.is_authenticated %}
-          <a class="sb-link" href="{% url 'usuarios:cambiar_password' %}">Cambiar Contraseña</a>
-          <i class="fas fa-key"></i><span>Cambiar contraseña</span>
-        </a>
-      {% endif %}
-
       <a class="sb-logout" href="{% url 'usuarios:logout' %}"><i class="fas fa-sign-out-alt"></i><span>Cerrar sesión</span></a>
       <div class="sb-meta">© {% now "Y" %}</div>
     </div>
