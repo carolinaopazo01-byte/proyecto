@@ -1,0 +1,155 @@
+{% extends "base/plantilla.html" %}
+{% load static %}
+
+{% block title %}Reportes | Campeones Para Coquimbo{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* 🎨 Paleta institucional CPC */
+  :root {
+    --azul: #004080;
+    --azul-osc: #002b5c;
+    --celeste: #3b82f6;
+    --gris-suave: #f4f6f9;
+    --borde: #e5e7eb;
+    --texto: #334155;
+    --exito: #10b981;
+    --error: #ef4444;
+    --amarillo: #fbbf24;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: 'Poppins', sans-serif;
+    background: var(--gris-suave);
+    margin: 0;
+    color: var(--texto);
+  }
+
+  header {
+    background: linear-gradient(90deg, var(--azul) 0%, var(--azul-osc) 100%);
+    color: #fff;
+    text-align: center;
+    padding: 28px 18px;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+
+  header h1 {
+    font-size: 28px;
+    margin: 0;
+    letter-spacing: 0.5px;
+  }
+
+  header p {
+    font-size: 16px;
+    margin: 8px 0 0;
+    opacity: 0.9;
+  }
+
+  main {
+    max-width: 1150px;
+    margin: 30px auto 60px;
+    background: #fff;
+    padding: 30px 26px;
+    border-radius: 14px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+  }
+
+  /* 🔘 Botones */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--azul);
+    color: #fff;
+    border: none;
+    padding: 11px 18px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s ease-in-out;
+  }
+
+  .btn i { font-size: 15px; }
+
+  .btn:hover {
+    background: var(--azul-osc);
+    transform: translateY(-1px);
+  }
+
+  .btn-success { background: var(--exito); }
+  .btn-success:hover { background: #059669; }
+
+  .btn-danger { background: var(--error); }
+  .btn-danger:hover { background: #b91c1c; }
+
+  .btn-warning { background: var(--amarillo); color: #000; }
+
+  /* 🧩 Tarjetas de contenido */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+    margin-top: 16px;
+  }
+
+  .card {
+    background: #f8fafc;
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 10px;
+    transition: all 0.2s ease;
+  }
+
+  .card:hover {
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+  }
+
+  .card h3 {
+    margin: 0;
+    color: var(--azul);
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .card p {
+    margin: 0;
+    color: #475569;
+    font-size: 14px;
+  }
+
+  .card .actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* 📱 Responsive */
+  @media (max-width: 640px) {
+    header h1 { font-size: 22px; }
+    header p { font-size: 14px; }
+    main { padding: 20px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<header>
+  <h1>Campeones Para Coquimbo</h1>
+  <p>{% block header_subtitle %}{% endblock %}</p>
+</header>
+
+<main>
+  {% block report_content %}{% endblock %}
+</main>
+{% endblock %}

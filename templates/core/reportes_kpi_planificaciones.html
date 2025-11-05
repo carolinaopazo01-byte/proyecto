@@ -1,0 +1,44 @@
+{% extends "base/base_reportes.html" %}
+{% load static %}
+
+{% block header_subtitle %}
+Indicadores CPC – Planificaciones
+{% endblock %}
+
+{% block report_content %}
+<form method="get" class="filters mb-4" style="display:flex; flex-wrap:wrap; gap:15px; align-items:end;">
+  <div>
+    <label><strong>Profesor:</strong></label>
+    <select name="profesor" class="form-control">
+      <option value="">Todos</option>
+      {% for p in profesores %}
+        <option value="{{ p.id }}" {% if p.id|stringformat:"s" == profesor_id %}selected{% endif %}>{{ p.get_full_name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <button type="submit" class="btn btn-primary">
+    <i class="fa-solid fa-filter"></i> Filtrar
+  </button>
+</form>
+
+<div style="display:flex; justify-content:end; gap:10px; margin-bottom:20px;">
+  <a href="{% url 'core:exportar_excel_planificaciones' %}?profesor={{ profesor_id }}" class="btn btn-success">
+    <i class="fa-solid fa-file-excel"></i> Excel
+  </a>
+  <a href="{% url 'core:exportar_kpi_planificaciones' %}?profesor={{ profesor_id }}" class="btn btn-danger">
+    <i class="fa-solid fa-file-pdf"></i> PDF
+  </a>
+</div>
+
+<div class="kpi-grid mb-6">
+  {% for kpi in kpi_planificaciones %}
+  <div class="kpi-card">
+    <div class="kpi-icon" style="background:#f59e0b;"><i class="fas {{ kpi.icon }}"></i></div>
+    <div class="kpi-info"><h4>{{ kpi.value }}</h4><p>{{ kpi.label }}</p></div>
+  </div>
+  {% empty %}
+  <p>No hay datos de planificaciones.</p>
+  {% endfor %}
+</div>
+{% endblock %}

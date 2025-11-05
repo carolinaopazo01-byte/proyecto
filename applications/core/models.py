@@ -287,6 +287,7 @@ class Estudiante(models.Model):
     modificado = models.DateTimeField(auto_now=True)
     categoria_competida = models.CharField(max_length=80, blank=True, default="")
     puntaje_o_logro = models.CharField(max_length=120, blank=True, default="")
+    genero = models.CharField(max_length=1, choices=[("M", "Masculino"), ("F", "Femenino")], blank=True, null=True)
 
     class Meta:
         ordering = ["apellidos", "nombres"]

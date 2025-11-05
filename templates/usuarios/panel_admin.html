@@ -11,19 +11,13 @@
     <span class="small text-muted d-none d-lg-inline">Panel</span>
   </a>
 
-  {# MINI PERFIL (nombre + correo) #}
+  {# MINI PERFIL #}
   <li class="nav-item cpc-mini-profile px-3 py-2">
     <div class="mp-wrap">
-      <div class="mp-avatar" aria-hidden="true">
-        <i class="fas fa-user"></i>
-      </div>
+      <div class="mp-avatar"><i class="fas fa-user"></i></div>
       <div class="mp-info">
-        <div class="mp-name">
-          {{ request.user.get_full_name|default:request.user.username }}
-        </div>
-        <div class="mp-mail">
-          {{ request.user.email|default:"Sin correo" }}
-        </div>
+        <div class="mp-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+        <div class="mp-mail">{{ request.user.email|default:"Sin correo" }}</div>
       </div>
     </div>
   </li>
@@ -56,9 +50,15 @@
     </div>
   </li>
 
-  {# ===== Contenido / Portada (solo ADMIN/COORD) ===== #}
   {% if request.user.is_authenticated %}
     {% if request.user.tipo_usuario == 'ADMIN' or request.user.tipo_usuario == 'COORD' %}
+      <div class="cpc-section-label">Asistencias</div>
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'core:asistencia_semaforo' %}">
+          <i class="fas fa-traffic-light"></i><span>Semáforo de asistencia</span>
+        </a>
+      </li>
+
       <div class="cpc-section-label">Contenido</div>
       <li class="nav-item">
         <a class="nav-link" href="{% url 'core:noticias_list' %}">
@@ -106,7 +106,6 @@
     background:#eef6ff; color:#3b82f6; flex:0 0 34px;
   }
   .cpc-mini-profile .mp-avatar i{ font-size:16px; line-height:1; }
-  .cpc-mini-profile .mp-info{ min-width:0; }
   .cpc-mini-profile .mp-name{
     font-weight:800; font-size:.9rem; color:#1f2937;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
@@ -117,20 +116,15 @@
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     line-height:1.2;
   }
-
   .page-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:.75rem}
   .page-head h4{margin:0;font-weight:800;font-size:1.05rem}
-
   .tiles{display:grid;grid-template-columns:1fr;gap:14px}
   .tile{display:flex;flex-direction:column;gap:.6rem;border:1px solid var(--tile-border);border-radius:12px;background:var(--tile-bg);padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.04)}
   .tile__head{display:flex;align-items:center;gap:.6rem;background:var(--tile-head);padding:.55rem .7rem;border-radius:10px;border:1px solid #eef2f7}
   .tile__icon{width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;background:#eef2ff}
   .tile__title{margin:0;font-size:.98rem;font-weight:800}
   .tile__desc{margin:0;color:#6b7280;font-size:.9rem;min-height:2.2em}
-
-  @media (min-width: 992px){
-    .tiles{grid-template-columns: repeat(2, 1fr);}
-  }
+  @media (min-width:992px){.tiles{grid-template-columns:repeat(2,1fr);}}
 </style>
 {% endblock %}
 
@@ -153,10 +147,21 @@
       {% if request.user.tipo_usuario == 'ADMIN' or request.user.tipo_usuario == 'COORD' %}
         <div class="tile">
           <div class="tile__head">
+            <span class="tile__icon"><i class="fas fa-traffic-light"></i></span>
+            <h6 class="tile__title mb-0">Semáforo de asistencia</h6>
+          </div>
+          <p class="tile__desc">Visualiza el estado de asistencia de los estudiantes según sus faltas consecutivas.</p>
+          <a class="btn btn-primary" href="{% url 'core:asistencia_semaforo' %}">
+            <i class="fas fa-traffic-light mr-1"></i>Ver asistencias
+          </a>
+        </div>
+
+        <div class="tile">
+          <div class="tile__head">
             <span class="tile__icon"><i class="fas fa-newspaper"></i></span>
             <h6 class="tile__title mb-0">Noticias (Portada)</h6>
           </div>
-          <p class="tile__desc">Crea, edita, publica/despublica y elimina noticias con imagen para la página principal.</p>
+          <p class="tile__desc">Crea, edita y publica noticias con imagen para la página principal.</p>
           <a class="btn btn-primary" href="{% url 'core:noticias_list' %}">
             <i class="fas fa-newspaper mr-1"></i>Gestionar noticias
           </a>
@@ -169,5 +174,3 @@
     {% include "base/includes/comunicados_online.html" %}
   </div>
 {% endblock %}
-
-{% block extra_js %}{% endblock %}

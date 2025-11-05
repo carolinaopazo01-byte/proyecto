@@ -134,23 +134,23 @@ def cambiar_password(request):
         # exigir email si el usuario no tiene
         if not request.user.email and not email:
             messages.error(request, "Debes registrar un correo electrónico para cambiar tu contraseña.")
-            return render(request, "atleta/cambiar_password.html")
+            return render(request, "atleta/../../templates/usuarios/cambiar_password.html")
 
         if pwd1 != pwd2:
             messages.error(request, "La nueva contraseña no coincide.")
-            return render(request, "atleta/cambiar_password.html")
+            return render(request, "atleta/../../templates/usuarios/cambiar_password.html")
 
         # validar contraseña actual
         if not request.user.check_password(pwd_old):
             messages.error(request, "Tu contraseña actual no es correcta.")
-            return render(request, "atleta/cambiar_password.html")
+            return render(request, "atleta/../../templates/usuarios/cambiar_password.html")
 
         # validadores de Django
         try:
             validate_password(pwd1, user=request.user)
         except PwdValidationError as e:
             messages.error(request, "; ".join(e.messages))
-            return render(request, "atleta/cambiar_password.html")
+            return render(request, "atleta/../../templates/usuarios/cambiar_password.html")
 
         # guardar email si lo proporcionó
         if email and email != request.user.email:
@@ -163,7 +163,7 @@ def cambiar_password(request):
         messages.success(request, "Contraseña actualizada correctamente.")
         return redirect("usuarios:panel_atleta")
 
-    return render(request, "atleta/cambiar_password.html")
+    return render(request, "atleta/../../templates/usuarios/cambiar_password.html")
 
 # ------- Agenda del Equipo Multidisciplinario -------
 @role_required(Usuario.Tipo.ATLE, Usuario.Tipo.PMUL, Usuario.Tipo.COORD, Usuario.Tipo.ADMIN)

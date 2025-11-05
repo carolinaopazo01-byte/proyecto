@@ -1,4 +1,6 @@
 # applications/pmul/models.py
+from datetime import datetime, timedelta, time
+
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
@@ -207,7 +209,6 @@ class Disponibilidad(models.Model):
 
     class Meta:
         ordering = ["inicio"]
-        # Esto ya existía en tu esquema inicial; no añadimos nuevos constraints para evitar migraciones.
         constraints = [
             models.UniqueConstraint(fields=["profesional", "inicio"], name="uniq_prof_slot_inicio"),
         ]
@@ -219,12 +220,10 @@ class Disponibilidad(models.Model):
         return f"{self.profesional} · {self.inicio:%d/%m %H:%M}-{self.fin:%H:%M} ({self.get_estado_display()})"
 
     def clean(self):
-        # Rango válido
-        if self.fin <= self.inicio:
-            raise ValidationError({"fin": "La hora de término debe ser posterior al inicio."})
-        # No publicar en el pasado
-        if self.inicio < timezone.now():
-            raise ValidationError({"inicio": "No publiques disponibilidad en el pasado."})
+        # Solo validar si ambos campos están definidos
+        if self.inicio and self.fin:
+            if self.fin <= self.inicio:
+                raise ValidationError("La hora de fin debe ser posterior a la de inicio.")
 
         # Sin solapes con otras disponibilidades del mismo profesional (LIBRE/RESERVADA)
         if self.profesional_id and self.inicio and self.fin:
@@ -238,6 +237,103 @@ class Disponibilidad(models.Model):
                 qs = qs.exclude(pk=self.pk)
             if qs.exists():
                 raise ValidationError("Ya tienes otra franja publicada que se solapa con este horario.")
+
+    @classmethod
+    def generar_lote(
+            cls,
+            *,
+            profesional,
+            fecha_inicio,  # date
+            fecha_fin,  # date (incluido)
+            dias_semana,  # list[int] -> 0=lu ... 6=do
+            hora_inicio_dia,  # time
+            hora_fin_dia,  # time
+            duracion_min: int,
+            intervalo_min: int,
+            pausas=None,  # list[tuple[time, time]] opcional
+            piso="",
+            notas="",
+            estado=None,  # si None => LIBRE
+    ):
+        """
+        Genera objetos Disponibilidad (NO guarda solapes).
+        Devuelve (creados, omitidos) como enteros.
+        """
+        tz = timezone.get_current_timezone()
+
+        def aware_dt(d: datetime.date, t: datetime.time) -> datetime:
+            # Asegura que el time sea ingenuo y lo convierte a 'aware' con la zona del proyecto
+            nt = t.replace(tzinfo=None)
+            naive = datetime.combine(d, nt)
+            return timezone.make_aware(naive, tz)
+
+        if not estado:
+            estado = cls.Estado.LIBRE
+
+        creados, omitidos = 0, 0
+        dia = fecha_inicio
+        one_day = timedelta(days=1)
+
+        while dia <= fecha_fin:
+            if dia.weekday() in dias_semana:
+
+                # generador de punteros de tiempo dentro del día
+                puntero = datetime.combine(dia, hora_inicio_dia)
+                fin_jornada = datetime.combine(dia, hora_fin_dia)
+
+                while puntero < fin_jornada:
+                    ini_dt = puntero
+                    fin_dt = ini_dt + timedelta(minutes=duracion_min)
+
+                    # si se pasa del fin de jornada, corta
+                    if fin_dt > fin_jornada:
+                        break
+
+                    # respeta pausas (si hay)
+                    en_pausa = False
+                    if pausas:
+                        for (p_ini, p_fin) in pausas:
+                            p_i = datetime.combine(dia, p_ini)
+                            p_f = datetime.combine(dia, p_fin)
+                            # solape con la pausa:
+                            if ini_dt < p_f and fin_dt > p_i:
+                                en_pausa = True
+                                # salta el puntero al final de la pausa
+                                puntero = max(puntero, p_f)
+                                break
+                    if en_pausa:
+                        continue
+
+                    # convierte a aware con tz del proyecto
+                    ini_aw = timezone.make_aware(ini_dt, tz)
+                    fin_aw = timezone.make_aware(fin_dt, tz)
+
+                    # evita solapes con otros slots LIBRE/RESERVADA del mismo profesional
+                    choque = cls.objects.filter(
+                        profesional=profesional,
+                        estado__in=[cls.Estado.LIBRE, cls.Estado.RESERVADA],
+                        inicio__lt=fin_aw, fin__gt=ini_aw,
+                    ).exists()
+
+                    if not choque:
+                        cls.objects.create(
+                            profesional=profesional,
+                            inicio=ini_aw,
+                            fin=fin_aw,
+                            piso=str(piso or ""),
+                            estado=estado,
+                            notas=notas or "",
+                        )
+                        creados += 1
+                    else:
+                        omitidos += 1
+
+                    # avanza por intervalo (duración + separación entre slots)
+                    puntero = fin_dt + timedelta(minutes=intervalo_min)
+
+            dia += one_day
+
+        return creados, omitidos
 
     @property
     def duracion_min(self):

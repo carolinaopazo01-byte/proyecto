@@ -1,119 +1,161 @@
 {% extends "base/plantilla.html" %}
+{% load static %}
 
-{% block title %}Reportes{% endblock %}
+{% block title %}Reportes e Indicadores{% endblock %}
 
 {% block extra_css %}
 <style>
-  :root{
-    --border:#e5e7eb;
-    --text:#111827;
-    --muted:#6b7280;
-    --tile-bg:#ffffff;
-    --icon-bg:#f3f4f6;
+  :root {
+    --cpc-teal: #0d9488;
+    --cpc-teal-dark: #0f766e;
+    --cpc-navy: #004080;
+    --cpc-bg: #f8fafc;
   }
 
-  .page-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:.75rem; }
-  .page-head-left { display:flex; align-items:center; gap:10px; }
-
-  .reports-grid{
-    display:grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap:14px;
+  .page-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 1rem;
   }
 
-  /* Tarjeta sin “marcas” (sin subrayado ni cambios de borde/outline/hover) */
-  .report-card{
-    display:flex; align-items:flex-start; gap:12px;
-    background:var(--tile-bg);
-    border:1px solid var(--border);
-    border-radius:12px;
-    padding:16px;
-    color:var(--text);
-    text-decoration:none !important;
-    -webkit-tap-highlight-color: transparent; /* iOS/Android */
-    outline: none;
-    transition:none;              /* sin animaciones para evitar “marcas” */
-  }
-  .report-card * { text-decoration:none !important; }
-
-  /* Sin cambios visuales en hover/focus/active */
-  .report-card:hover,
-  .report-card:focus,
-  .report-card:active,
-  .report-card:focus-visible{
-    text-decoration:none !important;
-    outline:none !important;
-    box-shadow:none !important;
-    transform:none !important;
-    border-color:var(--border) !important; /* mantiene el mismo color */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 18px;
   }
 
-  .report-icon{
-    flex:0 0 40px; height:40px; width:40px; border-radius:10px;
-    display:flex; align-items:center; justify-content:center;
-    background:var(--icon-bg); color:#4b5563; font-size:18px;
+  .card-report {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.2s ease;
   }
 
-  .report-text{ display:flex; flex-direction:column; gap:4px; }
-  .report-title{ font-weight:700; font-size:.98rem; margin:0; }
-  .report-desc{ margin:0; color:var(--muted); font-size:.88rem; line-height:1.35; }
+  .card-report:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  .card-report h5 {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--cpc-navy);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .card-report p {
+    font-size: 0.9rem;
+    color: #475569;
+    margin-bottom: 12px;
+  }
+
+  .btn-main {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    background: var(--cpc-teal);
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    padding: 8px 14px;
+    text-decoration: none;
+    transition: background 0.2s ease;
+  }
+
+  .btn-main:hover {
+    background: var(--cpc-teal-dark);
+  }
+
+  @media (max-width: 576px) {
+    .grid { grid-template-columns: 1fr; }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
   <div class="page-head">
-    <div class="page-head-left">
-      <h4 class="mb-0">Reportes</h4>
+    <h4 class="mb-0">Panel de Reportes e Indicadores</h4>
+  </div>
+
+  <div class="grid">
+    <!-- Estudiantes -->
+    <div class="card-report">
+      <div>
+        <h5><i class="fa-solid fa-users"></i> Estudiantes</h5>
+        <p>Indicadores de participación, retención y crecimiento estudiantil.</p>
+      </div>
+      <a href="{% url 'core:reportes_kpi_estudiantes' %}" class="btn-main">
+        <i class="fa-solid fa-chart-bar"></i> Abrir reportes
+      </a>
+    </div>
+
+    <!-- Asistencias -->
+    <div class="card-report">
+      <div>
+        <h5><i class="fa-solid fa-calendar-check"></i> Asistencias</h5>
+        <p>Promedios mensuales y registro de participación por curso.</p>
+      </div>
+      <a href="{% url 'core:reportes_kpi_asistencias' %}" class="btn-main">
+        <i class="fa-solid fa-chart-line"></i> Abrir reportes
+      </a>
+    </div>
+
+    <!-- Inasistencias -->
+    <div class="card-report">
+      <div>
+        <h5><i class="fa-solid fa-calendar-xmark" style="color:#b91c1c;"></i> Inasistencias</h5>
+        <p>Ausencias justificadas y no justificadas por ámbito y disciplina.</p>
+      </div>
+      <a href="{% url 'core:reportes_kpi_inasistencias' %}" class="btn-main">
+        <i class="fa-solid fa-eye"></i> Abrir reportes
+      </a>
+    </div>
+
+    <!-- Planificaciones -->
+    <div class="card-report">
+      <div>
+        <h5><i class="fa-solid fa-clipboard-list"></i> Planificaciones</h5>
+        <p>Indicadores de cumplimiento y avance en las planificaciones docentes.</p>
+      </div>
+      <a href="{% url 'core:reportes_kpi_planificaciones' %}" class="btn-main">
+        <i class="fa-solid fa-chart-pie"></i> Abrir reportes
+      </a>
+    </div>
+
+    <!-- Desempeño Deportivo -->
+    <div class="card-report">
+      <div>
+        <h5><i class="fa-solid fa-medal"></i> Desempeño Deportivo</h5>
+        <p>Resultados y logros destacados a nivel nacional e internacional.</p>
+      </div>
+      <a href="{% url 'core:reportes_kpi_desempeno' %}" class="btn-main">
+        <i class="fa-solid fa-trophy"></i> Abrir reportes
+      </a>
+    </div>
+
+    <!-- Reporte General -->
+    <div class="card-report">
+      <div>
+        <h5><i class="fa-solid fa-layer-group"></i> Consolidado General</h5>
+        <p>Resumen global con todos los indicadores institucionales CPC.</p>
+      </div>
+      <a href="{% url 'core:reportes_kpi' %}" class="btn-main">
+        <i class="fa-solid fa-database"></i> Ver consolidado
+      </a>
     </div>
   </div>
-
-  <div class="reports-grid">
-    <a class="report-card" href="{% url 'core:reporte_inasistencias' %}">
-      <div class="report-icon"><i class="fas fa-calendar-week"></i></div>
-      <div class="report-text">
-        <h6 class="report-title">Reporte semanal de inasistencias</h6>
-        <p class="report-desc">Resumen de ausencias por semana.</p>
-      </div>
-    </a>
-
-    <a class="report-card" href="{% url 'core:reporte_asistencia_por_clase' %}">
-      <div class="report-icon"><i class="fas fa-chalkboard-teacher"></i></div>
-      <div class="report-text">
-        <h6 class="report-title">Asistencia por clase</h6>
-        <p class="report-desc">Detalle de asistencia por sesión.</p>
-      </div>
-    </a>
-
-    <a class="report-card" href="{% url 'core:reporte_asistencia_por_curso' %}">
-      <div class="report-icon"><i class="fas fa-clipboard-list"></i></div>
-      <div class="report-text">
-        <h6 class="report-title">Asistencia por curso (rango)</h6>
-        <p class="report-desc">Comparativa de asistencia en un periodo.</p>
-      </div>
-    </a>
-
-    <a class="report-card" href="{% url 'core:reporte_asistencia_por_sede' %}">
-      <div class="report-icon"><i class="fas fa-building"></i></div>
-      <div class="report-text">
-        <h6 class="report-title">Asistencia por sede (rango)</h6>
-        <p class="report-desc">Consolidado por sede entre fechas.</p>
-      </div>
-    </a>
-
-    <a class="report-card" href="{% url 'core:reporte_llegadas_tarde' %}">
-      <div class="report-icon"><i class="fas fa-clock"></i></div>
-      <div class="report-text">
-        <h6 class="report-title">Atrasos</h6>
-        <p class="report-desc">Listado y conteo de atrasos.</p>
-      </div>
-    </a>
-
-    <a class="report-card" href="{% url 'core:reportes_exportar_todo' %}">
-      <div class="report-icon"><i class="fas fa-file-export"></i></div>
-      <div class="report-text">
-        <h6 class="report-title">Exportar todo (Excel/PDF)</h6>
-        <p class="report-desc">Descarga de reportes consolidados.</p>
-      </div>
-    </a>
-  </div>
 {% endblock %}
+
+{% block extra_js %}{% endblock %}

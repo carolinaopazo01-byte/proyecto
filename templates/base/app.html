@@ -339,6 +339,7 @@ footer.footer b{ color: var(--bar-text) !important; }
         <div class="sb-head"><i class="fas fa-id-badge"></i><span>Gestión de usuarios</span></div>
         <div class="sb-body">
           <a class="sb-link" href="{% url 'usuarios:equipo_list' %}"><i class="fas fa-users-cog"></i><span>Equipo</span></a>
+          <a class="sb-link" href="{% url 'usuarios:cambiar_password' %}"><i class="fas fa-key"></i><span>Cambiar contraseña</span></a>
         </div>
       </section>
 
@@ -355,7 +356,14 @@ footer.footer b{ color: var(--bar-text) !important; }
           <a class="sb-link" href="{% url 'core:comunicados_list' %}"><i class="fas fa-envelope-open-text"></i><span>Ver comunicados</span></a>
         </div>
       </section>
-    </div>
+
+
+     <section class="sb-section">
+        <div class="sb-head"><i class="fas fa-bullhorn"></i><span>Configuración</span></div>
+        <div class="sb-body">
+              <a class="sb-link" href="{% url 'usuarios:cambiar_password' %}"><i class="fas fa-key"></i><span>Cambiar contraseña</span></a>
+        </div>
+     </section>
 
     <div class="sb-foot">
       <a class="sb-logout" href="{% url 'usuarios:logout' %}"><i class="fas fa-sign-out-alt"></i><span>Cerrar sesión</span></a>

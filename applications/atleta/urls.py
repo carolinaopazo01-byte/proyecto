@@ -15,5 +15,5 @@ urlpatterns = [
     path("asistencia/", views.asistencia_semana, name="asistencia_semana"),
     path("planificacion/", views.planificacion_semana, name="planificacion_semana"),
     path("documentos/", views.documentos_protocolos, name="documentos_protocolos"),
-    path("password/", views.cambiar_password, name="cambiar_password"),
+
 ]

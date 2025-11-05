@@ -209,3 +209,24 @@ def usuario_toggle_active(request, usuario_id: int):
 def usuario_delete(request, usuario_id: int):
     get_object_or_404(Usuario, pk=usuario_id).delete()
     return redirect("usuarios:usuarios_list")
+
+@login_required
+def cambiar_password(request):
+    if request.method == "POST":
+        pwd_old = request.POST.get("pwd_old")
+        pwd1 = request.POST.get("pwd1")
+        pwd2 = request.POST.get("pwd2")
+
+        if not request.user.check_password(pwd_old):
+            messages.error(request, "La contraseña actual no es correcta.")
+        elif pwd1 != pwd2:
+            messages.error(request, "Las contraseñas nuevas no coinciden.")
+        elif len(pwd1) < 6:
+            messages.error(request, "La nueva contraseña debe tener al menos 6 caracteres.")
+        else:
+            request.user.set_password(pwd1)
+            request.user.save()
+            messages.success(request, "Contraseña actualizada correctamente. Vuelve a iniciar sesión.")
+            return redirect("usuarios:login_rut")
+
+    return render(request, "usuarios/cambiar_password.html")

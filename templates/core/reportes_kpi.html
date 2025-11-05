@@ -1,0 +1,129 @@
+{% extends "base/base_reportes.html" %}
+{% load static %}
+
+{% block header_subtitle %}
+Indicadores CPC – Mensuales y Anuales
+{% endblock %}
+
+{% block report_content %}
+
+<!-- FILTROS -->
+<form method="get" class="filters mb-4" style="display:flex; flex-wrap:wrap; gap:15px; align-items:end;">
+  <div>
+    <label for="sede"><strong>Sede:</strong></label>
+    <select name="sede" id="sede" class="form-control">
+      <option value="">Todas</option>
+      {% for s in sedes %}
+      <option value="{{ s.id }}" {% if s.id|stringformat:"s" == sede_id %}selected{% endif %}>{{ s.nombre }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div>
+    <label for="disciplina"><strong>Disciplina:</strong></label>
+    <select name="disciplina" id="disciplina" class="form-control">
+      <option value="">Todas</option>
+      {% for d in disciplinas %}
+      <option value="{{ d.id }}" {% if d.id|stringformat:"s" == dep_id %}selected{% endif %}>{{ d.nombre }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div>
+    <label for="programa"><strong>Programa:</strong></label>
+    <select name="programa" id="programa" class="form-control">
+      <option value="">Todos</option>
+      <option value="FORM" {% if programa == "FORM" %}selected{% endif %}>Formativo</option>
+      <option value="ALTO" {% if programa == "ALTO" %}selected{% endif %}>Alto Rendimiento</option>
+    </select>
+  </div>
+
+  <button type="submit" class="btn btn-primary">
+    <i class="fa-solid fa-filter"></i> Filtrar
+  </button>
+</form>
+
+<!-- EXPORTAR CON FILTROS ACTIVOS -->
+<div style="display:flex; justify-content:end; gap:10px; margin-bottom:20px;">
+  <a href="{% url 'core:exportar_kpi_excel' %}?sede={{ sede_id }}&disciplina={{ dep_id }}&programa={{ programa }}" class="btn btn-success">
+    <i class="fa-solid fa-file-excel"></i> Exportar Excel
+  </a>
+  <a href="{% url 'core:exportar_kpi_pdf' %}?sede={{ sede_id }}&disciplina={{ dep_id }}&programa={{ programa }}" class="btn btn-danger">
+    <i class="fa-solid fa-file-pdf"></i> Exportar PDF
+  </a>
+</div>
+
+<!-- GRID DE KPI -->
+<div class="kpi-grid mb-6">
+  {% for kpi in kpi_data %}
+  <div class="kpi-card">
+    <div class="kpi-icon" style="background: {{ kpi.color }};">
+      <i class="fas {{ kpi.icon }}"></i>
+    </div>
+    <div class="kpi-info">
+      <h4>{{ kpi.value }}</h4>
+      <p>{{ kpi.label }}</p>
+    </div>
+  </div>
+  {% empty %}
+  <p>No hay datos para los filtros seleccionados.</p>
+  {% endfor %}
+</div>
+
+<!-- GRÁFICOS -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+  <div class="card p-3">
+    <h6 class="mb-2">📈 Evolución mensual de estudiantes nuevos</h6>
+    <canvas id="chartEstudiantes"></canvas>
+  </div>
+  <div class="card p-3">
+    <h6 class="mb-2">📊 Asistencias registradas por mes</h6>
+    <canvas id="chartAsistencia"></canvas>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const meses = {{ meses_labels|safe }};
+const datosEst = {{ datos_estudiantes|safe }};
+const datosAsis = {{ datos_asistencia|safe }};
+
+new Chart(document.getElementById('chartEstudiantes'), {
+  type: 'line',
+  data: {
+    labels: meses,
+    datasets: [{
+      label: 'Nuevos estudiantes',
+      data: datosEst,
+      borderColor: '#3b82f6',
+      backgroundColor: 'rgba(59, 130, 246, 0.3)',
+      tension: 0.3,
+      fill: true
+    }]
+  },
+  options: {
+    scales: { y: { beginAtZero: true } },
+    plugins: { legend: { display: false } }
+  }
+});
+
+new Chart(document.getElementById('chartAsistencia'), {
+  type: 'bar',
+  data: {
+    labels: meses,
+    datasets: [{
+      label: 'Clases registradas',
+      data: datosAsis,
+      backgroundColor: '#10b981'
+    }]
+  },
+  options: {
+    scales: { y: { beginAtZero: true } },
+    plugins: { legend: { display: false } }
+  }
+});
+</script>
+{% endblock %}

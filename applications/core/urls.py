@@ -1,10 +1,12 @@
 from django.urls import path
 from . import views
+
 from .views import (
     planificaciones_list,
     planificacion_upload,
     planificacion_detail,
     planificacion_download,
+asistencia_semaforo
 )
 
 app_name = "core"
@@ -12,7 +14,6 @@ app_name = "core"
 urlpatterns = [
     # ===== Home + páginas públicas =====
     path("", views.home, name="home"),
-    path("quienes-somos/", views.quienes_somos, name="quienes"),
     # nombre "oficial"
     path("procesos-inscripcion/", views.procesos_inscripcion, name="procesos_inscripcion"),
     # alias para compatibilidad con templates antiguos ({% url 'core:procesos' %})
@@ -38,6 +39,11 @@ urlpatterns = [
     path("cursos/<int:curso_id>/eliminar/", views.curso_delete, name="curso_delete"),
     path("cursos/<int:curso_id>/configurar-cupos/", views.curso_configurar_cupos, name="curso_configurar_cupos"),
     path("cursos/<int:curso_id>/inscribir/<int:estudiante_id>/", views.inscribir_en_curso, name="inscribir_en_curso"),
+# --- Vistas individuales de KPI ---
+path("reportes/kpi/estudiantes/", views.reportes_kpi_estudiantes, name="reportes_kpi_estudiantes"),
+path("reportes/kpi/asistencias/", views.reportes_kpi_asistencias, name="reportes_kpi_asistencias"),
+path("reportes/kpi/planificaciones/", views.reportes_kpi_planificaciones, name="reportes_kpi_planificaciones"),
+path("reportes/kpi/desempeno/", views.reportes_kpi_desempeno, name="reportes_kpi_desempeno"),
 
     # ===== Sedes =====
     path("sedes/", views.sedes_list, name="sedes_list"),
@@ -72,14 +78,12 @@ urlpatterns = [
 
     # ===== Reportes =====
     path("reportes/", views.reportes_home, name="reportes_home"),
-    path("reportes/inasistencias/", views.reporte_inasistencias, name="reporte_inasistencias"),
-    path("reportes/inasistencias/detalle/<int:clase_id>/", views.reporte_inasistencias_detalle, name="reporte_inasistencias_detalle"),
-    path("reportes/inasistencias/export.csv", views.reporte_inasistencias_export_csv, name="reporte_inasistencias_export"),
-    path("reportes/asistencia-clase/", views.reporte_asistencia_por_clase, name="reporte_asistencia_por_clase"),
-    path("reportes/asistencia-curso/", views.reporte_asistencia_por_curso, name="reporte_asistencia_por_curso"),
-    path("reportes/asistencia-sede/", views.reporte_asistencia_por_sede, name="reporte_asistencia_por_sede"),
-    path("reportes/llegadas-tarde/", views.reporte_llegadas_tarde, name="reporte_llegadas_tarde"),
-    path("reportes/exportar-todo/", views.reportes_exportar_todo, name="reportes_exportar_todo"),
+path("reportes/inscripciones/", views.reporte_inscripciones, name="reporte_inscripciones"),
+path("reportes/calendario/", views.reporte_calendario, name="reporte_calendario"),
+path("reportes/kpi/inasistencias/", views.reportes_kpi_inasistencias, name="reportes_kpi_inasistencias"),
+
+path("reportes/kpi/", views.reportes_kpi, name="reportes_kpi"),
+
 
     # ===== Deportes =====
     path("deportes/", views.deportes_list, name="deportes_list"),
@@ -116,4 +120,27 @@ urlpatterns = [
 
     # ===== Mis cursos (perfil profesor) =====
     path("cursos/mios/", views.cursos_mios, name="cursos_mios"),
+
+# --- RUTAS DE EXPORTACIÓN KPI ---
+path("reportes/exportar/excel/", views.exportar_kpi_excel, name="exportar_kpi_excel"),
+path("reportes/exportar/pdf/", views.exportar_kpi_pdf, name="exportar_kpi_pdf"),
+path("reportes/exportar/general/pdf/", views.exportar_kpi_general, name="exportar_kpi_general"),
+path("reportes/exportar/estudiantes/pdf/", views.exportar_kpi_estudiantes, name="exportar_kpi_estudiantes"),
+path("reportes/exportar/asistencias/pdf/", views.exportar_kpi_asistencias, name="exportar_kpi_asistencias"),
+path("reportes/exportar/planificaciones/pdf/", views.exportar_kpi_planificaciones, name="exportar_kpi_planificaciones"),
+path("reportes/exportar/desempeno/pdf/", views.exportar_kpi_desempeno, name="exportar_kpi_desempeno"),
+
+# --- EXPORTACIÓN KPI EN EXCEL (por separado) ---
+path("reportes/exportar/general/excel/", views.exportar_excel_general, name="exportar_excel_general"),
+path("reportes/exportar/estudiantes/excel/", views.exportar_excel_estudiantes, name="exportar_excel_estudiantes"),
+path("reportes/exportar/asistencias/excel/", views.exportar_excel_asistencias, name="exportar_excel_asistencias"),
+path("reportes/exportar/planificaciones/excel/", views.exportar_excel_planificaciones, name="exportar_excel_planificaciones"),
+path("reportes/exportar/desempeno/excel/", views.exportar_excel_desempeno, name="exportar_excel_desempeno"),
+
+path("reportes/inasistencias/pdf/", views.exportar_kpi_inasistencias, name="exportar_kpi_inasistencias"),
+path("reportes/inasistencias/excel/", views.exportar_excel_inasistencias, name="exportar_excel_inasistencias"),
+path("reportes/inasistencias/", views.reportes_kpi_inasistencias, name="reportes_kpi_inasistencias"),
+path("asistencias/semaforo/", asistencia_semaforo, name="asistencia_semaforo"),
+
+
 ]

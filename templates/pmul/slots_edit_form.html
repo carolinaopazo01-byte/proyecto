@@ -1,0 +1,38 @@
+{% extends "base/plantilla.html" %}
+{% block title %}Editar franja{% endblock %}
+{% block header %}✏️ Editar franja horaria{% endblock %}
+
+{% block content %}
+<div class="card p-3" style="max-width:820px;margin:auto;">
+  <form method="post">
+    {% csrf_token %}
+    <div class="row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <label>📅 Fecha</label>
+        <input type="date" name="fecha_inicio" required value="{{ slot.inicio|date:'Y-m-d' }}">
+      </div>
+      <div>
+        <label>⏰ Hora inicio</label>
+        <input type="time" name="hora_inicio_dia" required value="{{ slot.inicio|date:'H:i' }}">
+      </div>
+      <div>
+        <label>⏰ Hora término</label>
+        <input type="time" name="hora_fin_dia" required value="{{ slot.fin|date:'H:i' }}">
+      </div>
+      <div>
+        <label>🏢 Piso</label>
+        <input type="text" name="piso" value="{{ slot.piso }}">
+      </div>
+      <div style="grid-column:span 2;">
+        <label>📝 Notas</label>
+        <textarea name="notas" rows="2" style="width:100%;">{{ slot.notas }}</textarea>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:center;gap:8px;margin-top:1rem;">
+      <button class="btn btn-primary" type="submit">Guardar cambios</button>
+      <a class="btn btn-secondary" href="{% url 'pmul:slots_list' %}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

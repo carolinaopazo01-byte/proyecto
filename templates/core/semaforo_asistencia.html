@@ -1,0 +1,51 @@
+{% extends "base/plantilla.html" %}
+{% block title %}Semáforo de Asistencia{% endblock %}
+{% block header %}Semáforo de Asistencia{% endblock %}
+
+{% block extra_css %}
+<style>
+  .status-dot {
+    width: 16px; height: 16px; border-radius: 50%;
+    display: inline-block; margin-right: 6px;
+  }
+  .verde { background-color: #22c55e; }     /* verde */
+  .amarillo { background-color: #eab308; }  /* amarillo */
+  .rojo { background-color: #dc2626; }      /* rojo */
+
+  .table th, .table td {
+    vertical-align: middle;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card p-3">
+  <table class="table table-striped align-middle">
+    <thead>
+      <tr>
+        <th>Estudiante</th>
+        <th>Curso</th>
+        <th>Faltas consecutivas</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in data %}
+      <tr>
+        <td>{{ item.estudiante.nombres }} {{ item.estudiante.apellidos }}</td>
+        <td>{{ item.curso }}</td>
+        <td>{{ item.faltas_consec }}</td>
+        <td>
+          <span class="status-dot {{ item.color }}"></span>
+          {% if item.color == 'verde' %}Asistencia buena{% endif %}
+          {% if item.color == 'amarillo' %}Atención: 2 faltas consecutivas{% endif %}
+          {% if item.color == 'rojo' %}Alerta: 3 o más faltas consecutivas{% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" class="text-center text-muted">No hay registros de asistencia.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

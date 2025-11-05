@@ -1,0 +1,44 @@
+{% extends "base/base_reportes.html" %}
+{% load static %}
+
+{% block header_subtitle %}
+Indicadores CPC – Estudiantes
+{% endblock %}
+
+{% block report_content %}
+
+<form method="get" class="filters mb-4" style="display:flex; flex-wrap:wrap; gap:15px; align-items:end;">
+  <div>
+    <label><strong>Programa:</strong></label>
+    <select name="programa" class="form-control">
+      <option value="">Todos</option>
+      <option value="FORM" {% if programa == "FORM" %}selected{% endif %}>Formativo</option>
+      <option value="ALTO" {% if programa == "ALTO" %}selected{% endif %}>Alto Rendimiento</option>
+    </select>
+  </div>
+
+  <button type="submit" class="btn btn-primary">
+    <i class="fa-solid fa-filter"></i> Filtrar
+  </button>
+</form>
+
+<div style="display:flex; justify-content:end; gap:10px; margin-bottom:20px;">
+  <a href="{% url 'core:exportar_excel_estudiantes' %}?programa={{ programa }}" class="btn btn-success">
+    <i class="fa-solid fa-file-excel"></i> Excel
+  </a>
+  <a href="{% url 'core:exportar_kpi_estudiantes' %}?programa={{ programa }}" class="btn btn-danger">
+    <i class="fa-solid fa-file-pdf"></i> PDF
+  </a>
+</div>
+
+<div class="kpi-grid mb-6">
+  {% for kpi in kpi_estudiantes %}
+  <div class="kpi-card">
+    <div class="kpi-icon" style="background:#2563eb;"><i class="fas {{ kpi.icon }}"></i></div>
+    <div class="kpi-info"><h4>{{ kpi.value }}</h4><p>{{ kpi.label }}</p></div>
+  </div>
+  {% empty %}
+  <p>No hay datos de estudiantes.</p>
+  {% endfor %}
+</div>
+{% endblock %}

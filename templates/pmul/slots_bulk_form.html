@@ -1,0 +1,189 @@
+{% extends "base/plantilla.html" %}
+{% load static %}
+
+{% block title %}Generar franjas en lote{% endblock %}
+{% block header %}⚙️ Generar franjas en lote{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cpc-form{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+    gap:16px;
+  }
+
+  .cpc-field{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+
+  .cpc-field label{
+    font-weight:600;
+    color:#1f2937;
+  }
+
+  .cpc-field input,
+  .cpc-field select,
+  .cpc-field textarea{
+    border:1px solid #d1d5db;
+    border-radius:8px;
+    padding:.45rem .65rem;
+    font-size:1rem;
+    width:100%;
+  }
+
+  .cpc-field small{
+    color:#6b7280;
+    font-size:.85rem;
+  }
+
+  .days-box{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    padding:.6rem .5rem;
+    border:1px solid #e5e7eb;
+    border-radius:8px;
+    background:#fff;
+  }
+
+  input[type="time"]{
+    appearance:auto !important;
+    -webkit-appearance:auto !important;
+    background-color:#fff;
+    color:#111827;
+  }
+
+  .form-actions{
+    grid-column:1 / -1;
+    display:flex;
+    justify-content:center;
+    gap:12px;
+    margin-top:12px;
+  }
+
+  .alert{
+    border-radius:8px;
+    padding:.75rem 1rem;
+    margin-top:1rem;
+    font-weight:500;
+  }
+  .alert.success{background:#ecfdf5; border:1px solid #6ee7b7; color:#065f46;}
+  .alert.warning{background:#fffbeb; border:1px solid #fcd34d; color:#78350f;}
+  .muted{color:#6b7280;font-size:.9rem;}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card p-3" style="max-width:980px; margin:auto;">
+
+  <p class="muted">Completa los siguientes campos para generar automáticamente franjas horarias en tu agenda.</p>
+
+  <form method="post" class="cpc-form">
+    {% csrf_token %}
+
+    <!-- RANGO DE FECHAS -->
+    <div class="cpc-field">
+      <label for="fecha_inicio">📅 Fecha inicio</label>
+      <input type="date" id="fecha_inicio" name="fecha_inicio" required>
+      <small>Primer día para generar franjas.</small>
+    </div>
+
+    <div class="cpc-field">
+      <label for="fecha_fin">📅 Fecha fin</label>
+      <input type="date" id="fecha_fin" name="fecha_fin" required>
+      <small>Último día (incluido).</small>
+    </div>
+
+    <!-- DÍAS DE LA SEMANA -->
+    <div class="cpc-field" style="grid-column:1 / -1">
+      <label>📆 Días de la semana</label>
+      <div class="days-box">
+        <label><input type="checkbox" name="dias_semana" value="0"> Lunes</label>
+        <label><input type="checkbox" name="dias_semana" value="1"> Martes</label>
+        <label><input type="checkbox" name="dias_semana" value="2"> Miércoles</label>
+        <label><input type="checkbox" name="dias_semana" value="3"> Jueves</label>
+        <label><input type="checkbox" name="dias_semana" value="4"> Viernes</label>
+        <label><input type="checkbox" name="dias_semana" value="5"> Sábado</label>
+        <label><input type="checkbox" name="dias_semana" value="6"> Domingo</label>
+      </div>
+      <small>Selecciona los días en que se generarán las franjas.</small>
+    </div>
+
+    <!-- HORARIOS -->
+    <div class="cpc-field">
+      <label for="hora_inicio_dia">⏰ Hora de inicio</label>
+      <input type="time" id="hora_inicio_dia" name="hora_inicio_dia" required>
+      <small>Ejemplo: 09:00</small>
+    </div>
+
+    <div class="cpc-field">
+      <label for="hora_fin_dia">⏰ Hora de término</label>
+      <input type="time" id="hora_fin_dia" name="hora_fin_dia" required>
+      <small>Ejemplo: 18:00</small>
+    </div>
+
+    <!-- DURACIÓN / INTERVALO -->
+    <div class="cpc-field">
+      <label for="duracion_min">🕒 Duración de cada cita (min)</label>
+      <input type="number" id="duracion_min" name="duracion_min" min="5" step="5" value="30" required>
+    </div>
+
+    <div class="cpc-field">
+      <label for="intervalo_min">🔁 Intervalo entre citas (min)</label>
+      <input type="number" id="intervalo_min" name="intervalo_min" min="0" step="5" value="0" required>
+      <small>Tiempo libre entre cada cita (en minutos).</small>
+    </div>
+
+    <!-- PAUSAS -->
+    <div class="cpc-field">
+      <label for="pausa_ini">☕ Pausa desde</label>
+      <input type="time" id="pausa_ini" name="pausa_ini">
+      <small>Ej: almuerzo 13:00–14:00</small>
+    </div>
+
+    <div class="cpc-field">
+      <label for="pausa_fin">☕ Pausa hasta</label>
+      <input type="time" id="pausa_fin" name="pausa_fin">
+    </div>
+
+    <!-- EXTRAS -->
+    <div class="cpc-field">
+      <label for="piso">🏢 Piso (opcional)</label>
+      <input type="text" id="piso" name="piso" placeholder="1 / 2">
+    </div>
+
+    <div class="cpc-field" style="grid-column:1 / -1">
+      <label for="notas">📝 Notas (opcional)</label>
+      <textarea id="notas" name="notas" rows="2" placeholder="comentario visible en la agenda"></textarea>
+    </div>
+
+    <!-- BOTONES -->
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">✅ Generar</button>
+      <a class="btn btn-secondary" href="{% url 'pmul:slots_list' %}">Cancelar</a>
+    </div>
+  </form>
+
+  <!-- RESULTADO -->
+  {% if creados is not None %}
+    <hr>
+    {% if creados > 0 %}
+      <div class="alert success">
+        ✅ Se crearon {{ creados }} franjas.
+        {% if omitidos %}<br>Omitidos por choques: {{ omitidos }}.{% endif %}
+      </div>
+    {% else %}
+      <div class="alert warning">
+        ⚠️ No se creó ninguna franja.
+        {% if omitidos %}<br>Omitidos por choques: {{ omitidos }}.{% endif %}
+      </div>
+    {% endif %}
+    <p style="text-align:center;margin-top:12px;">
+      <a class="btn btn-primary" href="{% url 'pmul:slots_list' %}">Volver a mis franjas</a>
+    </p>
+  {% endif %}
+
+</div>
+{% endblock %}

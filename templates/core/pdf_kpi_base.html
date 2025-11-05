@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>{{ titulo }}</title>
+  <style>
+    @page { size: A4; margin: 2cm; }
+
+    body {
+      font-family: 'Poppins', Arial, sans-serif;
+      color: #222;
+      background: #fff;
+      font-size: 13px;
+    }
+
+    header {
+      text-align: center;
+      border-bottom: 2px solid #003366;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+    }
+
+    header img {
+      height: 60px;
+      margin-bottom: 5px;
+    }
+
+    header h1 {
+      font-size: 20px;
+      color: #003366;
+      margin: 5px 0 0;
+      font-weight: 700;
+    }
+
+    header p {
+      margin: 0;
+      font-size: 13px;
+      color: #666;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 25px;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background: #003366;
+      color: white;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+    }
+
+    tr:nth-child(even) {
+      background: #f5f7fa;
+    }
+
+    .kpi-value {
+      font-weight: bold;
+      color: #003366;
+      font-size: 15px;
+    }
+
+    footer {
+      position: fixed;
+      bottom: 20px;
+      text-align: center;
+      width: 100%;
+      font-size: 11px;
+      color: #777;
+    }
+
+    .chart {
+      margin-top: 30px;
+      text-align: center;
+    }
+
+    .chart img {
+      width: 80%;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    {% if logo_url %}
+      <img src="{{ logo_url }}" alt="Logo">
+    {% endif %}
+    <h1>{{ titulo }}</h1>
+    <p>Generado el {{ ahora|date:"d/m/Y H:i" }}</p>
+  </header>
+
+  <table>
+    <thead>
+      <tr><th>Indicador</th><th>Valor</th></tr>
+    </thead>
+    <tbody>
+      {% for label, value in kpi %}
+        <tr>
+          <td>{{ label }}</td>
+          <td class="kpi-value">{{ value }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if chart_base64 %}
+  <div class="chart">
+    <h3>Evolución Mensual</h3>
+    <img src="data:image/png;base64,{{ chart_base64 }}" alt="Gráfico mensual">
+  </div>
+  {% endif %}
+
+  <footer>
+    © {{ ahora|date:"Y" }} Programa Campeones para Coquimbo — Reporte generado automáticamente.
+  </footer>
+</body>
+</html>

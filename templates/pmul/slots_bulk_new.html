@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Generar franjas en lote{% endblock %}
+{% block header %}⚙️ Generar franjas en lote{% endblock %}
+
+{% block content %}
+<div class="card p-3" style="max-width:900px">
+  <form method="post">
+    {% csrf_token %}
+    <div class="row" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+      <div>{{ form.fecha_inicio.label_tag }} {{ form.fecha_inicio }}</div>
+      <div>{{ form.fecha_fin.label_tag }} {{ form.fecha_fin }}</div>
+      <div style="grid-column:span 2">
+        <label><b>{{ form.dias_semana.label }}</b></label>
+        {{ form.dias_semana }}
+      </div>
+
+      <div>{{ form.hora_inicio_dia.label_tag }} {{ form.hora_inicio_dia }}</div>
+      <div>{{ form.hora_fin_dia.label_tag }} {{ form.hora_fin_dia }}</div>
+
+      <div>{{ form.duracion_min.label_tag }} {{ form.duracion_min }}</div>
+      <div>{{ form.intervalo_min.label_tag }} {{ form.intervalo_min }}</div>
+
+      <div style="grid-column:span 2">{{ form.pausas.label_tag }} {{ form.pausas }}
+        <p class="muted" style="margin:4px 0 0">
+          Ejemplos: <code>13:00-14:00</code> o <code>13:00-14:00, 16:30-17:00</code>
+        </p>
+      </div>
+
+      <div>{{ form.piso.label_tag }} {{ form.piso }}</div>
+      <div style="grid-column:span 2">{{ form.notas.label_tag }} {{ form.notas }}</div>
+    </div>
+
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button class="btn" type="submit">Generar</button>
+      <a class="btn btn-secondary" href="{% url 'pmul:slots_list' %}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

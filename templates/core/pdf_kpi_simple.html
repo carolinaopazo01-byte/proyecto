@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<style>
+body { font-family: Arial, sans-serif; margin: 40px; }
+h1 { color: #003366; text-align: center; }
+h2 { color: #2563eb; text-align: center; margin-top: 5px; }
+table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
+th { background-color: #f3f4f6; }
+footer { margin-top: 40px; font-size: 12px; text-align: center; color: #666; }
+</style>
+</head>
+<body>
+    <h1>{{ titulo }}</h1>
+    <h2>{{ subtitulo }}</h2>
+    <table>
+        <tr><th>Indicador</th><th>Valor</th></tr>
+        {% for label, value in kpi %}
+        <tr><td>{{ label }}</td><td>{{ value }}</td></tr>
+        {% endfor %}
+    </table>
+    <footer>Generado el {{ fecha|date:"d/m/Y H:i" }}</footer>
+</body>
+</html>
