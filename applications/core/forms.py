@@ -219,18 +219,37 @@ class DeporteForm(forms.ModelForm):
         fields = ["nombre", "categoria", "equipamiento"]
 
 # ========================= Comunicado =========================
+
 class ComunicadoForm(forms.ModelForm):
     audiencia_codigos = forms.MultipleChoiceField(
-        choices=[(c, c) for c in AUDIENCIA_CODIGOS],
-        required=False,
+        label="Audiencia",
+        choices=[
+            ("ATLE", "Deportistas Alto Rendimiento"),
+            ("PMUL", "Profesionales multidisciplinarios"),
+            ("APOD", "Apoderados"),
+            ("PUBL", "Público general"),
+        ],
         widget=forms.CheckboxSelectMultiple,
-        label="Dirigido a (códigos)"
+        required=False,
     )
 
     class Meta:
         model = Comunicado
-        fields = ['titulo', 'cuerpo', 'autor', 'audiencia_codigos', 'audiencia_roles']
-        widgets = {'audiencia_roles': forms.SelectMultiple(attrs={'size': 6})}
+        fields = ["titulo", "cuerpo", "audiencia_codigos"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.initial["audiencia_codigos"] = self.instance.get_audiencia_codigos()
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        codigos = self.cleaned_data.get("audiencia_codigos", [])
+        instance.set_audiencia_codigos(codigos)
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
 
 # ========================= Registro público (Postulación) =========================
 if PostulacionEstudianteModel is not None:

@@ -337,8 +337,7 @@ def asistencia_tomar(request, curso_id):
     }
     return render(request, "profesor/asistencia_tomar.html", context)
 
-# ===================== 6) Alumno temporal =====================
-@login_required
+#@login_required
 @require_http_methods(["GET", "POST"])
 def alumno_temporal_new(request):
     """Formulario rápido para crear un alumno temporal."""
@@ -346,9 +345,9 @@ def alumno_temporal_new(request):
         return HttpResponseForbidden("Solo profesores.")
 
     try:
-        from applications.core.forms import AlumnoTemporalForm
-    except Exception:
-        return HttpResponse("No se pudo cargar AlumnoTemporalForm.", status=500)
+        from applications.profesor.forms import AlumnoTemporalForm   # ✅ CORREGIDO
+    except Exception as e:
+        return HttpResponse(f"No se pudo cargar AlumnoTemporalForm: {e}", status=500)
 
     if request.method == "POST":
         form = AlumnoTemporalForm(request.POST)

@@ -29,6 +29,10 @@ urlpatterns = [
     path("estudiantes/nuevo/", views.estudiante_create, name="estudiante_create"),
     path("estudiantes/<int:estudiante_id>/editar/", views.estudiante_edit, name="estudiante_edit"),
     path("estudiantes/<int:estudiante_id>/eliminar/", views.estudiante_delete, name="estudiante_delete"),
+# Activar / Desactivar estudiante
+path("estudiantes/<int:estudiante_id>/activar/", views.estudiante_activar, name="estudiante_activar"),
+path("estudiantes/<int:estudiante_id>/desactivar/", views.estudiante_desactivar, name="estudiante_desactivar"),
+
     # listado para profesores (solo sus alumnos)
     path("estudiantes/mios/", views.estudiantes_list_prof, name="estudiantes_list_prof"),
 

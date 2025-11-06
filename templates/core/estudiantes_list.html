@@ -8,18 +8,33 @@
   .page-head-left { display:flex; align-items:center; gap:10px; }
   .filters { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .table thead th { white-space:nowrap; }
-  .actions { display:flex; gap:8px; flex-wrap:wrap; }
+  .actions { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
   .search-input { min-width:260px; }
 
   /* Botón redondo para ícono (lupita) */
   .icon-btn{
     width:38px; height:38px; padding:0;
     display:inline-flex; align-items:center; justify-content:center;
-    border-radius:.375rem; /* igual a .btn */
+    border-radius:.375rem;
     line-height:1;
   }
 
-  /* Responsivo: reducir input en pantallas chicas */
+  .btn-sm i { margin-right:4px; }
+
+  /* Colores consistentes */
+  .btn-status-on {
+    background:#ecfdf5; border:1px solid #34d399; color:#047857;
+  }
+  .btn-status-on:hover {
+    background:#d1fae5; border-color:#059669; color:#065f46;
+  }
+  .btn-status-off {
+    background:#fef2f2; border:1px solid #fca5a5; color:#b91c1c;
+  }
+  .btn-status-off:hover {
+    background:#fee2e2; border-color:#ef4444; color:#7f1d1d;
+  }
+
   @media (max-width: 576px){
     .search-input{ min-width: 0; width: 100%; }
   }
@@ -27,7 +42,7 @@
 {% endblock %}
 
 {% block content %}
-  <!-- Cabecera con mismas distancias que "Cursos" (sin botón Atrás) -->
+  <!-- Cabecera -->
   <div class="page-head mb-3">
     <div class="page-head-left">
       <h4 class="mb-0">Estudiantes</h4>
@@ -45,7 +60,6 @@
                  value="{{ q }}"
                  class="form-control search-input"
                  placeholder="Buscar por RUT, nombre o email">
-          <!-- Botón con ícono (lupita) -->
           <button class="btn btn-outline-primary icon-btn" type="submit" aria-label="Buscar" title="Buscar">
             <i class="fas fa-search"></i>
           </button>
@@ -80,7 +94,7 @@
                 <th>Puntaje/Logro</th>
                 <th>Curso</th>
                 <th>Activo</th>
-                <th style="min-width:160px;">Acciones</th>
+                <th style="min-width:220px;">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -120,13 +134,34 @@
                 </td>
                 <td>
                   <div class="actions">
+                    <!-- Editar -->
                     <a class="btn btn-sm btn-outline-primary" href="{% url 'core:estudiante_edit' e.id %}">
                       <i class="fas fa-pen"></i> Editar
                     </a>
+
+                    <!-- Activar / Desactivar -->
+                    {% if e.activo %}
+                      <form method="post" action="{% url 'core:estudiante_desactivar' e.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button class="btn btn-sm btn-status-off" type="submit"
+                                onclick="return confirm('¿Desactivar este estudiante?');">
+                          <i class="fas fa-user-slash"></i> Desactivar
+                        </button>
+                      </form>
+                    {% else %}
+                      <form method="post" action="{% url 'core:estudiante_activar' e.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button class="btn btn-sm btn-status-on" type="submit"
+                                onclick="return confirm('¿Activar este estudiante?');">
+                          <i class="fas fa-user-check"></i> Activar
+                        </button>
+                      </form>
+                    {% endif %}
+
+                    <!-- Eliminar -->
                     <form method="post" action="{% url 'core:estudiante_delete' e.id %}" style="display:inline;">
                       {% csrf_token %}
-                      <button class="btn btn-sm btn-danger"
-                              type="submit"
+                      <button class="btn btn-sm btn-danger" type="submit"
                               onclick="return confirm('¿Eliminar este estudiante?');">
                         <i class="fas fa-trash-alt"></i> Eliminar
                       </button>

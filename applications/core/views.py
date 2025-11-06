@@ -2447,3 +2447,23 @@ def asistencia_semaforo(request):
 
     context = {"data": data}
     return render(request, "core/semaforo_asistencia.html", context)
+
+
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from .models import Estudiante
+
+def estudiante_activar(request, estudiante_id):
+    estudiante = get_object_or_404(Estudiante, id=estudiante_id)
+    estudiante.activo = True
+    estudiante.save()
+    messages.success(request, f"✅ El estudiante {estudiante.nombres} {estudiante.apellidos} fue activado correctamente.")
+    return redirect('core:estudiantes_list')
+
+def estudiante_desactivar(request, estudiante_id):
+    estudiante = get_object_or_404(Estudiante, id=estudiante_id)
+    estudiante.activo = False
+    estudiante.save()
+    messages.warning(request, f"⚠️ El estudiante {estudiante.nombres} {estudiante.apellidos} fue desactivado correctamente.")
+    return redirect('core:estudiantes_list')
+

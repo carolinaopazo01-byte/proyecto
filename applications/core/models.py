@@ -91,17 +91,37 @@ class Noticia(models.Model):
         return self.titulo
 
 
-# ===================== COMUNICADOS =====================
+
+# Códigos válidos de audiencia
+AUDIENCIA_CODIGOS = ["ATLE", "PMUL", "APOD", "PUBL"]
+
+
+# ================= COMUNICADOS =================
 class ComunicadoQuerySet(models.QuerySet):
     def for_user(self, user):
+        """
+        Devuelve los comunicados visibles para un usuario según su tipo o grupo.
+        - Los ADMIN y COORD ven todos.
+        - Otros usuarios ven comunicados cuyo código de audiencia incluye su tipo
+          o comunicados públicos ("PUBL").
+        """
         tu = getattr(user, "tipo_usuario", None)
+
+        # Los administradores o coordinadores ven todos los comunicados
         if getattr(user, "is_superuser", False) or tu in ("ADMIN", "COORD"):
             return self
 
+        # Filtro por código de tipo de usuario (ej: ATLE, PMUL, APOD)
         q_tu = models.Q(audiencia_codigos__icontains=tu) if tu else models.Q(pk__in=[])
+
+        # Filtro adicional por grupos (si se usan)
         user_group_ids = getattr(user, "groups", Group.objects.none()).values_list("id", flat=True)
         q_grp = models.Q(audiencia_roles__in=Group.objects.filter(id__in=user_group_ids, name__in=AUDIENCIA_CODIGOS))
-        return self.filter(q_tu | q_grp).distinct()
+
+        # Incluye también los comunicados públicos (PUBL)
+        q_pub = models.Q(audiencia_codigos__icontains="PUBL")
+
+        return self.filter(q_tu | q_grp | q_pub).distinct()
 
 
 class Comunicado(models.Model):
@@ -109,8 +129,16 @@ class Comunicado(models.Model):
     cuerpo = models.TextField()
     autor = models.ForeignKey(Usuario, on_delete=models.PROTECT)
     creado = models.DateTimeField(auto_now_add=True)
+
+    # Códigos de audiencia, guardados como texto separado por comas (ej: "ATLE,PMUL")
     audiencia_codigos = models.CharField(max_length=100, default="", blank=True)
-    audiencia_roles = models.ManyToManyField(Group, blank=True, related_name="comunicados_dirigidos")
+
+    # Opcional: permitir asociar roles/grupos de Django
+    audiencia_roles = models.ManyToManyField(
+        Group,
+        blank=True,
+        related_name="comunicados_dirigidos"
+    )
 
     objects = ComunicadoQuerySet.as_manager()
 
@@ -120,11 +148,16 @@ class Comunicado(models.Model):
     def __str__(self):
         return self.titulo
 
+    # ===========================
+    # Métodos auxiliares
+    # ===========================
     def set_audiencia_codigos(self, codigos):
+        """Guarda los códigos válidos de audiencia (ATLE, PMUL, APOD, PUBL)."""
         cods = [c for c in (codigos or []) if c in AUDIENCIA_CODIGOS]
         self.audiencia_codigos = ",".join(sorted(set(cods)))
 
     def get_audiencia_codigos(self):
+        """Devuelve una lista de códigos almacenados."""
         if not (self.audiencia_codigos or "").strip():
             return []
         return [c for c in self.audiencia_codigos.split(",") if c]
