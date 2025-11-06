@@ -71,7 +71,7 @@ urlpatterns = [
     path("equipo/<int:usuario_id>/toggle/", views.usuario_toggle_active, name="equipo_toggle"),
     path("equipo/<int:usuario_id>/", views.usuario_detail, name="equipo_view"),
 
-    path("cuenta/cambiar-clave/", views.cambiar_password, name="cambiar_password"),
+    path("cambiar-password/", views.cambiar_password, name="cambiar_password"),
 
     # Alias para compatibilidad con templates que usan {% url 'mis_cursos' %}
 path("panel/profesor/miscursos/", vp.mis_cursos, name="mis_cursos"),
