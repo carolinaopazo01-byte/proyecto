@@ -10,9 +10,13 @@ ALLOWED_HOSTS: list[str] = []
 
 # === Base de datos (SQLite para dev) ===
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'campeones_db',
+        'USER': 'campeones_db_user',
+        'PASSWORD': 'fWeRmxmuEIw4wwntYr6oOrON4LOmcgSX',
+        'HOST': 'dpg-d46h2pre5dus73b6pl6g-a.oregon-postgres.render.com',
+        'PORT': '5432',
     }
 }
 
