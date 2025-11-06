@@ -66,10 +66,7 @@ def logout_view(request):
 # =================== Paneles ===================
 @role_required(Usuario.Tipo.ADMIN)
 def panel_admin(request):
-    """
-    Muestra el panel admin y pasa comunicados para renderizarlos
-    en la pantalla principal (include base/includes/comunicados_online.html).
-    """
+
     # Ordena por 'creado' si existe; fallback por id
     if hasattr(Comunicado, "creado"):
         comunicados = Comunicado.objects.order_by("-creado", "-id")[:8]
@@ -104,11 +101,12 @@ def panel_apoderado(request):
 def panel_prof_multidisciplinario(request):
     return render(request, "usuarios/panel_prof_multidisciplinario.html")
 
-
-@role_required(Usuario.Tipo.ATLE)
+@login_required
 def panel_atleta(request):
-    return render(request, "usuarios/panel_atleta.html")
-
+    try:
+        return render(request, "usuarios/panel_atleta.html")
+    except TemplateDoesNotExist as e:
+        return HttpResponse(f"❌ Template no encontrado: {e}", status=500)
 
 # ========== Listado + filtros + export ==========
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
