@@ -26,6 +26,7 @@ SECURE_SSL_REDIRECT = True
 # --- Archivos estáticos ---
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"]
 
 # --- Archivos subidos por usuarios ---
 MEDIA_URL = "/media/"
