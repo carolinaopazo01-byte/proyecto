@@ -6,6 +6,7 @@ from django.db.models import Q
 from django.views.decorators.http import require_http_methods
 from django.contrib import messages  # opcional
 from django.contrib.auth.decorators import login_required
+from django.template import TemplateDoesNotExist
 
 from .models import Usuario
 from .utils import normalizar_rut
@@ -38,12 +39,14 @@ def login_rut(request):
         password = request.POST.get("password") or ""
         next_url = request.POST.get("next") or request.GET.get("next") or ""
 
-        rut_norm = normalizar_rut(rut_ingresado)           # "12345678-9"
-        username = rut_norm.replace(".", "").replace("-", "")  # "123456789"
+        # Normaliza el formato del RUT (por si viene con puntos o guión)
+        rut_norm = normalizar_rut(rut_ingresado)  # Ej: 12345678-9
+        rut_sin_guion = rut_norm.replace(".", "").replace("-", "")  # Ej: 123456789
 
-        user = authenticate(request, username=username, password=password)
+        # ✅ El backend espera "username", no "rut"
+        user = authenticate(request, username=rut_norm, password=password)
         if not user:
-            user = authenticate(request, username=rut_norm, password=password)
+            user = authenticate(request, username=rut_sin_guion, password=password)
 
         if not user:
             return render(request, "usuarios/login.html", {"error": "RUT o contraseña incorrectos"})
@@ -56,6 +59,7 @@ def login_rut(request):
         return _redirigir_por_tipo(user)
 
     return render(request, "usuarios/login.html")
+
 
 
 def logout_view(request):
