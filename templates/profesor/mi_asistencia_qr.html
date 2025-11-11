@@ -1,120 +1,189 @@
 {% extends "base/plantilla.html" %}
-{% block title %}Marcar mi asistencia (QR){% endblock %}
-{% block header %}📷 Marcar mi asistencia (QR){% endblock %}
+{% block title %}Marcar mi asistencia (Ubicación){% endblock %}
+{% block header %}📍 Marcar mi asistencia (Ubicación){% endblock %}
+
+{% block extra_css %}
+<style>
+  .card {
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 2px 10px rgba(0,0,0,.05);
+    margin: 0 auto;
+  }
+  .muted {
+    color: #64748b;
+    font-size: .9rem;
+  }
+  .form-select-sm, .form-control-sm {
+    border-radius: .45rem;
+    font-size: .88rem;
+  }
+  .btn {
+    border-radius: .45rem;
+    font-weight: 700;
+    min-width: 160px;
+  }
+  .btn-primary, .btn-success, .btn-info {
+    color: #fff;
+  }
+  .btn {
+    background-color: #0e7c86;
+    border-color: #0e7c86;
+    color: #fff;
+  }
+  .btn:hover {
+    background-color: #0a5a64;
+    border-color: #0a5a64;
+  }
+  .btn-outline-secondary {
+    background-color: #fff;
+    border-color: #e5e7eb;
+    color: #374151;
+  }
+  .btn-outline-secondary:hover {
+    background-color: #f3f4f6;
+  }
+  hr {
+    margin: 1.25rem 0;
+    border-top: 1px solid #e5e7eb;
+  }
+  .alert {
+    border-radius: .75rem;
+    font-size: .9rem;
+  }
+  .text-muted.small {
+    font-size: .85rem;
+  }
+  /* Ajuste responsive */
+  @media (max-width: 576px) {
+    .card { padding: 1rem; }
+    .btn { width: 100%; }
+    .d-flex { flex-direction: column !important; align-items: stretch !important; }
+  }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="card p-3" style="max-width:720px">
   {% if mensaje %}
-    <div class="alert {% if ok %}success{% else %}error{% endif %}" style="margin-bottom:12px">
+    <div class="alert {% if ok %}alert-success{% else %}alert-danger{% endif %} mb-3" role="alert">
       {{ mensaje }}
     </div>
   {% endif %}
 
-  <p class="muted" style="margin-top:0">
-    Escanea el QR pegado en la entrada de la sede <b>o</b> usa tu ubicación si no hay QR disponible.
+  <p class="muted mb-3">
+    Usa tu <b>ubicación</b> para registrar tu <b>entrada</b> o <b>salida</b> en la sede más cercana.
   </p>
 
-  <form method="post" id="asistencia-form" class="row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+  {% if mis_cursos %}
+    <div class="mb-3 d-flex align-items-center gap-2 flex-wrap">
+      <label class="form-label mb-0 small">Selecciona curso</label>
+      <select id="cursoSelect" class="form-select form-select-sm" style="max-width:420px">
+        {% for c in mis_cursos %}
+          <option value="{{ c.id }}" {% if curso_sel and c.id == curso_sel.id %}selected{% endif %}>
+            {{ c.nombre }} — {{ c.sede.nombre|default:"(sin sede)" }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+  {% else %}
+    <div class="mb-2 text-muted small">No tienes cursos asignados.</div>
+  {% endif %}
+
+  <div class="mb-3" style="font-size:14px">
+    <b>Curso:</b> <span id="cursoNombre">{{ curso_sel.nombre|default:"—" }}</span>
+    &nbsp;·&nbsp;
+    <b>Sede:</b> <span id="sedeNombre">
+      {% if curso_sel and curso_sel.sede %}{{ curso_sel.sede.nombre }}{% else %}—{% endif %}
+    </span>
+  </div>
+
+  <form method="post" id="asistencia-form" class="d-flex flex-wrap gap-2 align-items-center">
     {% csrf_token %}
     <input type="hidden" name="action"  id="action-field" value="">
-    <input type="hidden" name="qr_text" id="qr_text" value="">
     <input type="hidden" name="geo_lat" id="geo_lat">
     <input type="hidden" name="geo_lng" id="geo_lng">
+    <input type="hidden" name="geo_acc" id="geo_acc">
+    <input type="hidden" name="curso" id="curso-hidden" value="{{ curso_sel.id|default:'' }}">
 
-    <button type="button" class="btn" id="scan-btn">📷 Escanear Código QR</button>
-    <button type="button" class="btn" id="geo-in">📍 Marcar entrada (sin QR)</button>
-    <button type="button" class="btn" id="geo-out">📍 Marcar salida (sin QR)</button>
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+      <label class="form-label mb-0 small">Radio (prueba, m)</label>
+      <input type="number" name="radio_test" id="radio_test"
+             class="form-control form-control-sm" style="max-width:140px"
+             min="50" max="2000" placeholder="ej. 400"
+             value="{{ radio_test|default_if_none:'' }}">
+      <span class="text-muted small">Deja vacío para usar el radio real de la sede.</span>
+    </div>
+
+    <div class="w-100"></div>
+
+    <button type="button" class="btn" id="geo-in">📍 Marcar entrada</button>
+    <button type="button" class="btn btn-outline-secondary" id="geo-out">📍 Marcar salida</button>
   </form>
-
-  <!-- IMPORTANTE: usar un DIV, no un <video> -->
-  <div id="preview-container" style="display:none;margin-top:12px">
-    <div id="qr-reader" style="width:100%;max-width:640px;border-radius:8px;border:1px solid #ccc;"></div>
-    <p class="muted">Apunta la cámara al código QR de la sede.</p>
-  </div>
 
   <hr>
 
-  <div>
-    <p style="margin:4px 0"><b>Última entrada:</b>
+  <div class="mb-2">
+    <p class="mb-1"><b>Última entrada:</b>
       {% if ultima_entrada %}
         {{ ultima_entrada.fecha|date:"d-m-Y" }} — {{ ultima_entrada.hora|time:"H:i" }} ({{ ultima_entrada.sede.nombre }})
       {% else %}—{% endif %}
     </p>
-    <p style="margin:4px 0"><b>Última salida:</b>
+    <p class="mb-0"><b>Última salida:</b>
       {% if ultima_salida %}
         {{ ultima_salida.fecha|date:"d-m-Y" }} — {{ ultima_salida.hora|time:"H:i" }} ({{ ultima_salida.sede.nombre }})
       {% else %}—{% endif %}
     </p>
   </div>
 
-  <div class="mt-2">
-    <a class="btn" href="{% url 'profesor:mi_historial_asistencia' %}">📊 Ver historial</a>
+  <div class="mt-3 text-end">
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'profesor:mi_historial_asistencia' %}">
+      📊 Ver historial
+    </a>
   </div>
 </div>
 
-<!-- QR -->
-<script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
 <script>
-const form     = document.getElementById("asistencia-form");
-const qrInput  = document.getElementById("qr_text");
-const actInput = document.getElementById("action-field");
+  (function(){
+    var sel = document.getElementById('cursoSelect');
+    var spanCurso = document.getElementById('cursoNombre');
+    var spanSede  = document.getElementById('sedeNombre');
+    var hidCurso  = document.getElementById('curso-hidden');
 
-// === Escaneo QR ===
-document.getElementById("scan-btn").addEventListener("click", async () => {
-  const preview = document.getElementById("preview-container");
-  preview.style.display = "block";
+    if(sel){
+      sel.addEventListener('change', function(){
+        var opt = sel.options[sel.selectedIndex];
+        var txt = opt ? opt.text : "";
+        var partes = txt.split("—");
+        spanCurso.textContent = (partes[0] || "").trim() || "—";
+        spanSede.textContent  = (partes[1] || "").trim() || "—";
+        if (hidCurso) hidCurso.value = sel.value || "";
+      });
+    }
+  })();
 
-  const html5QrCode = new Html5Qrcode("qr-reader"); // <- id del DIV
+  (function(){
+    var form = document.getElementById('asistencia-form');
+    var act  = document.getElementById('action-field');
+    var sel  = document.getElementById('cursoSelect');
+    var hidCurso = document.getElementById('curso-hidden');
 
-  try {
-    const devices = await Html5Qrcode.getCameras();
-    if (!devices || !devices.length) {
-      alert("No se detectó cámara.");
-      preview.style.display = "none";
-      return;
+    function pedirGeoYEnviar(action){
+      if(!navigator.geolocation){ alert("Tu navegador no soporta geolocalización."); return; }
+      navigator.geolocation.getCurrentPosition(function(pos){
+        document.getElementById('geo_lat').value = pos.coords.latitude;
+        document.getElementById('geo_lng').value = pos.coords.longitude;
+        document.getElementById('geo_acc').value = Math.round(pos.coords.accuracy || 0);
+        if (sel && sel.value) hidCurso.value = sel.value;
+        act.value = action;
+        form.submit();
+      }, function(err){
+        alert("No se pudo obtener la ubicación: " + err.message);
+      }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
     }
 
-    // Elegir cámara trasera si existe
-    const backCam = devices.find(d => /back|rear|environment/i.test(d.label));
-    const camId = backCam ? backCam.id : devices[0].id;
-
-    await html5QrCode.start(
-      camId,
-      { fps: 10, qrbox: 250 },
-      (qrMsg) => {
-        // Al leer el QR, preguntamos acción y enviamos
-        html5QrCode.stop();
-        preview.style.display = "none";
-        qrInput.value = qrMsg;         // ej. "SEDE:1"
-        const esEntrada = confirm("¿Registrar ENTRADA?\n(Aceptar = Entrada, Cancelar = Salida)");
-        actInput.value = esEntrada ? "entrada" : "salida";
-        form.submit();
-      },
-      () => {}
-    );
-  } catch (err) {
-    console.error(err);
-    alert("No se pudo iniciar la cámara.");
-    preview.style.display = "none";
-  }
-});
-
-// === Geolocalización (sin QR) ===
-function pedirGeoYEnviar(action){
-  if (!navigator.geolocation) { alert("Tu navegador no soporta geolocalización."); return; }
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      document.getElementById("geo_lat").value = pos.coords.latitude;
-      document.getElementById("geo_lng").value = pos.coords.longitude;
-      actInput.value = action;
-      qrInput.value  = ""; // aseguramos que no se use QR
-      form.submit();
-    },
-    (err) => alert("No se pudo obtener la ubicación: " + err.message),
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-  );
-}
-document.getElementById("geo-in").addEventListener("click", () => pedirGeoYEnviar("entrada"));
-document.getElementById("geo-out").addEventListener("click", () => pedirGeoYEnviar("salida"));
+    document.getElementById('geo-in')?.addEventListener('click', ()=> pedirGeoYEnviar('entrada'));
+    document.getElementById('geo-out')?.addEventListener('click', ()=> pedirGeoYEnviar('salida'));
+  })();
 </script>
 {% endblock %}

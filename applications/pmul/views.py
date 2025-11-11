@@ -1,11 +1,20 @@
 from datetime import date, datetime, timedelta
+
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Count
-from django.shortcuts import get_object_or_404, redirect, render
 from django.http import FileResponse, Http404
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-# Si tienes decorador de roles, úsalo; si no, el login_required queda OK
+from applications.usuarios.decorators import role_required
+from applications.usuarios.models import Usuario
+from applications.core.models import Estudiante
+
+from .forms import FichaClinicaForm
+from .models import FichaClinica, FichaAdjunto
+
+
 try:
     from applications.usuarios.decorators import role_required
 except Exception:
@@ -28,7 +37,7 @@ def semana_lunes(d: date) -> date:
 def semana_domingo(d: date) -> date:
     return semana_lunes(d) + timedelta(days=6)
 
-# -------- DASHBOARD
+
 @role_required("PMUL")
 def panel(request):
     hoy = timezone.localdate()
@@ -47,7 +56,7 @@ def panel(request):
         "pendientes_reprog": pendientes_reprog,
     })
 
-# -------- AGENDA: listar
+
 @role_required("PMUL")
 def agenda(request):
     # filtros
@@ -132,50 +141,151 @@ def cita_reprogramar(request, cita_id):
     cita.save(update_fields=["inicio", "estado"])
     return redirect("pmul:agenda")
 
-# -------- FICHAS
+
+def _is_admin_or_coord(u):
+    return getattr(u, "is_superuser", False) or getattr(u, "tipo_usuario", "") in (Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+
+def _rut_variants(raw: str):
+    raw = (raw or "").strip().upper()
+    if not raw:
+        return []
+    rn = normalizar_rut(raw)                         # 12345678-9
+    rf = formatear_rut(rn)                           # 12.345.678-9
+    rns = rn.replace(".", "").replace("-", "")       # 123456789
+    rraw = raw.replace(".", "").replace("-", "")     # 123456789
+    seen, out = set(), []
+    for v in (raw, rn, rf, rns, rraw):
+        if v and v not in seen:
+            out.append(v); seen.add(v)
+    return out
+
+def _get_estudiante_by_hint(est_id=None, rut=None):
+    if est_id:
+        try:
+            return Estudiante.objects.select_related("curso").get(pk=est_id)
+        except Estudiante.DoesNotExist:
+            pass
+    if rut:
+        return (Estudiante.objects
+                .select_related("curso")
+                .filter(rut__in=_rut_variants(rut))
+                .first())
+    return None
+
+def _can_view_ficha(u, f: FichaClinica):
+
+    if not u.is_authenticated:
+        return False
+    if f.profesional_id == u.id or _is_admin_or_coord(u):
+        return True
+
+    if getattr(u, "tipo_usuario", "") == Usuario.Tipo.ATLE and getattr(u, "rut", None):
+        est = _get_estudiante_by_hint(rut=u.rut)
+        return bool(est and f.paciente_id == est.id)
+    return False
+
+
+
+
 @role_required("PMUL")
 def fichas_list(request):
-    qs = FichaClinica.objects.filter(profesional=request.user).select_related("paciente").order_by("-fecha")[:300]
-    return render(request, "pmul/fichas_list.html", {"items": qs})
+    qs = (FichaClinica.objects
+          .filter(profesional=request.user)
+          .select_related("paciente")
+          .order_by("-fecha", "-id"))
+
+    # Filtro opcional por paciente (?est=123)
+    est_id = request.GET.get("est")
+    if est_id:
+        qs = qs.filter(paciente_id=est_id)
+
+    return render(request, "pmul/fichas_list.html", {"items": qs[:300]})
+
 
 @role_required("PMUL")
 def ficha_new(request):
+    # Preselección por hint en GET (?est=ID o ?rut=XXXXXXXXX)
+    est_hint = _get_estudiante_by_hint(request.GET.get("est"), request.GET.get("rut"))
+
     if request.method == "POST":
-        form = FichaClinicaForm(request.POST)
+        form = FichaClinicaForm(request.POST, request.FILES)
         if form.is_valid():
             f = form.save(commit=False)
             f.profesional = request.user
+
+            # Si el form no trae paciente, intentar fijarlo con hints de POST
+            if not getattr(f, "paciente_id", None):
+                est_post = _get_estudiante_by_hint(
+                    request.POST.get("estudiante_id"),
+                    request.POST.get("rut")
+                )
+                if est_post:
+                    f.paciente = est_post
+                elif est_hint:
+                    f.paciente = est_hint
+
+            if not f.paciente_id:
+                messages.error(request, "Debes seleccionar el paciente (estudiante) antes de guardar.")
+                return render(request, "pmul/ficha_form.html", {"form": form, "titulo": "Nueva ficha", "est": est_hint})
+
             f.save()
-            # adjuntos
+
+            # Adjuntos múltiples
             for up in request.FILES.getlist("adjuntos"):
-                FichaAdjunto.objects.create(ficha=f, archivo=up, nombre=up.name)
+                FichaAdjunto.objects.create(ficha=f, archivo=up, nombre=getattr(up, "name", ""))
+
+            messages.success(request, "Ficha creada correctamente.")
             return redirect("pmul:ficha_detail", ficha_id=f.id)
+        else:
+            messages.error(request, "Revisa los errores del formulario.")
     else:
-        form = FichaClinicaForm()
-    return render(request, "pmul/ficha_form.html", {"form": form, "titulo": "Nueva ficha"})
+        initial = {}
+        if est_hint:
+            initial["paciente"] = est_hint.id
+        form = FichaClinicaForm(initial=initial)
+
+    return render(request, "pmul/ficha_form.html", {"form": form, "titulo": "Nueva ficha", "est": est_hint})
+
 
 @role_required("PMUL")
 def ficha_detail(request, ficha_id):
-    f = get_object_or_404(FichaClinica, pk=ficha_id, profesional=request.user)
+    f = get_object_or_404(FichaClinica.objects.select_related("paciente"), pk=ficha_id)
+    if not (f.profesional_id == request.user.id or _is_admin_or_coord(request.user)):
+        # Si lo prefieres, devuelve 403 en vez de 404
+        raise Http404()
     return render(request, "pmul/ficha_detail.html", {"f": f})
+
 
 @role_required("PMUL")
 def ficha_toggle_publicacion(request, ficha_id):
     if request.method != "POST":
         raise Http404()
-    f = get_object_or_404(FichaClinica, pk=ficha_id, profesional=request.user)
-    f.publicar_profesor = bool(request.POST.get("publicar_profesor"))
+    f = get_object_or_404(FichaClinica, pk=ficha_id)
+    if not (f.profesional_id == request.user.id or _is_admin_or_coord(request.user)):
+        raise Http404()
+
+    f.publicar_profesor    = bool(request.POST.get("publicar_profesor"))
     f.publicar_coordinador = bool(request.POST.get("publicar_coordinador"))
-    f.publicar_admin = bool(request.POST.get("publicar_admin"))
+    f.publicar_admin       = bool(request.POST.get("publicar_admin"))
     f.save(update_fields=["publicar_profesor", "publicar_coordinador", "publicar_admin"])
+
     return redirect("pmul:ficha_detail", ficha_id=f.id)
 
-@role_required("PMUL")
-def ficha_descargar_adjunto(request, ficha_id, adj_id):
-    adj = get_object_or_404(FichaAdjunto, pk=adj_id, ficha_id=ficha_id)
-    return FileResponse(adj.archivo.open("rb"), as_attachment=True, filename=adj.nombre or adj.archivo.name)
 
-# -------- REPORTES (esqueleto)
+@login_required
+def ficha_descargar_adjunto(request, ficha_id, adj_id):
+    adj = get_object_or_404(
+        FichaAdjunto.objects.select_related("ficha", "ficha__paciente"),
+        pk=adj_id, ficha_id=ficha_id
+    )
+    f = adj.ficha
+    if not _can_view_ficha(request.user, f):
+        raise Http404()
+
+    nombre = adj.nombre or getattr(adj.archivo, "name", "adjunto")
+    return FileResponse(adj.archivo.open("rb"), as_attachment=True, filename=nombre)
+
+
 @role_required("PMUL")
 def reportes(request):
     d1 = request.GET.get("desde")

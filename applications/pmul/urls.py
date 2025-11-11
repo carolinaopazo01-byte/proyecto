@@ -5,7 +5,7 @@ from . import views_disponibilidad as d
 app_name = "pmul"
 
 urlpatterns = [
-    # ---- Slots del profesional (PMUL)
+
     path("slots/", d.mis_slots, name="slots_list"),                      # listado
     path("slots/nuevo/", d.slot_nuevo, name="slot_nuevo"),              # formulario manual
     path("slots/lote/nuevo/", d.slots_bulk_new, name="slots_bulk_new"),  # generación automática
@@ -13,11 +13,11 @@ urlpatterns = [
 path("slots/<int:slot_id>/editar/", d.slot_editar, name="slot_editar"),
 
 
-    # ---- Reserva por apoderado/atleta
+
     path("reservar/", d.reservar_listado, name="reservar_listado"),
     path("reservar/<int:slot_id>/", d.reservar_confirmar, name="reservar_confirmar"),
 
-    # ---- Panel & Agenda & Fichas & Reportes
+
     path("", views.panel, name="panel"),
     path("agenda/", views.agenda, name="agenda"),
     path("agenda/nueva/", views.cita_new, name="cita_new"),

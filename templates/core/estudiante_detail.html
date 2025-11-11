@@ -1,0 +1,264 @@
+{% extends "base/plantilla.html" %}
+{% load static %}
+
+{% block title %}Detalle estudiante{% endblock %}
+
+{% block extra_css %}
+<style>
+  .page-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:.75rem}
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin:.75rem 0 1rem}
+  .kpi{
+    border:1px solid #e5e7eb;background:#fff;border-radius:12px;padding:12px;
+    display:flex;gap:10px;align-items:center;box-shadow:0 2px 6px rgba(0,0,0,.04)
+  }
+  .kpi-ico{
+    width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    background:#f1f5f9;color:#0f172a;font-size:16px;flex:0 0 38px
+  }
+  .kpi-label{font-size:.78rem;color:#64748b;font-weight:700;margin:0}
+  .kpi-value{font-weight:800;font-size:1.1rem;color:#0f172a;margin:0}
+
+  .card+ .card{margin-top:10px}
+  .card-head{padding:.65rem .9rem;background:#f8fafc;border-bottom:1px solid #e5e7eb;font-weight:800}
+  .dl{display:grid;grid-template-columns:180px 1fr;gap:6px 14px}
+  .dl dt{font-weight:800;color:#475569}
+  .dl dd{margin:0}
+  @media (max-width:600px){ .dl{grid-template-columns:1fr} .dl dt{color:#64748b} }
+
+  .badge-state{font-weight:800}
+  .st-P{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0}
+  .st-A{background:#fff1f2;color:#881337;border:1px solid #fecdd3}
+  .st-J{background:#fff7ed;color:#7c2d12;border:1px solid #fed7aa}
+
+  .table td, .table th{vertical-align:middle}
+  .nowrap{white-space:nowrap}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h4 class="mb-0">{{ e.nombres }} {{ e.apellidos }}</h4>
+    <div class="text-muted small">RUT: {{ e.rut }}{% if e.activo %} · <span class="text-success font-weight-bold">ACTIVO</span>{% else %} · <span class="text-danger font-weight-bold">INACTIVO</span>{% endif %}</div>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-secondary" href="{% url 'core:estudiantes_list' %}"><i class="fas fa-arrow-left mr-1"></i>Volver</a>
+    <a class="btn btn-primary" href="{% url 'core:estudiante_edit' e.id %}"><i class="fas fa-pen mr-1"></i>Editar</a>
+      <a class="btn btn-outline-dark" target="_blank"
+   href="{% url 'core:estudiante_detail_pdf' e.id %}">
+  <i class="fas fa-file-pdf mr-1"></i> Exportar PDF
+</a>
+
+  </div>
+</div>
+
+<!-- ===== DATOS PERSONALES ===== -->
+<div class="card shadow-sm">
+  <div class="card-head">Información personal</div>
+  <div class="card-body">
+    <dl class="dl">
+      <dt>Nombre completo</dt><dd>{{ e.nombres }} {{ e.apellidos }}</dd>
+      <dt>RUT</dt><dd>{{ e.rut }}</dd>
+      <dt>Edad</dt><dd>{{ e.edad|default:"—" }}</dd>
+      <dt>Email</dt><dd>{{ e.email|default:"—" }}</dd>
+      <dt>Teléfono</dt><dd>{{ e.telefono|default:"—" }}</dd>
+      <dt>Dirección</dt><dd>{{ e.direccion|default:"—" }}</dd>
+      <dt>Comuna</dt><dd>{{ e.comuna|default:"—" }}</dd>
+
+      <dt>Organización</dt>
+      <dd>
+        {% if e.pertenece_organizacion %}
+          <span class="badge badge-success">Sí</span>
+        {% else %}
+          <span class="badge badge-secondary">No</span>
+        {% endif %}
+      </dd>
+
+      <dt>Club</dt><dd>{{ e.club_nombre|default:"—" }}</dd>
+      <dt>Logros</dt>
+      <dd>
+        {% if e.logro_nacional or e.logro_internacional %}
+          {% if e.logro_nacional %}<span class="badge badge-info">Nacional</span>{% endif %}
+          {% if e.logro_internacional %}<span class="badge badge-primary">Internacional</span>{% endif %}
+        {% else %}—{% endif %}
+      </dd>
+      <dt>Categoría</dt><dd>{{ e.categoria_competida|default:"—" }}</dd>
+      <dt>Puntaje/Logro</dt><dd>{{ e.puntaje_o_logro|default:"—" }}</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- ===== CURSO ===== -->
+<div class="card shadow-sm">
+  <div class="card-head">Curso</div>
+  <div class="card-body">
+    {% if e.curso %}
+      <dl class="dl">
+        <dt>Curso</dt><dd>{{ e.curso.nombre|default:e.curso }}</dd>
+        <dt>Disciplina</dt><dd>{{ e.curso.disciplina|default:"—" }}</dd>
+        <dt>Sede</dt><dd>{{ e.curso.sede|default:"—" }}</dd>
+        <dt>Profesor/a</dt><dd>{{ e.curso.profesor|default:"—" }}</dd>
+        <dt>Horarios</dt>
+        <dd>
+          {% if e.curso.horarios.all %}
+            <ul class="mb-0 pl-3">
+              {% for h in e.curso.horarios.all %}
+                <li>{{ h.get_dia_display|default:h.dia }} {{ h.hora_inicio|time:"H:i" }}–{{ h.hora_fin|time:"H:i" }}</li>
+              {% empty %}
+                <li>—</li>
+              {% endfor %}
+            </ul>
+          {% else %}—{% endif %}
+        </dd>
+      </dl>
+    {% else %}
+      <div class="text-muted">Sin curso asignado.</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ===== ASISTENCIAS (KPIs + últimas) ===== -->
+<div class="card shadow-sm">
+  <div class="card-head">Asistencia</div>
+  <div class="card-body">
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-ico"><i class="fas fa-database"></i></div>
+        <div><div class="kpi-label">Registros totales</div><div class="kpi-value">{{ kpi_total }}</div></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-ico"><i class="fas fa-user-check"></i></div>
+        <div><div class="kpi-label">Presentes</div><div class="kpi-value">{{ kpi_presentes }}</div></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-ico"><i class="fas fa-user-times"></i></div>
+        <div><div class="kpi-label">Inasistencias</div><div class="kpi-value">{{ kpi_inasist }}</div></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-ico"><i class="fas fa-file-circle-check"></i></div>
+        <div><div class="kpi-label">Justificadas</div><div class="kpi-value">{{ kpi_justif }}</div></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-ico"><i class="fas fa-file-circle-xmark"></i></div>
+        <div><div class="kpi-label">No justificadas</div><div class="kpi-value">{{ kpi_injustif }}</div></div>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0">
+        <thead class="thead-light">
+          <tr>
+            <th class="nowrap">Fecha</th>
+            <th>Curso</th>
+            <th class="nowrap">Estado</th>
+            <th>Obs.</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in ult_asistencias %}
+            <tr>
+              <td class="nowrap">
+                {{ d.asistencia.fecha|date:"d/m/Y" }}
+                {% if d.asistencia.hora_inicio %} {{ d.asistencia.hora_inicio|time:"H:i" }}{% endif %}
+              </td>
+              <td>{{ d.asistencia.curso|default:"—" }}</td>
+              <td class="nowrap">
+                {% if d.estado == "P" %}
+                  <span class="badge badge-state st-P">Presente</span>
+                {% elif d.estado == "J" %}
+                  <span class="badge badge-state st-J">Justificada</span>
+                {% elif d.estado == "A" %}
+                  <span class="badge badge-state st-A">Ausente</span>
+                {% else %}
+                  <span class="badge badge-secondary">{{ d.estado }}</span>
+                {% endif %}
+              </td>
+              <td>{{ d.observacion|default:"" }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4" class="text-muted">Sin registros de asistencia.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PMUL: Citas & Fichas ===== -->
+{% if pmul_ok %}
+  <div class="card shadow-sm">
+    <div class="card-head">Equipo Multidisciplinario (PMUL)</div>
+    <div class="card-body">
+      <h6 class="mb-2 font-weight-bold">Próximas citas</h6>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover">
+          <thead class="thead-light">
+            <tr>
+              <th class="nowrap">Fecha</th>
+              <th>Profesional</th>
+              <th>Especialidad</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in proximas_citas %}
+              <tr>
+                <td class="nowrap">{{ c.inicio|date:"d/m/Y H:i" }}–{{ c.fin|date:"H:i" }}</td>
+                <td>{{ c.profesional.get_full_name|default:c.profesional.username }}</td>
+                <td>{{ c.get_especialidad_display|default:"—" }}</td>
+                <td>{{ c.get_estado_display|default:c.estado }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="4" class="text-muted">No hay citas próximas.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <h6 class="mb-2 font-weight-bold mt-3">Fichas clínicas (últimas)</h6>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+          <thead class="thead-light">
+            <tr>
+              <th class="nowrap">Fecha</th>
+              <th>Profesional</th>
+              <th>Especialidad</th>
+              <th>Estado</th>
+              <th>Motivo</th>
+              <th>Visibilidad</th>
+              <th class="nowrap">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for f in ult_fichas %}
+              <tr>
+                <td class="nowrap">{{ f.fecha|date:"d/m/Y" }}</td>
+                <td>{{ f.profesional.get_full_name|default:f.profesional.username }}</td>
+                <td>{{ f.get_especialidad_display|default:"—" }}</td>
+                <td>{{ f.get_estado_display|default:f.estado }}</td>
+                <td>{{ f.motivo|default:"—" }}</td>
+                <td class="small">
+                  {% if f.publicar_admin %}<span class="badge badge-success">Admin</span>{% endif %}
+                  {% if f.publicar_coordinador %}<span class="badge badge-info">Coord</span>{% endif %}
+                  {% if f.publicar_profesor %}<span class="badge badge-secondary">Prof</span>{% endif %}
+                </td>
+                <td class="nowrap">
+                  {# Ajusta el nombre si tu URL difiere #}
+                  <a class="btn btn-sm btn-outline-primary" href="{% url 'pmul:ficha_detail' f.id %}">
+                    <i class="fas fa-eye"></i> Ver
+                  </a>
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="7" class="text-muted">Sin fichas registradas.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

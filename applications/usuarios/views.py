@@ -13,7 +13,7 @@ from .utils import normalizar_rut
 from .forms import UsuarioCreateForm, UsuarioUpdateForm
 from applications.usuarios.utils import role_required
 
-# 👇 Import correcto según tu estructura
+
 from applications.core.models import Comunicado
 
 
@@ -43,7 +43,7 @@ def login_rut(request):
         rut_norm = normalizar_rut(rut_ingresado)  # Ej: 12345678-9
         rut_sin_guion = rut_norm.replace(".", "").replace("-", "")  # Ej: 123456789
 
-        # ✅ El backend espera "username", no "rut"
+
         user = authenticate(request, username=rut_norm, password=password)
         if not user:
             user = authenticate(request, username=rut_sin_guion, password=password)
@@ -71,7 +71,7 @@ def logout_view(request):
 @role_required(Usuario.Tipo.ADMIN)
 def panel_admin(request):
 
-    # Ordena por 'creado' si existe; fallback por id
+
     if hasattr(Comunicado, "creado"):
         comunicados = Comunicado.objects.order_by("-creado", "-id")[:8]
     elif hasattr(Comunicado, "fecha"):
@@ -112,7 +112,7 @@ def panel_atleta(request):
     except TemplateDoesNotExist as e:
         return HttpResponse(f"❌ Template no encontrado: {e}", status=500)
 
-# ========== Listado + filtros + export ==========
+
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET"])
 def usuarios_list(request):
@@ -162,7 +162,7 @@ def usuarios_list(request):
     return render(request, "usuarios/usuarios_list.html", ctx)
 
 
-# ====================== CRUD ======================
+
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
 def usuario_create(request):

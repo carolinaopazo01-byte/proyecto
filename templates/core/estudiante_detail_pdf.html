@@ -1,0 +1,233 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Detalle estudiante</title>
+<style>
+  @page { size: A4; margin: 18mm 14mm 18mm 14mm; }
+  *{ box-sizing:border-box; }
+  body{ font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; color:#0f172a; font-size:12px; }
+  h1,h2,h3,h4{ margin:0 0 6px 0; }
+  .muted{ color:#64748b; }
+  .small{ font-size:11px; }
+  .mb0{ margin-bottom:0 }
+  .mb4{ margin-bottom:4px }
+  .mb6{ margin-bottom:6px }
+  .mb8{ margin-bottom:8px }
+  .mb10{ margin-bottom:10px }
+  .mb12{ margin-bottom:12px }
+  .mb16{ margin-bottom:16px }
+
+  .header{
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1px solid #e5e7eb; padding-bottom:8px; margin-bottom:12px;
+    position:relative; /* ← añadido para centrar absoluto */
+  }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand img{ height:28px; }
+  .doc-title{
+    font-weight:800;
+    font-size:16px;
+    position:absolute;
+    left:50%;
+    transform:translateX(-50%);
+    text-align:center;
+    width:100%;
+  }
+
+  .section{
+    border:1px solid #e5e7eb; border-radius:8px; padding:10px; margin-bottom:10px;
+  }
+  .section h3{ font-size:13px; font-weight:800; margin-bottom:8px; }
+  .dl{ display:grid; grid-template-columns: 150px 1fr; gap:6px 12px; }
+  .dl dt{ font-weight:800; color:#334155; }
+  .dl dd{ margin:0; }
+
+  .kpi-grid{ display:grid; grid-template-columns: repeat(5, 1fr); gap:8px; }
+  .kpi{ border:1px solid #e5e7eb; border-radius:8px; padding:8px; }
+  .kpi .lab{ color:#64748b; font-weight:700; font-size:11px; }
+  .kpi .val{ font-weight:800; font-size:14px; }
+
+  table{ width:100%; border-collapse:collapse; }
+  th, td{ border:1px solid #e5e7eb; padding:6px 8px; vertical-align:middle; }
+  thead th{ background:#f8fafc; }
+
+  .nowrap{ white-space:nowrap; }
+  .badge{ display:inline-block; padding:2px 6px; border-radius:999px; font-weight:800; border:1px solid transparent; }
+  .st-P{ background:#ecfdf5; color:#065f46; border-color:#a7f3d0 }
+  .st-A{ background:#fff1f2; color:#881337; border-color:#fecdd3 }
+  .st-J{ background:#fff7ed; color:#7c2d12; border-color:#fed7aa }
+
+  /* Evitar cortes feos en página */
+  .avoid-break{ page-break-inside: avoid; }
+</style>
+</head>
+<body>
+
+  <!-- Encabezado -->
+  <div class="header">
+    <div class="brand">
+      <img src="{% static 'img/logo/mi_logo.png' %}" alt="Logo">
+      <div>
+        <div class="doc-title">Detalle de Estudiante</div>
+      </div>
+    </div>
+    <div class="small muted">Campeones Para Coquimbo</div>
+  </div>
+
+  <!-- Identificación -->
+  <div class="section avoid-break">
+    <h3>Información personal</h3>
+    <div class="dl">
+      <dt>Nombre completo</dt><dd>{{ e.nombres }} {{ e.apellidos }}</dd>
+      <dt>RUT</dt><dd>{{ e.rut }}</dd>
+      <dt>Estado</dt><dd>{% if e.activo %}ACTIVO{% else %}INACTIVO{% endif %}</dd>
+      <dt>Edad</dt><dd>{{ e.edad|default:"—" }}</dd>
+      <dt>Email</dt><dd>{{ e.email|default:"—" }}</dd>
+      <dt>Teléfono</dt><dd>{{ e.telefono|default:"—" }}</dd>
+      <dt>Dirección</dt><dd>{{ e.direccion|default:"—" }}</dd>
+      <dt>Comuna</dt><dd>{{ e.comuna|default:"—" }}</dd>
+      <dt>Organización</dt><dd>{% if e.pertenece_organizacion %}Sí{% else %}No{% endif %}</dd>
+      <dt>Club</dt><dd>{{ e.club_nombre|default:"—" }}</dd>
+      <dt>Logros</dt>
+      <dd>
+        {% if e.logro_nacional or e.logro_internacional %}
+          {% if e.logro_nacional %}Nacional{% endif %}{% if e.logro_nacional and e.logro_internacional %} / {% endif %}{% if e.logro_internacional %}Internacional{% endif %}
+        {% else %}—{% endif %}
+      </dd>
+      <dt>Categoría</dt><dd>{{ e.categoria_competida|default:"—" }}</dd>
+      <dt>Puntaje/Logro</dt><dd>{{ e.puntaje_o_logro|default:"—" }}</dd>
+    </div>
+  </div>
+
+  <!-- Curso -->
+  <div class="section avoid-break">
+    <h3>Curso</h3>
+    {% if e.curso %}
+      <div class="dl">
+        <dt>Curso</dt><dd>{{ e.curso.nombre|default:e.curso }}</dd>
+        <dt>Disciplina</dt><dd>{{ e.curso.disciplina|default:"—" }}</dd>
+        <dt>Sede</dt><dd>{{ e.curso.sede|default:"—" }}</dd>
+        <dt>Profesor/a</dt><dd>{{ e.curso.profesor|default:"—" }}</dd>
+        <dt>Horarios</dt>
+        <dd>
+          {% if e.curso.horarios.all %}
+            {% for h in e.curso.horarios.all %}
+              • {{ h.get_dia_display|default:h.dia }} {{ h.hora_inicio|time:"H:i" }}–{{ h.hora_fin|time:"H:i" }}<br>
+            {% empty %}—{% endfor %}
+          {% else %}—{% endif %}
+        </dd>
+      </div>
+    {% else %}
+      <div class="muted">Sin curso asignado.</div>
+    {% endif %}
+  </div>
+
+  <!-- Asistencia (KPIs) -->
+  <div class="section avoid-break">
+    <h3>Asistencia</h3>
+    <div class="kpi-grid mb10">
+      <div class="kpi"><div class="lab">Registros totales</div><div class="val">{{ kpi_total }}</div></div>
+      <div class="kpi"><div class="lab">Presentes</div><div class="val">{{ kpi_presentes }}</div></div>
+      <div class="kpi"><div class="lab">Inasistencias</div><div class="val">{{ kpi_inasist }}</div></div>
+      <div class="kpi"><div class="lab">Justificadas</div><div class="val">{{ kpi_justif }}</div></div>
+      <div class="kpi"><div class="lab">No justificadas</div><div class="val">{{ kpi_injustif }}</div></div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th class="nowrap">Fecha</th>
+          <th>Curso</th>
+          <th class="nowrap">Estado</th>
+          <th>Obs.</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in ult_asistencias %}
+        <tr>
+          <td class="nowrap">
+            {{ d.asistencia.fecha|date:"d/m/Y" }}{% if d.asistencia.hora_inicio %} {{ d.asistencia.hora_inicio|time:"H:i" }}{% endif %}
+          </td>
+          <td>{{ d.asistencia.curso|default:"—" }}</td>
+          <td class="nowrap">
+            {% if d.estado == "P" %}<span class="badge st-P">Presente</span>
+            {% elif d.estado == "J" %}<span class="badge st-J">Justificada</span>
+            {% elif d.estado == "A" %}<span class="badge st-A">Ausente</span>
+            {% else %}{{ d.estado }}{% endif %}
+          </td>
+          <td>{{ d.observacion|default:"" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="muted">Sin registros de asistencia.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pmul_ok %}
+  <!-- PMUL -->
+  <div class="section avoid-break">
+    <h3>Equipo Multidisciplinario (PMUL)</h3>
+
+    <div class="mb6"><strong>Próximas citas</strong></div>
+    <table class="mb10">
+      <thead>
+        <tr>
+          <th class="nowrap">Fecha</th>
+          <th>Profesional</th>
+          <th>Especialidad</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in proximas_citas %}
+        <tr>
+          <td class="nowrap">{{ c.inicio|date:"d/m/Y H:i" }}–{{ c.fin|date:"H:i" }}</td>
+          <td>{{ c.profesional.get_full_name|default:c.profesional.username }}</td>
+          <td>{{ c.get_especialidad_display|default:"—" }}</td>
+          <td>{{ c.get_estado_display|default:c.estado }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="muted">No hay citas próximas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="mb6"><strong>Fichas clínicas (últimas)</strong></div>
+    <table>
+      <thead>
+        <tr>
+          <th class="nowrap">Fecha</th>
+          <th>Profesional</th>
+          <th>Especialidad</th>
+          <th>Estado</th>
+          <th>Motivo</th>
+          <th>Visibilidad</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in ult_fichas %}
+        <tr>
+          <td class="nowrap">{{ f.fecha|date:"d/m/Y" }}</td>
+          <td>{{ f.profesional.get_full_name|default:f.profesional.username }}</td>
+          <td>{{ f.get_especialidad_display|default:"—" }}</td>
+          <td>{{ f.get_estado_display|default:f.estado }}</td>
+          <td>{{ f.motivo|default:"—" }}</td>
+          <td class="small">
+            {% if f.publicar_admin %}Admin{% endif %}
+            {% if f.publicar_coordinador %}{% if f.publicar_admin %} · {% endif %}Coord{% endif %}
+            {% if f.publicar_profesor %}{% if f.publicar_admin or f.publicar_coordinador %} · {% endif %}Prof{% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="muted">Sin fichas registradas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+</body>
+</html>

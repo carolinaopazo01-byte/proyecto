@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.db import models
 from django.apps import apps
 
-# Importa solo modelos que no generan ciclos directos
+
 from .models import (
     Sede,
     Comunicado,
@@ -19,7 +19,7 @@ from .models import (
     RegistroPeriodo,
 )
 
-# ======= helpers seguros para get_model (evita caídas en import) =======
+
 def _get_model(app_label, model_name):
     try:
         return apps.get_model(app_label, model_name)
@@ -30,7 +30,7 @@ InscripcionCursoModel = _get_model('core', 'InscripcionCurso')
 PostulacionEstudianteModel = _get_model('core', 'PostulacionEstudiante')
 NoticiaModel = _get_model('core', 'Noticia')  # por si usas NoticiaForm en views
 
-# ========================= utilidades =========================
+
 MAX_MB = 10
 ALLOWED_EXTS = {".pdf", ".doc", ".docx", ".xls", ".xlsx"}
 
@@ -151,7 +151,14 @@ class SedeForm(forms.ModelForm):
             raise ValidationError("La dirección es obligatoria.")
         return v
 
-# ========================= Curso y horarios =========================
+
+
+from django import forms
+from django.core.exceptions import ValidationError
+from django.forms import inlineformset_factory
+from .models import Curso, CursoHorario
+
+
 class CursoForm(forms.ModelForm):
     class Meta:
         model = Curso
@@ -175,6 +182,7 @@ class CursoForm(forms.ModelForm):
             self.add_error("fecha_termino", "La fecha de término debe ser ≥ a la fecha de inicio.")
         return data
 
+
 class CursoHorarioForm(forms.ModelForm):
     class Meta:
         model = CursoHorario
@@ -184,15 +192,85 @@ class CursoHorarioForm(forms.ModelForm):
             "hora_fin": forms.TimeInput(attrs={"type": "time"}),
         }
 
+# =============== VALIDACIÓN DE CHOQUES DE HORARIO ===============
+class BaseCursoHorarioFormSet(forms.BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+
+        profesor = getattr(self.instance, "profesor", None)
+        sede = getattr(self.instance, "sede", None)
+        curso_id = getattr(self.instance, "id", None)
+
+        horarios_vistos = set()
+
+        from .models import CursoHorario  # evitar import circular
+
+        for form in self.forms:
+            if not form.cleaned_data or form.cleaned_data.get("DELETE", False):
+                continue
+
+            dia = form.cleaned_data.get("dia")
+            hora_inicio = form.cleaned_data.get("hora_inicio")
+            hora_fin = form.cleaned_data.get("hora_fin")
+
+            if not (dia and hora_inicio and hora_fin):
+                continue
+
+
+            key = (dia, hora_inicio, hora_fin)
+            if key in horarios_vistos:
+                raise ValidationError("No puedes repetir el mismo horario dentro del curso.")
+            horarios_vistos.add(key)
+
+
+            if profesor:
+                choques_prof = CursoHorario.objects.filter(
+                    curso__profesor=profesor,
+                    dia=dia,
+                    hora_inicio__lt=hora_fin,
+                    hora_fin__gt=hora_inicio,
+                )
+
+                if curso_id:
+                    choques_prof = choques_prof.exclude(curso_id=curso_id)
+
+                if choques_prof.exists():
+                    nombres = ", ".join(set(h.curso.nombre for h in choques_prof))
+                    raise ValidationError(
+                        f"El profesor {profesor} ya tiene otro curso asignado el "
+                        f"{CursoHorario.Dia(dia).label} ({nombres}) entre {hora_inicio} y {hora_fin}."
+                    )
+
+
+            if sede:
+                choques_sede = CursoHorario.objects.filter(
+                    curso__sede=sede,
+                    dia=dia,
+                    hora_inicio__lt=hora_fin,
+                    hora_fin__gt=hora_inicio,
+                )
+
+                if curso_id:
+                    choques_sede = choques_sede.exclude(curso_id=curso_id)
+
+                if choques_sede.exists():
+                    nombres = ", ".join(set(h.curso.nombre for h in choques_sede))
+                    raise ValidationError(
+                        f"La sede {sede} ya tiene otro curso ({nombres}) el "
+                        f"{CursoHorario.Dia(dia).label} entre {hora_inicio} y {hora_fin}."
+                    )
+
+
 CursoHorarioFormSet = inlineformset_factory(
     parent_model=Curso,
     model=CursoHorario,
     form=CursoHorarioForm,
+    formset=BaseCursoHorarioFormSet,
     extra=1,
     can_delete=True,
 )
 
-# ========================= Estudiante =========================
+#=========== Estudiante =========================
 class EstudianteForm(forms.ModelForm):
     class Meta:
         model = Estudiante
@@ -219,15 +297,17 @@ class DeporteForm(forms.ModelForm):
         fields = ["nombre", "categoria", "equipamiento"]
 
 # ========================= Comunicado =========================
+from django import forms
+from .models import Comunicado, Audiencia
 
 class ComunicadoForm(forms.ModelForm):
     audiencia_codigos = forms.MultipleChoiceField(
         label="Audiencia",
         choices=[
-            ("ATLE", "Deportistas Alto Rendimiento"),
-            ("PMUL", "Profesionales multidisciplinarios"),
-            ("APOD", "Apoderados"),
-            ("PUBL", "Público general"),
+            ("PROF", "Profesores / Entrenadores"),
+            ("PMUL", "Profesional Multidisciplinario"),
+            ("ATAP", "Deportista / Apoderado"),
+            ("PUBL", "Público (visible sin iniciar sesión)"),
         ],
         widget=forms.CheckboxSelectMultiple,
         required=False,
@@ -239,6 +319,7 @@ class ComunicadoForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # precarga los códigos guardados en la instancia
         if self.instance and self.instance.pk:
             self.initial["audiencia_codigos"] = self.instance.get_audiencia_codigos()
 
@@ -266,7 +347,6 @@ else:
     class RegistroPublicoForm(forms.Form):
         pass
 
-# ========================= Noticia =========================
 if NoticiaModel is not None:
     class NoticiaForm(forms.ModelForm):
         class Meta:
@@ -284,7 +364,7 @@ if NoticiaModel is not None:
                 "cuerpo": forms.Textarea(attrs={"rows": 8}),
             }
 
-# ========================= RegistroPeriodo =========================
+
 class RegistroPeriodoForm(forms.ModelForm):
     class Meta:
         model = RegistroPeriodo

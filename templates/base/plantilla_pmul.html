@@ -272,6 +272,20 @@
     @media (max-width: 991.98px){
       #menuBtn{ color: var(--bar-text) !important; }
     }
+
+    /* ======== ÚNICO AJUSTE PARA CELULAR: ancho total del sidebar ======== */
+    @media (max-width: 575.98px){
+      :root{
+        --sb-w-mobile: 100vw; /* ocupar todo el ancho del teléfono */
+      }
+    }
+
+    /* ======== AJUSTE RESPONSIVE EXTRA (mínimo, no cambia estilos) ======== */
+    @media (max-width: 575.98px){
+      html, body{ width:100%; height:100%; margin:0; padding:0; overflow-x:hidden; }
+      .app{ width:100vw; min-height:100vh; }
+      .sidebar{ width:100vw !important; max-width:100vw !important; }
+    }
   </style>
 
   {% block extra_css %}{% endblock %}
@@ -322,7 +336,6 @@
           </a>
         </div>
       </section>
-
 
      <section class="sb-section">
         <div class="sb-head"><i class="fas fa-bullhorn"></i><span>Configuración</span></div>

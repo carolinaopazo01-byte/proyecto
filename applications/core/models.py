@@ -6,11 +6,11 @@ from django.contrib.auth.models import Group  # para audiencia por grupos
 
 Usuario = settings.AUTH_USER_MODEL
 
-# ====== Códigos de audiencia por tipo de usuario ======
+
 AUDIENCIA_CODIGOS = ["PROF", "PMUL", "ATLE", "APOD"]
 
 
-# ===================== SEDES / DEPORTES =====================
+
 class Sede(models.Model):
     nombre = models.CharField(max_length=200)
     comuna = models.CharField(max_length=120, blank=True)
@@ -72,7 +72,7 @@ class Evento(models.Model):
         return f"{self.nombre} ({self.fecha})"
 
 
-# ===================== NOTICIAS (portada) =====================
+
 class Noticia(models.Model):
     titulo = models.CharField(max_length=180)
     bajada = models.CharField(max_length=280, blank=True)
@@ -92,78 +92,121 @@ class Noticia(models.Model):
 
 
 
-# Códigos válidos de audiencia
-AUDIENCIA_CODIGOS = ["ATLE", "PMUL", "APOD", "PUBL"]
+from django.db import models
+from django.conf import settings
+from django.contrib.auth.models import Group
 
 
-# ================= COMUNICADOS =================
+# ==========================================
+# Comunicado (audiencias y manager)
+# ==========================================
+
+class Audiencia(models.TextChoices):
+    PROF = "PROF", "Profesor"
+    ATAP = "ATAP", "Atleta/Apoderado"
+    PMUL = "PMUL", "Profesional Multidisciplinario"
+    PUBL = "PUBL", "Público"  # visible sin iniciar sesión
+
+AUDIENCIA_CODIGOS = tuple(a.value for a in Audiencia)  # ("PROF","ATAP","PMUL","PUBL")
+
+
+def _csv_code_regex(code: str) -> str:
+
+
+    return rf'(^|,){code}(,|$)'
+
+
 class ComunicadoQuerySet(models.QuerySet):
-    def for_user(self, user):
-        """
-        Devuelve los comunicados visibles para un usuario según su tipo o grupo.
-        - Los ADMIN y COORD ven todos.
-        - Otros usuarios ven comunicados cuyo código de audiencia incluye su tipo
-          o comunicados públicos ("PUBL").
-        """
-        tu = getattr(user, "tipo_usuario", None)
+    def publics(self):
 
-        # Los administradores o coordinadores ven todos los comunicados
+        return self.filter(audiencia_codigos__regex=_csv_code_regex(Audiencia.PUBL))
+
+    def for_user(self, user):
+
+        tu = (getattr(user, "tipo_usuario", None) or "").upper()
+
+
         if getattr(user, "is_superuser", False) or tu in ("ADMIN", "COORD"):
             return self
 
-        # Filtro por código de tipo de usuario (ej: ATLE, PMUL, APOD)
-        q_tu = models.Q(audiencia_codigos__icontains=tu) if tu else models.Q(pk__in=[])
 
-        # Filtro adicional por grupos (si se usan)
-        user_group_ids = getattr(user, "groups", Group.objects.none()).values_list("id", flat=True)
-        q_grp = models.Q(audiencia_roles__in=Group.objects.filter(id__in=user_group_ids, name__in=AUDIENCIA_CODIGOS))
+        q_pub = models.Q(audiencia_codigos__regex=_csv_code_regex(Audiencia.PUBL))
 
-        # Incluye también los comunicados públicos (PUBL)
-        q_pub = models.Q(audiencia_codigos__icontains="PUBL")
+        # Mapear tipo_usuario -> código de audiencia
+        # ATLE o APOD => ATAP (Atleta/Apoderado)
+        map_tu = {
+            "PROF": Audiencia.PROF,
+            "ATLE": Audiencia.ATAP,
+            "APOD": Audiencia.ATAP,
+            "PMUL": Audiencia.PMUL,
+        }
+        code = map_tu.get(tu)
+        q_tu = models.Q()
+        if code:
+            q_tu = models.Q(audiencia_codigos__regex=_csv_code_regex(code))
 
-        return self.filter(q_tu | q_grp | q_pub).distinct()
+
+        try:
+            grp_names = set(user.groups.values_list("name", flat=True))
+        except Exception:
+            grp_names = set()
+        grp_names = [n for n in grp_names if n in AUDIENCIA_CODIGOS]
+
+        q_grp = models.Q()
+        if grp_names:
+            q_grp = models.Q(audiencia_roles__name__in=grp_names)
+
+        return self.filter(q_pub | q_tu | q_grp).distinct()
 
 
 class Comunicado(models.Model):
+    """Comunicados con control de audiencia por códigos CSV (PROF, ATAP, PMUL, PUBL)."""
     titulo = models.CharField(max_length=200)
     cuerpo = models.TextField()
-    autor = models.ForeignKey(Usuario, on_delete=models.PROTECT)
-    creado = models.DateTimeField(auto_now_add=True)
+    autor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
 
-    # Códigos de audiencia, guardados como texto separado por comas (ej: "ATLE,PMUL")
-    audiencia_codigos = models.CharField(max_length=100, default="", blank=True)
 
-    # Opcional: permitir asociar roles/grupos de Django
+    audiencia_codigos = models.CharField(max_length=60, default="", blank=True)
+
+
     audiencia_roles = models.ManyToManyField(
-        Group,
-        blank=True,
-        related_name="comunicados_dirigidos"
+        Group, blank=True, related_name="comunicados_dirigidos"
     )
+
+    creado = models.DateTimeField(auto_now_add=True)
+    modificado = models.DateTimeField(auto_now=True)
 
     objects = ComunicadoQuerySet.as_manager()
 
     class Meta:
         ordering = ["-creado"]
+        indexes = [
+            models.Index(fields=["-creado"]),
+        ]
 
     def __str__(self):
         return self.titulo
 
-    # ===========================
-    # Métodos auxiliares
-    # ===========================
+
     def set_audiencia_codigos(self, codigos):
-        """Guarda los códigos válidos de audiencia (ATLE, PMUL, APOD, PUBL)."""
-        cods = [c for c in (codigos or []) if c in AUDIENCIA_CODIGOS]
-        self.audiencia_codigos = ",".join(sorted(set(cods)))
+
+        valid = [c for c in (codigos or []) if c in AUDIENCIA_CODIGOS]
+        self.audiencia_codigos = ",".join(sorted(set(valid)))
 
     def get_audiencia_codigos(self):
-        """Devuelve una lista de códigos almacenados."""
-        if not (self.audiencia_codigos or "").strip():
+
+        txt = (self.audiencia_codigos or "").strip()
+        if not txt:
             return []
-        return [c for c in self.audiencia_codigos.split(",") if c]
+        return [c for c in txt.split(",") if c]
+
+    @property
+    def es_publico(self) -> bool:
+
+        return Audiencia.PUBL in self.get_audiencia_codigos()
 
 
-# ===================== CURSOS =====================
+
 class Curso(models.Model):
     class Programa(models.TextChoices):
         FORMATIVO = "FORM", "Formativo"
@@ -216,6 +259,7 @@ class Curso(models.Model):
             return self.horario or "—"
         return " · ".join(f"{h.get_dia_display()} {h.hora_inicio:%H:%M}-{h.hora_fin:%H:%M}" for h in qs)
 
+from django.core.exceptions import ValidationError
 
 class CursoHorario(models.Model):
     class Dia(models.IntegerChoices):
@@ -237,6 +281,47 @@ class CursoHorario(models.Model):
 
     def __str__(self):
         return f"{self.curso.nombre}: {self.get_dia_display()} {self.hora_inicio}-{self.hora_fin}"
+
+
+    def clean(self):
+        from .models import CursoHorario  # import local
+        profesor = getattr(self.curso, "profesor", None)
+        sede = getattr(self.curso, "sede", None)
+
+        # No seguimos si el curso no tiene aún profesor o sede
+        if not (profesor and sede):
+            return
+
+        conflictos = []
+
+        # Choques con otros cursos del mismo profesor
+        choques_prof = CursoHorario.objects.filter(
+            curso__profesor=profesor,
+            dia=self.dia,
+            hora_inicio__lt=self.hora_fin,
+            hora_fin__gt=self.hora_inicio,
+        ).exclude(pk=self.pk)
+        if choques_prof.exists():
+            conflictos.append(
+                f"El profesor {profesor} ya tiene otro curso el "
+                f"{self.get_dia_display()} entre {self.hora_inicio} y {self.hora_fin}."
+            )
+
+        # Choques con otros cursos de la misma sede
+        choques_sede = CursoHorario.objects.filter(
+            curso__sede=sede,
+            dia=self.dia,
+            hora_inicio__lt=self.hora_fin,
+            hora_fin__gt=self.hora_inicio,
+        ).exclude(pk=self.pk)
+        if choques_sede.exists():
+            conflictos.append(
+                f"La sede {sede} ya tiene otro curso el "
+                f"{self.get_dia_display()} entre {self.hora_inicio} y {self.hora_fin}."
+            )
+
+        if conflictos:
+            raise ValidationError(conflictos)
 
 
 # ===================== PLANIFICACIONES =====================

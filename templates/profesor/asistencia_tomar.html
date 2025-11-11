@@ -2,86 +2,270 @@
 {% load static %}
 
 {% block title %}Asistencia{% endblock %}
-{% block header %}
-Asistencia — {{ curso.nombre|default:"(Curso)" }}{% if clase %} ({{ clase.fecha|date:"d/m/Y" }}){% endif %}
+{% block header %}Asistencia — {{ curso.nombre|default:"(Curso)" }}{% if clase %} ({{ clase.fecha|date:"d/m/Y" }}){% endif %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ==== LAYOUT GENERAL ==== */
+  .toolbar {
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: .75rem;
+  }
+  .box {
+    position: sticky;
+    top: 8px;
+    z-index: 5;
+    background: #fff;
+    padding: 10px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,.04);
+  }
+
+  /* ==== CHIPS Y TEXTOS ==== */
+  .chip {
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    padding: 5px 10px;
+    background: #f9fafb;
+    font-weight: 700;
+    color: #0f172a;
+    font-size: .9rem;
+  }
+  .muted { color: #64748b; }
+
+  /* ==== TABLA ==== */
+  .table-tight {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .table-tight th {
+    background: #f1f5f9;
+    border-bottom: 2px solid #e2e8f0;
+    font-size: .85rem;
+    text-transform: uppercase;
+    color: #334155;
+  }
+  .table-tight td, .table-tight th {
+    padding: .55rem .7rem;
+    vertical-align: middle;
+  }
+  tr:nth-child(even) td {
+    background: #fafafa;
+  }
+
+  /* ==== ESTADOS ==== */
+  .state {
+    display: inline-flex;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .state input { display: none; }
+  .state label {
+    padding: .35rem .7rem;
+    cursor: pointer;
+    font-weight: 700;
+    transition: all .15s ease;
+  }
+  .state label:hover {
+    background: #f1f5f9;
+  }
+  .state .on[data-val="P"] {
+    background: #dcfce7;
+    color: #166534;
+    border-right: 1px solid #bbf7d0;
+  }
+  .state .on[data-val="A"] {
+    background: #fee2e2;
+    color: #991b1b;
+    border-right: 1px solid #fecaca;
+  }
+  .state .on[data-val="J"] {
+    background: #fef9c3;
+    color: #854d0e;
+    border-right: 1px solid #fde68a;
+  }
+
+  /* ==== BOTONES ==== */
+  .btn-ghost {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    transition: all .15s ease;
+  }
+  .btn-ghost:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+  }
+
+  /* ==== INPUT OBS ==== */
+  .obs {
+    width: 100%;
+    font-size: .85rem;
+  }
+
+  /* ==== RESPONSIVE ==== */
+  @media (max-width: 768px) {
+    .table-tight th:nth-child(3), .table-tight td:nth-child(3) {
+      display: none; /* Oculta columna de observaciones en móviles */
+    }
+    .toolbar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .toolbar form, .toolbar button {
+      width: 100%;
+    }
+  }
+</style>
 {% endblock %}
 
 {% block content %}
-
 {% if messages %}
   <ul class="messages">
     {% for m in messages %}
-      <li class="message {{ m.tags }}">{{ m }}</li>
+      <li class="alert alert-{{ m.tags }} mb-2">{{ m }}</li>
     {% endfor %}
   </ul>
 {% endif %}
 
-<div class="card" style="padding:12px;margin-bottom:12px;">
-  <p style="margin-top:0;">
-    Estado:
-    <strong>
-      {% if clase and clase.estado == "PEND" %}Pendiente
-      {% elif clase and clase.estado == "ENCU" %}En curso
-      {% elif clase %}Cerrada
+<div class="box shadow-sm">
+  <div class="toolbar">
+    <span class="chip">
+      {% if clase %}
+        Estado:
+        {% if clase.estado == "PEND" %}Pendiente{% elif clase.estado == "ENCU" %}En curso{% else %}Cerrada{% endif %}
+        {% if clase.inicio_real %} · Inicio {{ clase.inicio_real|date:"H:i" }}{% endif %}
+        {% if clase.fin_real %} · Fin {{ clase.fin_real|date:"H:i" }}{% endif %}
       {% else %}—{% endif %}
-    </strong>
-    {% if clase and clase.inicio_real %} · Inicio real: {{ clase.inicio_real|date:"H:i" }}{% endif %}
-    {% if clase and clase.fin_real %} · Fin real: {{ clase.fin_real|date:"H:i" }}{% endif %}
-  </p>
+    </span>
 
-  <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-    <form method="post" style="display:inline;">
-      {% csrf_token %}
-      <input type="hidden" name="accion" value="entrada">
-      <button class="btn btn-primary">✅ Registrar entrada</button>
+    <form method="post" class="d-inline">
+      {% csrf_token %}<input type="hidden" name="accion" value="entrada">
+      <button class="btn btn-primary btn-sm"><i class="fas fa-door-open me-1"></i> Registrar entrada</button>
     </form>
 
-    <form method="post" style="display:inline;">
-      {% csrf_token %}
-      <input type="hidden" name="accion" value="salida">
-      <button class="btn btn-secondary">⏹️ Registrar salida</button>
+    <form method="post" class="d-inline">
+      {% csrf_token %}<input type="hidden" name="accion" value="salida">
+      <button class="btn btn-secondary btn-sm"><i class="fas fa-door-closed me-1"></i> Registrar salida</button>
     </form>
+
+    <div class="ms-auto d-flex align-items-center flex-wrap gap-1">
+      <span class="muted">Resumen:</span>
+      <strong id="sumP">{{ resumen.P|default:0 }}</strong> P ·
+      <strong id="sumA">{{ resumen.A|default:0 }}</strong> A ·
+      <strong id="sumJ">{{ resumen.J|default:0 }}</strong> J
+      <span class="muted">(de <span id="sumT">{{ resumen.total|default:0 }}</span>)</span>
+    </div>
   </div>
 
-  <div style="margin-top:10px; font-weight:600;">
-    Resumen guardado:
-    <span>{{ resumen.P|default:0 }} presentes</span> ·
-    <span>{{ resumen.A|default:0 }} ausentes</span> ·
-    <span>{{ resumen.J|default:0 }} justificados</span>
-    <span style="color:#666;">(de {{ resumen.total|default:0 }})</span>
+  <div class="toolbar">
+    <button type="button" class="btn btn-ghost btn-sm" data-bulk="P"><i class="fas fa-user-check me-1"></i> Todos Presente</button>
+    <button type="button" class="btn btn-ghost btn-sm" data-bulk="A"><i class="fas fa-user-times me-1"></i> Todos Ausente</button>
+    <button type="button" class="btn btn-ghost btn-sm" data-bulk="J"><i class="fas fa-file-alt me-1"></i> Todos Justificado</button>
+    <button type="button" class="btn btn-light btn-sm" id="bulkClear"><i class="fas fa-eraser me-1"></i> Limpiar observaciones</button>
   </div>
+</div>
 
-  <form method="post">
-    {% csrf_token %}
-    <input type="hidden" name="accion" value="guardar">
+<form method="post">
+  {% csrf_token %}
+  <input type="hidden" name="accion" value="guardar">
 
-    <table class="table">
+  <div class="table-responsive">
+    <table class="table table-tight align-middle">
       <thead>
         <tr>
           <th>Alumno</th>
-          <th>Presente</th>
-          <th>Ausente</th>
-          <th>Justificado</th>
+          <th>Estado</th>
           <th>Observaciones</th>
         </tr>
       </thead>
-    <tbody>
-  {% for row in rows %}
-    <tr>
-      <td>{{ row.nombre }}</td>
-      <td><input type="radio" name="estado_{{ row.ins.id }}" value="P" {% if row.code == "P" %}checked{% endif %}></td>
-      <td><input type="radio" name="estado_{{ row.ins.id }}" value="A" {% if row.code == "A" %}checked{% endif %}></td>
-      <td><input type="radio" name="estado_{{ row.ins.id }}" value="J" {% if row.code == "J" %}checked{% endif %}></td>
-      <td><input type="text" name="obs_{{ row.ins.id }}" value="{{ row.obs }}" style="width:100%"></td>
-    </tr>
-  {% empty %}
-    <tr><td colspan="5">No hay alumnos inscritos.</td></tr>
-  {% endfor %}
-</tbody>
+      <tbody id="rows">
+        {% for row in rows %}
+        <tr data-row="{{ row.ins.id }}">
+          <td><strong>{{ row.nombre }}</strong></td>
+          <td>
+            <div class="state" role="radiogroup" aria-label="Estado asistencia">
+              <input id="p_{{ row.ins.id }}" type="radio" name="estado_{{ row.ins.id }}" value="P" {% if row.code == "P" %}checked{% endif %}>
+              <label for="p_{{ row.ins.id }}" data-val="P">P</label>
+
+              <input id="a_{{ row.ins.id }}" type="radio" name="estado_{{ row.ins.id }}" value="A" {% if row.code == "A" %}checked{% endif %}>
+              <label for="a_{{ row.ins.id }}" data-val="A">A</label>
+
+              <input id="j_{{ row.ins.id }}" type="radio" name="estado_{{ row.ins.id }}" value="J" {% if row.code == "J" %}checked{% endif %}>
+              <label for="j_{{ row.ins.id }}" data-val="J">J</label>
+            </div>
+          </td>
+          <td><input class="form-control form-control-sm obs" type="text" name="obs_{{ row.ins.id }}" value="{{ row.obs }}"></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3" class="text-muted text-center py-3">No hay alumnos inscritos en este curso.</td></tr>
+        {% endfor %}
+      </tbody>
     </table>
+  </div>
 
-    <button class="btn btn-success">💾 Guardar asistencia alumnos</button>
-  </form>
-</div>
+  <div class="d-grid d-sm-flex gap-2 mt-3">
+    <button class="btn btn-success"><i class="fas fa-save me-1"></i> Guardar asistencia</button>
+    <a class="btn btn-outline-secondary" href="javascript:history.back()"><i class="fas fa-arrow-left me-1"></i> Volver</a>
+  </div>
+</form>
+{% endblock %}
 
+{% block extra_js %}
+<script>
+(function(){
+  const rows = document.getElementById('rows');
+  const sumP = document.getElementById('sumP');
+  const sumA = document.getElementById('sumA');
+  const sumJ = document.getElementById('sumJ');
+  const sumT = document.getElementById('sumT');
+
+  function recalc(){
+    let p=0,a=0,j=0;
+    rows.querySelectorAll('tr[data-row]').forEach(tr=>{
+      const name = 'estado_' + tr.dataset.row;
+      const checked = tr.querySelector(`input[name="${name}"]:checked`);
+      tr.querySelectorAll('.state label').forEach(lb=>lb.classList.remove('on'));
+      if(checked){
+        const lab = tr.querySelector(`label[for="${checked.id}"]`);
+        if(lab) lab.classList.add('on');
+        if(checked.value==='P') p++;
+        else if(checked.value==='A') a++;
+        else if(checked.value==='J') j++;
+      }
+    });
+    sumP.textContent = p;
+    sumA.textContent = a;
+    sumJ.textContent = j;
+    sumT.textContent = rows.querySelectorAll('tr[data-row]').length;
+  }
+
+  rows.addEventListener('change', e=>{
+    if(e.target.matches('input[type="radio"]')) recalc();
+  });
+
+  document.querySelectorAll('[data-bulk]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const val = btn.getAttribute('data-bulk');
+      rows.querySelectorAll('tr[data-row]').forEach(tr=>{
+        const id = tr.dataset.row;
+        const r = tr.querySelector(`input[name="estado_${id}"][value="${val}"]`);
+        if(r) r.checked = true;
+      });
+      recalc();
+    });
+  });
+
+  document.getElementById('bulkClear')?.addEventListener('click', ()=>{
+    rows.querySelectorAll('.obs').forEach(i=>i.value='');
+  });
+
+  recalc();
+})();
+</script>
 {% endblock %}

@@ -3,7 +3,7 @@
 {% block header %}Panel del Profesor / Entrenador{% endblock %}
 
 {% block content %}
-<p>Hola, <strong>{{ request.user.username }}</strong>.</p>
+<p><strong>{{ request.user.username }}</strong>.</p>
 
 <h3>Próximas clases (7 días)</h3>
 <table class="table">
@@ -34,7 +34,7 @@
 <div class="bar" style="margin-top:16px;">
   <a class="btn" href="{% url 'usuarios:mis_cursos_prof' %}">📚 Mis cursos</a>
 <a class="btn" href="{% url 'profesor:mi_asistencia_qr' %}">📷 Marcar mi asistencia (QR)</a>
-  <a class="btn" href="{% url 'usuarios:planificaciones_prof' %}">📝 Planificaciones</a>
+  <a class="btn" href="{% url 'profesor:planificaciones' %}">📝 Planificaciones</a>
   <a class="btn" href="{% url 'usuarios:comunicados_prof' %}">📣 Comunicados</a>
   <a class="btn" href="{% url 'usuarios:perfil_profesor' %}">🔐 Mi perfil</a>
   <a class="btn" href="{% url 'profesor:alumno_temporal_new' %}">➕ Ingresar alumno temporalmente</a>

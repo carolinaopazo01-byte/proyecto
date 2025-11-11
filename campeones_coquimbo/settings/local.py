@@ -3,31 +3,37 @@ from .base import *
 import os
 from pathlib import Path
 
-# === Desarrollo ===
 DEBUG = True
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "admin123")
-ALLOWED_HOSTS: list[str] = []
+ALLOWED_HOSTS = []  # en dev está ok vacío
 
-# === Base de datos (SQLite para dev) ===
+# === Base de datos (Render Postgres) ===
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'campeones_db',
-        'USER': 'campeones_db_user',
-        'PASSWORD': 'fWeRmxmuEIw4wwntYr6oOrON4LOmcgSX',
-        'HOST': 'dpg-d46h2pre5dus73b6pl6g-a.oregon-postgres.render.com',
-        'PORT': '5432',
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "campeones_db",
+        "USER": "campeones_db_user",
+        "PASSWORD": "fWeRmxmuEIw4wwntYr6oOrON4LOmcgSX",
+        "HOST": "dpg-d46h2pre5dus73b6pl6g-a.oregon-postgres.render.com",
+        "PORT": "5432",
+        "OPTIONS": {
+            "sslmode": "require",  # <-- NECESARIO para Render
+        },
     }
 }
 
-# === Seguridad (dev sin HTTPS) ===
+# === Regionalización
+TIME_ZONE = "America/Santiago"
+LANGUAGE_CODE = "es-cl"
+USE_TZ = True
+
+# === Seguridad
 CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_SECURE = False
 SECURE_SSL_REDIRECT = False
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
-# === Auth / sesiones ===
-# Usa solo UNA definición (evita duplicados).
+
 LOGIN_URL = "usuarios:login_rut"
 LOGIN_REDIRECT_URL = "/usuarios/panel/"
 LOGOUT_REDIRECT_URL = "/"
@@ -38,11 +44,10 @@ AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
 ]
 
-# === Email (consola en dev) ===
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = "no-reply@cpc.local"  # <-- para que el mail tenga remitente claro
 
-# === Static & Media (opcional en local: ya están en base.py)
-# Si prefieres dejarlos explícitos en local también, mantenlos iguales a base.py.
+
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"

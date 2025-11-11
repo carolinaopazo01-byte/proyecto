@@ -5,7 +5,6 @@ from applications.core.models import Estudiante  # ajusta si tu "paciente" tiene
 from .models import Cita, FichaClinica, FichaAdjunto, Disponibilidad
 from datetime import datetime, timedelta   # 👈 AGREGA ESTO
 
-# ----------------- CITA (Form puro, no ModelForm) -----------------
 class CitaForm(forms.Form):
     fecha = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}))
     hora_inicio = forms.TimeField(widget=forms.TimeInput(attrs={"type": "time"}))
@@ -51,7 +50,7 @@ class CitaForm(forms.Form):
         return instancia
 
 
-# ----------------- FICHAS (Sí usamos ModelForm) -----------------
+
 class FichaClinicaForm(forms.ModelForm):
     class Meta:
         model = FichaClinica

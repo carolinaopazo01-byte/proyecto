@@ -26,11 +26,38 @@ class EventoAdmin(admin.ModelAdmin):
     list_filter = ("fecha", "tipo")
     search_fields = ("nombre", "lugar", "descripcion")
 
+from django.contrib import admin
+from django import forms
+from .models import Comunicado, Audiencia
+
+class ComunicadoAdminForm(forms.ModelForm):
+    audiencia_codigos_multi = forms.MultipleChoiceField(
+        label="Audiencia",
+        required=False,
+        choices=Audiencia.choices,
+        widget=forms.CheckboxSelectMultiple
+    )
+    class Meta:
+        model = Comunicado
+        fields = ["titulo","cuerpo","autor","audiencia_codigos_multi","audiencia_roles"]
+
+    def __init__(self,*a,**kw):
+        super().__init__(*a,**kw)
+        self.fields["audiencia_codigos_multi"].initial = self.instance.get_audiencia_codigos()
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        obj.set_audiencia_codigos(self.cleaned_data.get("audiencia_codigos_multi"))
+        if commit: obj.save(); self.save_m2m()
+        return obj
+
 @admin.register(Comunicado)
 class ComunicadoAdmin(admin.ModelAdmin):
-    list_display = ("titulo", "autor", "creado")
-    search_fields = ("titulo", "cuerpo")
-    list_filter = ("creado",)
+    form = ComunicadoAdminForm
+    list_display = ("titulo","autor","creado","_es_publico")
+    search_fields = ("titulo","cuerpo","audiencia_codigos")
+    def _es_publico(self,obj): return obj.es_publico
+
 
 @admin.register(Curso)
 class CursoAdmin(admin.ModelAdmin):

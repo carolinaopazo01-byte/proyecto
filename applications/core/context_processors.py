@@ -3,11 +3,7 @@ from django.utils import timezone
 from .models import PortalConfig
 
 def portal_config(request):
-    """
-    Expone a las plantillas:
-      - PORTAL_CFG: instancia de PortalConfig (o None)
-      - REGISTRO_VISIBLE: bool calculado (habilitado y dentro del rango de fechas)
-    """
+
     cfg = None
     try:
         cfg = PortalConfig.get_solo()

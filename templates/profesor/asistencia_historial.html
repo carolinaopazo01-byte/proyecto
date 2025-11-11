@@ -1,0 +1,267 @@
+{% extends "base/plantilla.html" %}
+{% load humanize %}
+
+{% block title %}Historial de Asistencias{% endblock %}
+{% block header %}📊 Historial de Asistencias{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ====== CONTENEDOR PRINCIPAL ====== */
+  .card {
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 2px 8px rgba(0,0,0,.05);
+  }
+
+  .filters {
+    display: flex;
+    gap: .75rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  /* ====== KPI CARDS ====== */
+  .kpis {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    margin-bottom: 1rem;
+  }
+  .kpi {
+    flex: 1 1 180px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 10px 14px;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,.04);
+    font-size: .9rem;
+  }
+  .kpi strong {
+    display: block;
+    font-size: .88rem;
+    color: #334155;
+  }
+
+  /* ====== TABLAS ====== */
+  .table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  .table thead th {
+    white-space: nowrap;
+    background: #f8fafc;
+    color: #334155;
+    text-transform: uppercase;
+    font-size: .82rem;
+    font-weight: 700;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  .table td, .table th {
+    vertical-align: middle;
+    padding: .55rem .75rem;
+  }
+  .table tbody tr:nth-child(even) {
+    background-color: #f9fafb;
+  }
+
+  /* ====== PAGINACIÓN ====== */
+  .pagination {
+    margin-top: 10px;
+    justify-content: center;
+  }
+  .pagination .page-link {
+    color: #0e7c86;
+    font-weight: 600;
+  }
+  .pagination .page-item.active .page-link {
+    background-color: #0e7c86;
+    border-color: #0e7c86;
+  }
+
+  /* ====== BOTONES ====== */
+  .btn {
+    border-radius: .45rem;
+    font-weight: 700;
+  }
+  .btn-primary {
+    background-color: #0e7c86;
+    border-color: #0e7c86;
+  }
+  .btn-primary:hover {
+    background-color: #0a5a64;
+    border-color: #0a5a64;
+  }
+  .btn-outline-secondary:hover {
+    background-color: #f3f4f6;
+  }
+
+  /* ====== RESPONSIVE ====== */
+  @media (max-width: 768px) {
+    .table thead {
+      display: none;
+    }
+    .table tr {
+      display: block;
+      margin-bottom: .75rem;
+      border: 1px solid #e5e7eb;
+      border-radius: .75rem;
+      background: #fff;
+      overflow: hidden;
+    }
+    .table td {
+      display: flex;
+      justify-content: space-between;
+      padding: .55rem .9rem;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .table td:last-child {
+      border-bottom: none;
+    }
+    .table td::before {
+      content: attr(data-label);
+      font-weight: 700;
+      color: #475569;
+      text-transform: capitalize;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card p-3">
+
+  <!-- Filtros -->
+  <div class="filters">
+    <form method="get" class="d-flex flex-wrap gap-2">
+      <select name="est" class="form-select" style="min-width:260px">
+        <option value="">— Ver historial del curso —</option>
+        {% for a in alumnos %}
+          <option value="{{ a.id }}" {% if request.GET.est|default:'' == a.id|stringformat:"s" %}selected{% endif %}>
+            {{ a.apellidos }} {{ a.nombres }} ({{ a.rut }})
+          </option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-primary"><i class="fas fa-search me-1"></i> Ver</button>
+      {% if request.GET.est %}
+        <a href="?" class="btn btn-outline-secondary">Limpiar</a>
+      {% endif %}
+    </form>
+  </div>
+
+  {% if modo == "curso" %}
+    <!-- KPI global del curso -->
+    <div class="kpis">
+      <div class="kpi"><strong>Total marcaciones:</strong> {{ kpi_global.total|intcomma }}</div>
+      <div class="kpi"><strong>Presentes:</strong> {{ kpi_global.P|intcomma }}</div>
+      <div class="kpi"><strong>Ausentes:</strong> {{ kpi_global.A|intcomma }}</div>
+      <div class="kpi"><strong>Justificadas:</strong> {{ kpi_global.J|intcomma }}</div>
+    </div>
+
+    <!-- Sesiones del curso -->
+    <div class="table-responsive">
+      <table class="table table-sm align-middle">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Estado de la clase</th>
+            <th>Presentes</th>
+            <th>Ausentes</th>
+            <th>Justificadas</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in sesiones %}
+          <tr>
+            <td data-label="Fecha">{{ s.fecha|date:"d/m/Y" }}</td>
+            <td data-label="Estado">{{ s.get_estado_display|default:"—" }}</td>
+            <td data-label="P">{{ s.n_p }}</td>
+            <td data-label="A">{{ s.n_a }}</td>
+            <td data-label="J">{{ s.n_j }}</td>
+            <td data-label="Total">{{ s.n_total }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-center text-muted">Sin registros de asistencia.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginación -->
+    {% if sesiones.paginator.num_pages > 1 %}
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% if sesiones.has_previous %}
+          <li class="page-item"><a class="page-link" href="?page={{ sesiones.previous_page_number }}{% if request.GET.est %}&est={{ request.GET.est }}{% endif %}">«</a></li>
+        {% endif %}
+        {% for i in sesiones.paginator.page_range %}
+          <li class="page-item {% if i == sesiones.number %}active{% endif %}">
+            <a class="page-link" href="?page={{ i }}{% if request.GET.est %}&est={{ request.GET.est }}{% endif %}">{{ i }}</a>
+          </li>
+        {% endfor %}
+        {% if sesiones.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ sesiones.next_page_number }}{% if request.GET.est %}&est={{ request.GET.est }}{% endif %}">»</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+
+  {% else %}
+    <!-- Modo: historial del estudiante -->
+    <div class="kpis">
+      <div class="kpi"><strong>Alumno:</strong> {{ estudiante.apellidos }} {{ estudiante.nombres }}</div>
+      <div class="kpi"><strong>Total:</strong> {{ resumen.total|intcomma }}</div>
+      <div class="kpi"><strong>Presentes:</strong> {{ resumen.P|intcomma }}</div>
+      <div class="kpi"><strong>Ausentes:</strong> {{ resumen.A|intcomma }}</div>
+      <div class="kpi"><strong>Justificadas:</strong> {{ resumen.J|intcomma }}</div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-sm align-middle">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Estado</th>
+            <th>Observaciones</th>
+            <th>Clase</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in detalles %}
+          <tr>
+            <td data-label="Fecha">{{ d.asistencia.fecha|date:"d/m/Y" }}</td>
+            <td data-label="Estado">
+              {% if d.estado == "P" %}Presente{% elif d.estado == "A" %}Ausente{% elif d.estado == "J" %}Justificada{% else %}—{% endif %}
+            </td>
+            <td data-label="Obs.">{{ d.observaciones|default:"—" }}</td>
+            <td data-label="Clase">{{ d.asistencia.get_estado_display|default:"—" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-center text-muted">Sin registros para este estudiante.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if detalles.paginator.num_pages > 1 %}
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% if detalles.has_previous %}
+          <li class="page-item"><a class="page-link" href="?est={{ estudiante.id }}&page={{ detalles.previous_page_number }}">«</a></li>
+        {% endif %}
+        {% for i in detalles.paginator.page_range %}
+          <li class="page-item {% if i == detalles.number %}active{% endif %}">
+            <a class="page-link" href="?est={{ estudiante.id }}&page={{ i }}">{{ i }}</a>
+          </li>
+        {% endfor %}
+        {% if detalles.has_next %}
+          <li class="page-item"><a class="page-link" href="?est={{ estudiante.id }}&page={{ detalles.next_page_number }}">»</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+  {% endif %}
+
+</div>
+{% endblock %}

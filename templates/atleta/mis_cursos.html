@@ -10,12 +10,35 @@
     gap:12px; margin-bottom:.75rem;
   }
   .page-head h4{ margin:0; font-weight:800; font-size:1.05rem; letter-spacing:.2px; }
+
+  /* Chips de horario */
+  .hor-chip{
+    display:inline-block; padding:.15rem .45rem; border:1px solid #e5e7eb;
+    border-radius:999px; font-size:.78rem; margin:2px; background:#fff;
+    white-space:nowrap;
+  }
+
+  /* ===== Tabla compacta y legible ===== */
+  .table { font-size:.92rem; }
+  .table thead th{
+    white-space:nowrap; font-weight:800; color:#374151; background:#f9fafb; border-top:0;
+    position:sticky; top:0; z-index:1;  /* sticky en móvil dentro de .table-responsive */
+  }
+  .table td, .table th{ padding:.55rem .6rem; vertical-align:middle; }
+
+  /* Borde suave a la tarjeta */
+  .card.shadow-sm{ border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; }
+
+  /* Responsive: en pantallas chicas reducimos tipografía y paddings */
+  @media (max-width: 576.98px){
+    .table{ font-size:.88rem; }
+    .table td, .table th{ padding:.45rem .5rem; }
+    .hor-chip{ font-size:.76rem; }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-
-  <!-- Cabecera simple (sin botón Atrás) -->
   <div class="page-head">
     <h4>Mis cursos</h4>
   </div>
@@ -31,15 +54,41 @@
                 <th>Disciplina</th>
                 <th>Sede</th>
                 <th>Profesor</th>
+                <th>Horario</th>
               </tr>
             </thead>
             <tbody>
               {% for i in inscripciones %}
               <tr>
                 <td>{{ i.curso.nombre }}</td>
-                <td>{{ i.curso.disciplina }}</td>
-                <td>{{ i.curso.sede }}</td>
-                <td>{{ i.curso.profesor.get_full_name|default:i.curso.profesor.username }}</td>
+
+                {# Disciplina (FK a Deporte) #}
+                <td>{{ i.curso.disciplina.nombre|default:"—" }}</td>
+
+                <td>{{ i.curso.sede|default:"—" }}</td>
+
+                <td>
+                  {% if i.curso.profesor %}
+                    {% if i.curso.profesor.get_full_name %}
+                      {{ i.curso.profesor.get_full_name }}
+                    {% elif i.curso.profesor.first_name or i.curso.profesor.last_name %}
+                      {{ i.curso.profesor.first_name }} {{ i.curso.profesor.last_name }}
+                    {% else %}
+                      {{ i.curso.profesor.username|default:"—" }}
+                    {% endif %}
+                  {% else %}—{% endif %}
+                </td>
+
+                <td>
+                  {% for h in i.curso.horarios.all %}
+                    <span class="hor-chip">
+                      {{ h.get_dia_display }} {{ h.hora_inicio|time:"H:i" }}–{{ h.hora_fin|time:"H:i" }}
+                    </span>
+                  {% empty %}
+                    <span class="text-muted">—</span>
+                  {% endfor %}
+                  {# Alternativa si tienes helper en el modelo: {{ i.curso.horarios_str }} #}
+                </td>
               </tr>
               {% endfor %}
             </tbody>
@@ -50,7 +99,6 @@
   {% else %}
     <div class="alert alert-info mb-0">No tienes cursos inscritos.</div>
   {% endif %}
-
 {% endblock %}
 
 {% block extra_js %}{% endblock %}

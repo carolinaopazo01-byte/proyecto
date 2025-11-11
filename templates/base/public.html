@@ -33,10 +33,9 @@
       --tone-aqua:#10A5AA;
       --tone-deep:#0A5A64;
       --aqua-dark:#0B5A66;
-      --aqua-light:#035761; /* tu tono */
+      --aqua-light:#035761;
     }
 
-    /* Tipografía global + fixes iOS */
     html, body{
       font-family:"Manrope", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
@@ -46,13 +45,12 @@
     a{-webkit-tap-highlight-color:rgba(0,0,0,0);}
     h1,h2,h3,h4,h5,h6{ font-weight:800; letter-spacing:.2px; }
 
-    /* ================= NAVBAR: franja en UNA sola línea ================= */
+    /* ================= NAVBAR ================= */
     .navbar{
       background:#fff;
       border-bottom:1px solid var(--cpc-sea);
-      padding-top:.25rem; padding-bottom:.25rem;  /* compacta */
+      padding-top:.25rem; padding-bottom:.25rem;
     }
-    /* Asegura visibilidad del ícono hamburguesa en Bootstrap */
     .navbar.navbar-light .navbar-toggler{ border-color:rgba(0,0,0,.12); }
     .navbar.navbar-light .navbar-toggler-icon{
       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Cpath stroke='rgba(0,0,0,.6)' stroke-width='2' stroke-linecap='round' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
@@ -63,16 +61,14 @@
       transition:height .12s ease;
     }
 
-    /* Contenedor de enlaces con scroll horizontal suave si hace falta */
     .nav-scroll{
       overflow-x:auto; overflow-y:hidden;
       -webkit-overflow-scrolling:touch;
-      scrollbar-width:none;    /* Firefox oculta scrollbar */
+      scrollbar-width:none;
       width:100%;
     }
-    .nav-scroll::-webkit-scrollbar{ display:none; } /* Chrome/Safari */
+    .nav-scroll::-webkit-scrollbar{ display:none; }
 
-    /* Enlaces: no permiten salto y no envuelven */
     .navbar-nav{
       flex-wrap:nowrap !important;
       gap:.25rem;
@@ -92,7 +88,6 @@
       background:var(--cpc-teal);
     }
 
-    /* Botón login no rompe línea y mantiene tamaño contenido */
     .navbar .btn-primary{
       white-space:nowrap;
       padding:.45rem .75rem;
@@ -101,11 +96,9 @@
     }
     .navbar .btn-primary:hover{ background:#045768; border-color:#045768; }
 
-    /* En móviles, colapsa normal con hamburguesa */
     @media (max-width: 991.98px){
       .navbar .btn-primary{ margin-top:.5rem; width:100%; }
     }
-    /* iPhone 14 Pro Max y menores: compacta un poco más */
     @media (max-width: 440px){
       .navbar-brand img{ height:36px; }
       .navbar .nav-link{ padding:.42rem .52rem; }
@@ -164,11 +157,33 @@
     @media (max-width:440px){
       .logo-circle{ width:96px; height:96px; }
     }
+
+    /* === AJUSTE RESPONSIVE FINAL === */
+    @media (max-width: 575.98px){
+      html, body{
+        width:100%;
+        height:100%;
+        margin:0;
+        padding:0;
+        overflow-x:hidden;
+        background:#fff;
+      }
+      .container, .container-fluid{
+        max-width:100%;
+        padding-left:16px;
+        padding-right:16px;
+        box-sizing:border-box;
+      }
+      .navbar, footer.site-footer{
+        width:100vw;
+        overflow:hidden;
+      }
+    }
   </style>
 </head>
 <body>
 
-<!-- ================= NAVBAR / FRANJA DE SECCIONES ================= -->
+<!-- ================= NAVBAR ================= -->
 <nav class="navbar navbar-expand-lg navbar-light">
   <div class="container">
     <a class="navbar-brand d-flex align-items-center mr-3" href="{% url 'core:home' %}" aria-label="Inicio">
@@ -180,16 +195,14 @@
     </button>
 
     <div class="collapse navbar-collapse" id="navPublic">
-      <!-- CONTENEDOR CON SCROLL HORIZONTAL (si hace falta) -->
       <div class="nav-scroll w-100">
         <ul class="navbar-nav mx-lg-auto">
           <li class="nav-item"><a class="nav-link" href="{% url 'core:home' %}">Inicio</a></li>
-          <li class="nav-item"><a class="nav-link" href="{% url 'core:comunicados_list' %}">Comunicados</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'core:comunicado_public' %}">Comunicados</a></li>
           <li class="nav-item"><a class="nav-link" href="{% url 'core:procesos' %}">Procesos de inscripción</a></li>
         </ul>
       </div>
 
-      <!-- CTA alineado a la derecha, sin romper línea -->
       <div class="ml-lg-3 mt-2 mt-lg-0">
         <a class="btn btn-primary" href="{% url 'usuarios:login_rut' %}">
           <i class="fas fa-sign-in-alt mr-1"></i> Iniciar sesión
@@ -208,34 +221,28 @@
 <footer class="site-footer mt-5 pt-5">
   <div class="container">
     <div class="row">
-      <!-- Col 1: Contacto -->
       <div class="col-md-4 mb-4">
         <h6 class="text-uppercase mb-3">Contacto</h6>
         <p class="mb-2 d-flex align-items-start">
           <i class="fas fa-map-marker-alt mr-2 mt-1 icon"></i>
-          <span>Dirección referencial, Coquimbo, Chile</span>
-        </p>
-        <p class="mb-2 d-flex align-items-start">
-          <i class="fas fa-phone mr-2 mt-1 icon"></i>
-          <span>+56 9 1234 5678</span>
+          <span> Sede Principal: Santiago Trigo #485, Coquimbo, Chile.</span>
         </p>
         <p class="mb-0 d-flex align-items-start">
           <i class="fas fa-envelope mr-2 mt-1 icon"></i>
-          <span>contacto@cpc.cl</span>
+          <span>campeonesparacoquimbo@municoquimbo.cl</span>
         </p>
       </div>
 
-      <!-- Col 2: Síguenos -->
-      <div class="col-md-4 mb-4">
-        <h6 class="text-uppercase mb-3">Síguenos en redes sociales</h6>
-        <div class="social-minimal">
-          <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
-          <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
-          <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
-        </div>
-      </div>
+     <div class="col-md-4 mb-4">
+  <h6 class="text-uppercase mb-3">Síguenos en redes sociales: <em>@campeonesparacoquimbo</em></h6>
+  <div class="social-minimal">
+    <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+    <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+    <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+  </div>
+</div>
 
-      <!-- Col 3: Logos (derecha, grandes) -->
+
       <div class="col-md-4 mb-4">
         <div class="footer-logos-wrap" aria-label="Logos institucionales">
           <div class="logo-circle">
@@ -250,7 +257,6 @@
 
     <div class="divider my-3"></div>
 
-    <!-- Franja final -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-center py-3">
       <div class="muted small mb-2 mb-md-0">
         © <script>document.write(new Date().getFullYear());</script> Campeones Para Coquimbo
@@ -262,7 +268,6 @@
   </div>
 </footer>
 
-<!-- JS -->
 <script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
 <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
 

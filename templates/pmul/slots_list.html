@@ -6,22 +6,38 @@
 
 {% block extra_css %}
 <style>
-  .page-actions{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.75rem;}
+  .page-actions{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.75rem}
   .chip{
     display:inline-flex;align-items:center;gap:.35rem;
-    padding:.2rem .6rem;border-radius:999px;font-size:.8rem;font-weight:700;
+    padding:.2rem .6rem;border-radius:999px;font-size:.78rem;font-weight:800;
     border:1px solid var(--line,#e5e7eb); background:#fff; color:#0f172a;
   }
-  .chip--ok{ background:#ecfdf5; border-color:#a7f3d0; color:#065f46; }
-  .chip--warn{ background:#fff7ed; border-color:#fed7aa; color:#9a3412; }
-  .chip--muted{ background:#f3f4f6; border-color:#e5e7eb; color:#374151; }
-  .table thead th{ white-space:nowrap; font-weight:800; color:#374151; background:#f9fafb; }
-  .table tbody td{ vertical-align:middle; }
-  .empty{
-    text-align:center; padding:1.5rem; border:1px dashed var(--line,#e5e7eb);
-    border-radius:12px; color:#6b7280; background:#fff;
+  .chip i{font-size:.9em}
+  .chip--ok{ background:#ecfdf5; border-color:#a7f3d0; color:#065f46 }
+  .chip--warn{ background:#fff7ed; border-color:#fed7aa; color:#9a3412 }
+  .chip--muted{ background:#f3f4f6; border-color:#e5e7eb; color:#374151 }
+
+  .table{font-size:.85rem}
+  .table thead th{white-space:nowrap;font-weight:800;color:#374151;background:#f9fafb}
+  .table tbody td{vertical-align:middle}
+
+  .actions-inline{display:flex;justify-content:flex-end;gap:.35rem;flex-wrap:wrap}
+  .actions-inline .btn{padding:.25rem .5rem;font-size:.78rem;font-weight:700}
+
+  /* Ajustes de ancho y colapso en móvil */
+  .table-responsive{overflow-x:auto}
+  .col-nowrap{white-space:nowrap}
+
+  /* En móviles: ocultamos columnas menos críticas para que no haya scroll lateral */
+  @media (max-width: 576px){
+    th.col-piso, td.col-piso,
+    th.col-notas, td.col-notas,
+    th.col-creada, td.col-creada { display:none }
+    .page-actions .btn{flex:1}
+    .table{font-size:.82rem}
+    .actions-inline{justify-content:stretch}
+    .actions-inline .btn{flex:1}
   }
-  .actions-inline{ display:flex; justify-content:flex-end; gap:.4rem; flex-wrap:wrap; }
 </style>
 {% endblock %}
 
@@ -41,25 +57,25 @@
     <table class="table align-middle table-striped">
       <thead>
         <tr>
-          <th>Inicio</th>
-          <th>Fin</th>
-          <th>Piso</th>
-          <th>Notas</th>
-          <th>Duración</th>
-          <th>Estado</th>
-          <th>Creada</th>
-          <th class="text-end">Acciones</th>
+          <th class="col-nowrap">Inicio</th>
+          <th class="col-nowrap">Fin</th>
+          <th class="col-piso">Piso</th>
+          <th class="col-notas">Notas</th>
+          <th class="col-nowrap">Duración</th>
+          <th class="col-nowrap">Estado</th>
+          <th class="col-creada col-nowrap">Creada</th>
+          <th class="text-end col-nowrap">Acciones</th>
         </tr>
       </thead>
       <tbody>
         {% for s in slots %}
         {% with est=s.estado %}
         <tr>
-          <td>{{ s.inicio|date:"d/m/Y H:i" }}</td>
-          <td>{{ s.fin|date:"H:i" }}</td>
-          <td>{{ s.piso|default:"—" }}</td>
-          <td>{{ s.notas|default:"—" }}</td>
-          <td>{{ s.fin|timesince:s.inicio }}</td>
+          <td class="col-nowrap">{{ s.inicio|date:"d/m/Y H:i" }}</td>
+          <td class="col-nowrap">{{ s.fin|date:"H:i" }}</td>
+          <td class="col-piso">{{ s.piso|default:"—" }}</td>
+          <td class="col-notas">{{ s.notas|default:"—" }}</td>
+          <td class="col-nowrap">{{ s.fin|timesince:s.inicio }}</td>
           <td>
             {% if est == "LIBRE" %}
               <span class="chip chip--ok"><i class="fas fa-check-circle"></i> {{ s.get_estado_display }}</span>
@@ -71,7 +87,7 @@
               <span class="chip chip--muted">{{ s.get_estado_display }}</span>
             {% endif %}
           </td>
-          <td>{{ s.inicio|naturaltime }}</td>
+          <td class="col-creada col-nowrap">{{ s.inicio|naturaltime }}</td>
           <td class="text-end">
             <div class="actions-inline">
               <a class="btn btn-sm btn-outline-primary" href="{% url 'pmul:slot_editar' s.id %}">

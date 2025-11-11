@@ -1,10 +1,82 @@
 {% extends "base/plantilla.html" %}
 
-{% block header %}Planificaciones{% endblock %}
+{% block title %}Subir Planificaciones{% endblock %}
+{% block header %}📄 Subir Planificaciones{% endblock %}
+
+{% block extra_css %}
+<style>
+  .card{
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    background:#fff;
+    box-shadow:0 2px 6px rgba(0,0,0,.04);
+    padding:14px;
+    margin-bottom:16px;
+  }
+  label{
+    font-weight:600;
+    font-size:.8rem;
+    margin-bottom:2px;
+    display:block;
+  }
+  select, input[type="file"], textarea, input[type="text"], input[type="number"], input[type="date"]{
+    font-size:.8rem;
+    padding:.25rem .45rem;
+    height:calc(1.2em + .4rem + 2px);
+    border-radius:.35rem;
+    border:1px solid #d1d5db;
+    width:100%;
+  }
+  .btn{
+    font-size:.8rem;
+    font-weight:700;
+    padding:.3rem .7rem;
+    border-radius:.35rem;
+  }
+  table.table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:.8rem;
+  }
+  table.table th, table.table td{
+    border:1px solid #e5e7eb;
+    padding:.4rem .6rem;
+    vertical-align:middle;
+  }
+  table.table th{
+    background:#f8fafc;
+    font-weight:700;
+    white-space:nowrap;
+  }
+  h3{
+    font-size:1rem;
+    font-weight:800;
+    margin-bottom:.75rem;
+  }
+  ul.messages{
+    list-style:none;
+    padding:0;
+    margin:0 0 1rem 0;
+  }
+  ul.messages .message{
+    padding:.5rem .8rem;
+    border-radius:.4rem;
+    font-size:.8rem;
+    margin-bottom:.4rem;
+  }
+  .message.success{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46}
+  .message.error{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+  @media(max-width:576px){
+    form.form-inline{display:flex;flex-direction:column;gap:.5rem}
+    select{width:100%}
+    .btn{width:100%}
+    .table-responsive{overflow-x:auto}
+  }
+</style>
+{% endblock %}
 
 {% block content %}
 
-{# Mensajes flash #}
 {% if messages %}
   <ul class="messages">
     {% for m in messages %}
@@ -13,29 +85,30 @@
   </ul>
 {% endif %}
 
-<div class="card" style="padding:14px; margin-bottom:16px;">
+<div class="card">
   <form method="get" class="form-inline" style="margin-bottom:12px;">
-    <label>Curso</label>
-    <select name="curso">
-      <option value="">Todos</option>
-      {% for c in cursos_qs %}
-        <option value="{{ c.id }}" {% if curso_f|stringformat:"s" == c.id|stringformat:"s" %}selected{% endif %}>
-          {{ c.nombre }}{% if c.disciplina %} - {{ c.disciplina.nombre }}{% endif %}
-        </option>
-      {% endfor %}
-    </select>
-    <button class="btn" type="submit">Filtrar</button>
+    <label for="curso">Curso</label>
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+      <select name="curso" id="curso" style="max-width:280px;">
+        <option value="">Todos</option>
+        {% for c in cursos_qs %}
+          <option value="{{ c.id }}" {% if curso_f|stringformat:"s" == c.id|stringformat:"s" %}selected{% endif %}>
+            {{ c.nombre }}{% if c.disciplina %} - {{ c.disciplina.nombre }}{% endif %}
+          </option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-primary" type="submit">Filtrar</button>
+    </div>
   </form>
 </div>
 
-<div class="card" style="padding:14px; margin-bottom:16px;">
+<div class="card">
   <h3>Subir nueva planificación</h3>
 
-  {# MUESTRA ERRORES DEL FORM #}
   {% if form.errors %}
-    <div class="alert alert-danger">
+    <div class="alert alert-danger small mb-3">
       <strong>Corrige los errores:</strong>
-      <ul>
+      <ul class="mb-0 mt-1">
         {% for field in form %}
           {% for e in field.errors %}
             <li><b>{{ field.label }}:</b> {{ e }}</li>
@@ -50,7 +123,7 @@
 
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:720px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:720px;">
       <div>
         <label>Curso</label>
         {{ form.curso }}
@@ -73,42 +146,44 @@
       </div>
     </div>
 
-    <div style="margin-top:12px;">
-      <button class="btn" type="submit">📎 Subir planificación</button>
+    <div class="mt-3">
+      <button class="btn btn-success" type="submit">📎 Subir planificación</button>
     </div>
   </form>
 </div>
 
-<div class="card" style="padding:14px;">
+<div class="card">
   <h3>Planificaciones subidas</h3>
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Curso</th>
-        <th>Semana / Fecha</th>
-        <th>Archivo</th>
-        <th>Comentarios</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for p in planificaciones %}
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
         <tr>
-          <td>{{ p.curso }}</td>
-          <td>{{ p.semana|date:"d/m/Y" }}</td>
-          <td>
-            {% if p.archivo %}
-              <a href="{{ p.archivo.url }}" download>Descargar</a>
-            {% else %}
-              (sin archivo)
-            {% endif %}
-          </td>
-          <td>{{ p.comentarios|default:"—" }}</td>
+          <th>Curso</th>
+          <th>Semana / Fecha</th>
+          <th>Archivo</th>
+          <th>Comentarios</th>
         </tr>
-      {% empty %}
-        <tr><td colspan="4">No hay planificaciones.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for p in planificaciones %}
+          <tr>
+            <td>{{ p.curso }}</td>
+            <td>{{ p.semana|date:"d/m/Y" }}</td>
+            <td>
+              {% if p.archivo %}
+                <a href="{{ p.archivo.url }}" download>Descargar</a>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>{{ p.comentarios|default:"—" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4" class="text-center text-muted">No hay planificaciones.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 
 {% endblock %}

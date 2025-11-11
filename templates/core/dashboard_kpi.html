@@ -1,0 +1,313 @@
+{% extends "base/plantilla.html" %}
+{% load static %}
+
+{% block title %}Tablero de KPI{% endblock %}
+{% block header %}Tablero de KPI{% endblock %}
+
+{% block extra_css %}
+<style>
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:16px}
+  .kpi-card{border:1px solid #e5e7eb;border-radius:12px;padding:14px;background:#fff;display:flex;gap:12px;align-items:center}
+  .kpi-ico{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;flex:0 0 42px}
+  .kpi-text{display:flex;flex-direction:column}
+  .kpi-label{font-size:.82rem;color:#64748b;font-weight:600}
+  .kpi-value{font-size:1.25rem;font-weight:800;color:#0f172a}
+  .filters{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px}
+  .segmented{display:flex;gap:6px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;padding:4px}
+  .segmented a{padding:6px 10px;border-radius:8px;font-weight:700;font-size:.9rem;color:#334155;text-decoration:none}
+  .segmented a.active{background:#0ea5e9;color:#fff}
+  .card{border:1px solid #e5e7eb;border-radius:12px}
+  .card-header{padding:10px 12px;border-bottom:1px solid #e5e7eb;background:#f8fafc;font-weight:700}
+  .card-body{padding:12px}
+  .card-body canvas{max-height:320px;width:100%}
+  @media (max-width:576px){ .card-body canvas{max-height:260px} }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cpc-safe">
+
+  <!-- Tabs -->
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="segmented">
+      <a href="{% url 'core:dashboard_kpi' %}?programa={{ programa }}&sede={{ sede_id }}&disciplina={{ dep_id }}"
+         class="{% if modo == 'general' %}active{% endif %}">General</a>
+
+      <a href="{% url 'core:dashboard_kpi_semana' %}?programa={{ programa }}&sede={{ sede_id }}&disciplina={{ dep_id }}&semana={{ semana|default:'' }}"
+         class="{% if modo == 'semanal' %}active{% endif %}">Semanal</a>
+
+      <a href="{% url 'core:dashboard_kpi_mes' %}?programa={{ programa }}&sede={{ sede_id }}&disciplina={{ dep_id }}&mes={{ mes|default:'' }}"
+         class="{% if modo == 'mensual' %}active{% endif %}">Mensual</a>
+
+      <a href="{% url 'core:dashboard_kpi_anio' %}?programa={{ programa }}&sede={{ sede_id }}&disciplina={{ dep_id }}&anio={{ anio|default:anio_actual }}"
+         class="{% if modo == 'anual' %}active{% endif %}">Anual</a>
+    </div>
+
+    <!-- Export -->
+    <div class="d-flex gap-2">
+      {% if modo == "general" %}
+        <a class="btn btn-light btn-sm" href="{% url 'core:exportar_kpi_general_excel' %}?programa={{ programa }}&sede={{ sede_id }}&disciplina={{ dep_id }}"><i class="fas fa-file-excel"></i> Excel</a>
+        <a class="btn btn-light btn-sm" href="{% url 'core:exportar_kpi_general_pdf' %}?programa={{ programa }}&sede={{ sede_id }}&disciplina={{ dep_id }}"><i class="fas fa-file-pdf"></i> PDF</a>
+      {% elif modo == "semanal" %}
+        <a class="btn btn-light btn-sm" href="{% url 'core:exportar_kpi_semana_excel' %}?programa={{ programa }}&sede={{ sede_id }}&disciplina={{ dep_id }}&semana={{ semana|default:'' }}"><i class="fas fa-file-excel"></i> Excel</a>
+        <a class="btn btn-light btn-sm" href="{% url 'core:exportar_kpi_semana_pdf' %}?programa={{ programa }}&sede={{ sede_id }}&disciplina={{ dep_id }}&semana={{ semana|default:'' }}"><i class="fas fa-file-pdf"></i> PDF</a>
+      {% elif modo == "mensual" %}
+        <a class="btn btn-light btn-sm" href="{% url 'core:exportar_kpi_mes_excel' %}?programa={{ programa }}&sede={{ sede_id }}&disciplina={{ dep_id }}&mes={{ mes|default:'' }}"><i class="fas fa-file-excel"></i> Excel</a>
+        <a class="btn btn-light btn-sm" href="{% url 'core:exportar_kpi_mes_pdf' %}?programa={{ programa }}&sede={{ sede_id }}&disciplina={{ dep_id }}&mes={{ mes|default:'' }}"><i class="fas fa-file-pdf"></i> PDF</a>
+      {% elif modo == "anual" %}
+        <a class="btn btn-light btn-sm" href="{% url 'core:exportar_kpi_anio_excel' %}?programa={{ programa }}&sede={{ sede_id }}&disciplina={{ dep_id }}&anio={{ anio|default:anio_actual }}"><i class="fas fa-file-excel"></i> Excel</a>
+        <a class="btn btn-light btn-sm" href="{% url 'core:exportar_kpi_anio_pdf' %}?programa={{ programa }}&sede={{ sede_id }}&disciplina={{ dep_id }}&anio={{ anio|default:anio_actual }}"><i class="fas fa-file-pdf"></i> PDF</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- AVISO fallback -->
+  {% if alerta_filtros %}
+    <div class="alert alert-warning mb-2">
+      No hay datos para los filtros actuales. Se muestran totales globales para comprobar el tablero.
+    </div>
+  {% endif %}
+
+  <!-- Filtros -->
+  <form method="get" class="filters" action="
+    {% if modo == 'semanal' %}{% url 'core:dashboard_kpi_semana' %}
+    {% elif modo == 'mensual' %}{% url 'core:dashboard_kpi_mes' %}
+    {% elif modo == 'anual' %}{% url 'core:dashboard_kpi_anio' %}
+    {% else %}{% url 'core:dashboard_kpi' %}{% endif %}
+  ">
+    <div>
+      <label class="form-label mb-1">Programa</label>
+      <input class="form-control form-control-sm" name="programa" value="{{ programa }}" placeholder="FORM / ALTO">
+    </div>
+    <div>
+      <label class="form-label mb-1">Sede</label>
+      <select class="form-select form-select-sm" name="sede">
+        <option value="">(Todas)</option>
+        {% for s in sedes %}
+          <option value="{{ s.id }}" {% if s.id|stringformat:"s" == sede_id %}selected{% endif %}>{{ s.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="form-label mb-1">Disciplina</label>
+      <select class="form-select form-select-sm" name="disciplina">
+        <option value="">(Todas)</option>
+        {% for d in disciplinas %}
+          <option value="{{ d.id }}" {% if d.id|stringformat:"s" == dep_id %}selected{% endif %}>{{ d.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    {% if modo == "semanal" %}
+      <div>
+        <label class="form-label mb-1">Semana (cualquier día)</label>
+        <input class="form-control form-control-sm" type="date" name="semana" value="{{ semana|default:'' }}">
+      </div>
+    {% elif modo == "mensual" %}
+      <div>
+        <label class="form-label mb-1">Mes</label>
+        <input class="form-control form-control-sm" type="month" name="mes" value="{{ mes|default:'' }}">
+      </div>
+    {% elif modo == "anual" %}
+      <div>
+        <label class="form-label mb-1">Año</label>
+        <input class="form-control form-control-sm" type="number" min="2010" max="2100" step="1" name="anio" value="{{ anio|default:anio_actual }}">
+      </div>
+    {% endif %}
+
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary btn-sm" type="submit"><i class="fas fa-filter"></i> Aplicar</button>
+      <a class="btn btn-outline-secondary btn-sm"
+         href="{% if modo == 'semanal' %}{% url 'core:dashboard_kpi_semana' %}
+                {% elif modo == 'mensual' %}{% url 'core:dashboard_kpi_mes' %}
+                {% elif modo == 'anual' %}{% url 'core:dashboard_kpi_anio' %}
+                {% else %}{% url 'core:dashboard_kpi' %}{% endif %}">
+        <i class="fas fa-rotate"></i> Limpiar
+      </a>
+    </div>
+  </form>
+
+  <!-- Tarjetas KPI -->
+  <div class="kpi-grid">
+    {% for k in kpi_cards %}
+    <div class="kpi-card">
+      <div class="kpi-ico" style="background: {{ k.color }}"><i class="fas {{ k.icon }}"></i></div>
+      <div class="kpi-text">
+        <div class="kpi-label">{{ k.label }}</div>
+        <div class="kpi-value">{{ k.value }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Gráficos -->
+  {% if modo == "semanal" %}
+    <div class="row g-3">
+      <div class="col-lg-6">
+        <div class="card h-100">
+          <div class="card-header">Clases por día ({{ rango_str }})</div>
+          <div class="card-body"><canvas id="chartDia"></canvas></div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="card h-100">
+          <div class="card-header">Distribución semanal P/A/J</div>
+          <div class="card-body"><canvas id="chartPieSem"></canvas></div>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="row g-3">
+      <div class="col-lg-6">
+        <div class="card h-100">
+          <div class="card-header">
+            {% if modo == "mensual" %}Evolución del mes{% elif modo == "anual" %}Evolución anual{% else %}Evolución mensual de estudiantes{% endif %}
+          </div>
+          <div class="card-body"><canvas id="chartEst"></canvas></div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="card h-100">
+          <div class="card-header">
+            {% if modo == "mensual" %}Clases del mes{% elif modo == "anual" %}Clases del año{% else %}Clases registradas por mes{% endif %}
+          </div>
+          <div class="card-body"><canvas id="chartCla"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mt-1">
+      <div class="col-lg-6">
+        <div class="card h-100">
+          <div class="card-header">Distribución P/A/J</div>
+          <div class="card-body"><canvas id="chartPie"></canvas></div>
+        </div>
+      </div>
+      {% if modo == "general" %}
+      <div class="col-lg-6">
+        <div class="card h-100">
+          <div class="card-header">Profesores con menor cumplimiento</div>
+          <div class="card-body"><canvas id="chartProf"></canvas></div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <!-- Top inasistencia -->
+  <div class="row g-3 mt-1">
+    <div class="col-lg-12">
+      <div class="card h-100">
+        <div class="card-header">Top 5 cursos con mayor inasistencia</div>
+        <div class="card-body"><canvas id="chartTopInas"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  // Variables ya en JSON desde las vistas (_j + |safe)
+  const estLabels = {{ est_labels|safe }};
+  const estSeries = {{ est_series|safe }};
+  const claLabels = {{ cla_labels|safe }};
+  const claSeries = {{ cla_series|safe }};
+  const diaLabels = {{ dia_labels|safe }};
+  const diaSeries = {{ dia_series|safe }};
+
+  const distP = Number({{ dist_presente|default:0 }});
+  const distA = Number({{ dist_ausente|default:0 }});
+  const distJ = Number({{ dist_justificada|default:0 }});
+
+  const topIn = {{ top_inasistencia|safe }};
+  const profBajo = {{ top_prof_bajo_cumpl|safe }};
+  const modo = "{{ modo|default:'general' }}";
+
+  const has = a => Array.isArray(a) && a.length > 0;
+  const hasDist = (distP + distA + distJ) > 0;
+
+  function noData(canvas, msg="Sin datos"){
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const {width, height} = canvas;
+    ctx.clearRect(0,0,width,height);
+    ctx.font = "14px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+    ctx.fillStyle = "#6b7280";
+    ctx.textAlign = "center";
+    ctx.fillText(msg, width/2, height/2);
+  }
+
+  // ====== SEMANAL ======
+  if (modo === 'semanal') {
+    const c1 = document.getElementById('chartDia');
+    if (has(diaLabels) && has(diaSeries)) {
+      new Chart(c1, { type:'bar',
+        data:{ labels: diaLabels, datasets:[{ label:'Clases', data: diaSeries }] },
+        options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
+      });
+    } else { noData(c1); }
+
+    const c2 = document.getElementById('chartPieSem');
+    if (hasDist){
+      new Chart(c2, { type:'doughnut',
+        data:{ labels:['Presente','Ausente','Justificada'], datasets:[{ data:[distP,distA,distJ] }] },
+        options:{ responsive:true, plugins:{ legend:{ position:'bottom' } } }
+      });
+    } else { noData(c2); }
+
+    return; // fin semanal
+  }
+
+  // ====== GENERAL / MENSUAL / ANUAL ======
+  const c3 = document.getElementById('chartEst');
+  if (has(estLabels) && has(estSeries)){
+    new Chart(c3, { type:'line',
+      data:{ labels: estLabels, datasets:[{ label:'Estudiantes', data: estSeries, tension:.25, fill:false }] },
+      options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
+    });
+  } else { noData(c3); }
+
+  const c4 = document.getElementById('chartCla');
+  if (has(claLabels) && has(claSeries)){
+    new Chart(c4, { type:'line',
+      data:{ labels: claLabels, datasets:[{ label:'Clases', data: claSeries, tension:.25, fill:false }] },
+      options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
+    });
+  } else { noData(c4); }
+
+  const c5 = document.getElementById('chartPie');
+  if (hasDist){
+    new Chart(c5, { type:'doughnut',
+      data:{ labels:['Presente','Ausente','Justificada'], datasets:[{ data:[distP,distA,distJ] }] },
+      options:{ responsive:true, plugins:{ legend:{ position:'bottom' } } }
+    });
+  } else { noData(c5); }
+
+  if (modo === 'general') {
+    const profLabels  = (profBajo||[]).map(r => r.prof || '—');
+    const profPct     = (profBajo||[]).map(r => r.pct ?? 0);
+    const c6 = document.getElementById('chartProf');
+    if (has(profLabels) && has(profPct)){
+      new Chart(c6, { type:'bar',
+        data:{ labels: profLabels, datasets:[{ label:'% Cumplimiento', data: profPct }] },
+        options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, max:100 } } }
+      });
+    } else { noData(c6); }
+  }
+
+  const topInLabels = (topIn||[]).map(r => r.curso || '—');
+  const topInPct    = (topIn||[]).map(r => r.pct ?? 0);
+  const c7 = document.getElementById('chartTopInas');
+  if (has(topInLabels) && has(topInPct)){
+    new Chart(c7, { type:'bar',
+      data:{ labels: topInLabels, datasets:[{ label:'% Inasistencia', data: topInPct }] },
+      options:{ indexAxis:'y', responsive:true, plugins:{ legend:{ position:'bottom' } }, scales:{ x:{ beginAtZero:true, max:100 } } }
+    });
+  } else { noData(c7); }
+});
+</script>
+{% endblock %}

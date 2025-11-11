@@ -2,6 +2,51 @@
 {% block title %}Ingresar alumno temporal{% endblock %}
 {% block header %}Ingresar alumno temporal{% endblock %}
 
+{% block extra_css %}
+<style>
+  form.card{
+    border:1px solid #e5e7eb;
+    border-radius:14px;
+    box-shadow:0 2px 10px rgba(0,0,0,.05);
+    margin:0 auto;
+  }
+  fieldset{
+    border:1px solid #e5e7eb;
+    border-radius:10px;
+    padding:1rem 1.25rem;
+    background:#fff;
+  }
+  legend{
+    font-weight:800;
+    font-size:1rem;
+    color:#0f172a;
+    padding:0 .5rem;
+  }
+  .form-label{ font-weight:600; font-size:.9rem; }
+  .form-control, .form-select{
+    border-radius:.5rem;
+    font-size:.9rem;
+  }
+  .btn{
+    border-radius:.45rem;
+    font-weight:700;
+  }
+  .btn i{ margin-right:4px; }
+
+  .alert{ border-radius:.75rem; }
+
+  /* Responsive fino */
+  @media(max-width:576px){
+    form.card{ padding:1rem; }
+    fieldset{ padding:.9rem 1rem; }
+    legend{ font-size:.95rem; }
+    .row.g-2>[class*="col-"]{ flex:0 0 100%; max-width:100%; }
+    .d-flex.gap-2{ flex-direction:column; }
+    .btn{ width:100%; }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <form method="post" class="card p-3" style="max-width:900px" novalidate>
   {% csrf_token %}
@@ -121,44 +166,6 @@
     </div>
   </fieldset>
 
-  <!-- (Opcional) Campos deportivos condicionales si tu form los incluye y quieres mostrarlos aquí:
-  <fieldset class="mb-3">
-    <legend>Información deportiva (opcional)</legend>
-    <div class="row g-2">
-      <div class="col-md-6">
-        <label class="form-label">¿Pertenece a organización?</label>
-        {{ form.pertenece_organizacion }}
-        {% for e in form.pertenece_organizacion.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-      </div>
-      <div class="col-md-6">
-        <label class="form-label">Nombre del club</label>
-        {{ form.club_nombre }}
-        {% for e in form.club_nombre.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">Logro nacional</label>
-        {{ form.logro_nacional }}
-        {% for e in form.logro_nacional.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">Logro internacional</label>
-        {{ form.logro_internacional }}
-        {% for e in form.logro_internacional.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">Categoría competida</label>
-        {{ form.categoria_competida }}
-        {% for e in form.categoria_competida.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-      </div>
-      <div class="col-md-12">
-        <label class="form-label">Puntaje o logro</label>
-        {{ form.puntaje_o_logro }}
-        {% for e in form.puntaje_o_logro.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-      </div>
-    </div>
-  </fieldset>
-  -->
-
   {% for h in form.hidden_fields %}{{ h }}{% endfor %}
 
   <div class="d-flex gap-2">
@@ -203,9 +210,7 @@
       }
       inputRut.addEventListener("input", ()=>{
         const b = inputRut.value;
-        const pos = inputRut.selectionStart;
         inputRut.value = fmt(b);
-        // Coloca el cursor al final
         inputRut.selectionStart = inputRut.selectionEnd = inputRut.value.length;
       });
     }

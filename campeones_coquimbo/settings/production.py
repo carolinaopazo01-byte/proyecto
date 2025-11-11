@@ -45,7 +45,7 @@ MIDDLEWARE = [
 ]
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-# --- Base de datos: Postgres (Render) o SQLite en fallback ---
+
 db_url = os.getenv("DATABASE_URL")
 if db_url:
     DATABASES = {
@@ -63,7 +63,7 @@ else:
         }
     }
 
-# --- Logging a consola (Render muestra esto en su panel) ---
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

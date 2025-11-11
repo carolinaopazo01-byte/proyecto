@@ -6,15 +6,17 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("core/", include(("applications.core.urls", "core"), namespace="core")),
-    path("atleta/", include(("applications.atleta.urls", "atleta"), namespace="atleta")),
-    path("usuarios/", include(("applications.usuarios.urls", "usuarios"), namespace="usuarios")),
-    path("evaluaciones/", include(("applications.evaluaciones.urls", "evaluaciones"), namespace="evaluaciones")),
-    path("pmul/", include(("applications.pmul.urls", "pmul"), namespace="pmul")),
-    path("apoderado/", include(("applications.apoderado.urls", "apoderado"), namespace="apoderado")),
-    path("profesor/", include(("applications.profesor.urls", "profesor"), namespace="profesor")),
 
-    # raíz -> core:home
+
+    path("core/", include("applications.core.urls")),
+    path("atleta/", include("applications.atleta.urls")),
+    path("usuarios/", include("applications.usuarios.urls")),
+    path("evaluaciones/", include("applications.evaluaciones.urls")),
+    path("pmul/", include("applications.pmul.urls")),
+    path("apoderado/", include("applications.apoderado.urls")),
+    path("profesor/", include("applications.profesor.urls")),
+
+
     path("", RedirectView.as_view(pattern_name="core:home", permanent=False)),
 ]
 

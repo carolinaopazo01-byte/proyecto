@@ -3,6 +3,12 @@
 {% block title %}{% if is_edit %}Editar sede{% else %}Nueva sede{% endif %}{% endblock %}
 
 {% block extra_css %}
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-o9N1j7kGStb6kP0v+5xFfo1wz9jz7kG8r+ok8C+3j3s="
+  crossorigin=""
+/>
 <style>
   :root{
     --sp-xs:.35rem; --sp-sm:.6rem;
@@ -10,75 +16,40 @@
     --radius:10px;
     --border:#e5e7eb; --bg-head:#f8fafc;
   }
-
-  /* Cabecera */
   .page-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:.75rem; }
-  .page-head-left{ display:flex; align-items:center; gap:10px; }
   .page-head h4{ margin:0; font-size:1.05rem; font-weight:700; }
 
-  /* Página */
   .page { display:flex; flex-direction:column; gap: var(--sp-sm); }
 
-  /* Secciones */
   .section { background:#fff; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
   .section__head { padding:.55rem .8rem; background:var(--bg-head); border-bottom:1px solid #eef2f7; }
   .section__title { font-size:.95rem; font-weight:700; margin:0; letter-spacing:.2px; }
   .section__body { padding:.8rem; }
 
-  /* Grid */
   .form-grid { display:grid; grid-template-columns: repeat(12,1fr); gap:.6rem; }
   .col-12{grid-column:span 12;} .col-8{grid-column:span 8;}
   .col-6{grid-column:span 6;} .col-4{grid-column:span 4;} .col-3{grid-column:span 3;}
-  @media (max-width: 992px){
-    .col-8,.col-6,.col-4,.col-3{grid-column:span 12;}
-  }
+  @media (max-width: 992px){ .col-8,.col-6,.col-4,.col-3{grid-column:span 12;} }
 
-  /* === Inputs (igual que en las demás pantallas) === */
   .stack{ display:flex; flex-direction:column; gap:.35rem; }
   .form-label{ font-weight:600; font-size:.92rem; margin-bottom:0; }
 
-  /* Normaliza todos los campos aunque no tengan .form-control */
-  .section input[type="text"],
-  .section input[type="number"],
-  .section input[type="email"],
-  .section input[type="tel"],
-  .section input[type="date"],
-  .section input[type="time"],
-  .section input[type="url"],
-  .section select,
-  .section textarea,
-  .section .form-control,
-  .section .form-select{
-    padding:.7rem .9rem !important;
-    font-size:1rem !important;
-    height:auto;
-    line-height:1.35;
-    border:1px solid #cfd8e3;
-    border-radius:10px;
-    background:#fff;
-    transition: box-shadow .12s, border-color .12s;
+  .section input[type="text"], .section input[type="number"],
+  .section select, .section textarea, .section .form-control, .section .form-select{
+    padding:.7rem .9rem !important; font-size:1rem !important;
+    height:auto; line-height:1.35; border:1px solid #cfd8e3;
+    border-radius:10px; background:#fff; transition:box-shadow .12s, border-color .12s;
   }
   .section textarea{ min-height:120px; }
-
-  /* Foco */
-  .section input:focus,
-  .section select:focus,
-  .section textarea:focus,
-  .section .form-control:focus,
-  .section .form-select:focus{
-    border-color:#0d6efd;
-    box-shadow:0 0 0 .2rem rgba(13,110,253,.15);
-    outline:none;
+  .section input:focus, .section select:focus, .section textarea:focus,
+  .section .form-control:focus, .section .form-select:focus{
+    border-color:#0d6efd; box-shadow:0 0 0 .2rem rgba(13,110,253,.15); outline:none;
   }
-
-  /* Placeholders */
   .section ::placeholder{ color:#9aa4b2; }
 
-  /* Errores */
   .text-danger{ color:#dc2626; }
   .invalid-hint{ font-size:.8rem; }
 
-  /* Acciones sticky centradas */
   .actions-wrap{
     position: sticky; bottom:16px; z-index:20;
     display:flex; justify-content:center; gap:.5rem;
@@ -88,6 +59,9 @@
     box-shadow:0 6px 20px rgba(0,0,0,.08);
   }
   .btn-compact{ padding:.35rem .7rem; border-radius:8px; }
+
+  /* mapa */
+  #sede-map{ height: 300px; border-radius:10px; border:1px solid #e5e7eb; }
 </style>
 {% endblock %}
 
@@ -101,11 +75,8 @@
     </div>
   {% endif %}
 
-  <!-- Cabecera -->
   <div class="page-head">
-    <div class="page-head-left">
-      <h4 class="mb-0">{% if is_edit %}Editar sede{% else %}Nueva sede{% endif %}</h4>
-    </div>
+    <h4 class="mb-0">{% if is_edit %}Editar sede{% else %}Nueva sede{% endif %}</h4>
     <a class="btn btn-light btn-sm" href="{% url 'core:sedes_list' %}">
       <i class="fas fa-list"></i> Listado
     </a>
@@ -114,47 +85,33 @@
   {% if form.errors or form.non_field_errors %}
     <div class="alert alert-danger mb-2" role="alert" aria-live="assertive">
       Hay errores en el formulario. Revísalos por favor.
-      {% if form.non_field_errors %}
-        <div class="mt-1">{{ form.non_field_errors }}</div>
-      {% endif %}
+      {% if form.non_field_errors %}<div class="mt-1">{{ form.non_field_errors }}</div>{% endif %}
     </div>
   {% endif %}
 
   <form method="post" novalidate class="page">
     {% csrf_token %}
 
-    {# Campos ocultos #}
-    {{ form.latitud }}
-    {{ form.longitud }}
-    {{ form.radio_metros }}
-
-    <!-- 1) Identificación de la sede -->
+    <!-- 1) Identificación -->
     <section class="section">
       <div class="section__head"><h6 class="section__title">1. Identificación de la sede</h6></div>
       <div class="section__body">
         <div class="form-grid">
-          <!-- Nombre -->
           <div class="col-6 stack">
             <label class="form-label" for="{{ form.nombre.id_for_label }}">Nombre (obligatorio)</label>
             {{ form.nombre }}
-            {% if form.nombre.errors %}
-              <small class="text-danger invalid-hint">{{ form.nombre.errors|striptags }}</small>
-            {% endif %}
+            {% if form.nombre.errors %}<small class="text-danger invalid-hint">{{ form.nombre.errors|striptags }}</small>{% endif %}
           </div>
-
-          <!-- Comuna -->
           <div class="col-6 stack">
             <label class="form-label" for="{{ form.comuna.id_for_label }}">Comuna</label>
             {{ form.comuna }}
-            {% if form.comuna.errors %}
-              <small class="text-danger invalid-hint">{{ form.comuna.errors|striptags }}</small>
-            {% endif %}
+            {% if form.comuna.errors %}<small class="text-danger invalid-hint">{{ form.comuna.errors|striptags }}</small>{% endif %}
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 2) Ubicación y capacidad -->
+    <!-- 2) Ubicación y capacidad (con buscador + mapa) -->
     <section class="section">
       <div class="section__head"><h6 class="section__title">2. Ubicación y capacidad</h6></div>
       <div class="section__body">
@@ -163,18 +120,49 @@
           <div class="col-8 stack">
             <label class="form-label" for="{{ form.direccion.id_for_label }}">Dirección (obligatorio)</label>
             {{ form.direccion }}
-            {% if form.direccion.errors %}
-              <small class="text-danger invalid-hint">{{ form.direccion.errors|striptags }}</small>
-            {% endif %}
+            {% if form.direccion.errors %}<small class="text-danger invalid-hint">{{ form.direccion.errors|striptags }}</small>{% endif %}
           </div>
 
           <!-- Capacidad -->
           <div class="col-4 stack">
             <label class="form-label" for="{{ form.capacidad.id_for_label }}">Capacidad (opcional)</label>
             {{ form.capacidad }}
-            {% if form.capacidad.errors %}
-              <small class="text-danger invalid-hint">{{ form.capacidad.errors|striptags }}</small>
-            {% endif %}
+            {% if form.capacidad.errors %}<small class="text-danger invalid-hint">{{ form.capacidad.errors|striptags }}</small>{% endif %}
+          </div>
+
+          <!-- Buscar en mapa -->
+          <div class="col-12 d-flex align-items-center" style="gap:.5rem;">
+            <button type="button" id="btnBuscar" class="btn btn-outline-secondary btn-sm">Buscar en mapa</button>
+            <select id="addrResults" class="form-select form-select-sm" style="max-width:520px">
+              <option value="">— resultados de búsqueda —</option>
+            </select>
+            <a id="mapsLink" class="btn btn-link btn-sm" target="_blank" href="#">Ver en Maps</a>
+          </div>
+
+          <!-- Lat/Lng/Radio visibles -->
+          <div class="col-4 stack">
+            <label class="form-label" for="{{ form.latitud.id_for_label }}">Latitud</label>
+            {{ form.latitud }}
+            <small class="text-muted">Ej.: -29.9 (usa punto, no coma)</small>
+            {% if form.latitud.errors %}<small class="text-danger invalid-hint">{{ form.latitud.errors|striptags }}</small>{% endif %}
+          </div>
+          <div class="col-4 stack">
+            <label class="form-label" for="{{ form.longitud.id_for_label }}">Longitud</label>
+            {{ form.longitud }}
+            <small class="text-muted">Ej.: -71.3</small>
+            {% if form.longitud.errors %}<small class="text-danger invalid-hint">{{ form.longitud.errors|striptags }}</small>{% endif %}
+          </div>
+          <div class="col-4 stack">
+            <label class="form-label" for="{{ form.radio_metros.id_for_label }}">Radio (m)</label>
+            {{ form.radio_metros }}
+            <small class="text-muted">Para PC/Notebook, 300–400 m en pruebas.</small>
+            {% if form.radio_metros.errors %}<small class="text-danger invalid-hint">{{ form.radio_metros.errors|striptags }}</small>{% endif %}
+          </div>
+
+          <!-- Mapa -->
+          <div class="col-12">
+            <div id="sede-map"></div>
+            <small class="text-muted">Tip: haz clic en el mapa o arrastra el marcador para ajustar la posición.</small>
           </div>
         </div>
       </div>
@@ -185,28 +173,21 @@
       <div class="section__head"><h6 class="section__title">3. Estado y descripción</h6></div>
       <div class="section__body">
         <div class="form-grid">
-          <!-- Activa -->
           <div class="col-3 d-flex align-items-center" style="gap:.4rem;">
             {{ form.activa }}
             <label class="form-check-label mb-0" for="{{ form.activa.id_for_label }}">Activo</label>
-            {% if form.activa.errors %}
-              <small class="text-danger invalid-hint ms-2">{{ form.activa.errors|striptags }}</small>
-            {% endif %}
+            {% if form.activa.errors %}<small class="text-danger invalid-hint ms-2">{{ form.activa.errors|striptags }}</small>{% endif %}
           </div>
-
-          <!-- Descripción -->
           <div class="col-12 stack">
             <label class="form-label" for="{{ form.descripcion.id_for_label }}">Descripción (opcional)</label>
             {{ form.descripcion }}
-            {% if form.descripcion.errors %}
-              <small class="text-danger invalid-hint">{{ form.descripcion.errors|striptags }}</small>
-            {% endif %}
+            {% if form.descripcion.errors %}<small class="text-danger invalid-hint">{{ form.descripcion.errors|striptags }}</small>{% endif %}
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Acciones (sticky centradas) -->
+    <!-- Acciones -->
     <div class="actions-wrap">
       <a class="btn btn-light btn-compact" href="{% url 'core:sedes_list' %}">Cancelar</a>
       <button class="btn btn-primary btn-compact" type="submit">
@@ -214,4 +195,115 @@
       </button>
     </div>
   </form>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+(function(){
+  // Campos
+  const inDir  = document.getElementById("id_direccion");
+  const inCom  = document.getElementById("id_comuna");
+  const inLat  = document.getElementById("id_latitud");
+  const inLng  = document.getElementById("id_longitud");
+  const inRad  = document.getElementById("id_radio_metros");
+  const selRes = document.getElementById("addrResults");
+  const aMaps  = document.getElementById("mapsLink");
+
+  // Mapa
+  const startLat = parseFloat(inLat.value) || -29.953;  // centro aprox. Coquimbo
+  const startLng = parseFloat(inLng.value) || -71.343;
+  const startZoom = (inLat.value && inLng.value) ? 16 : 12;
+
+  const map = L.map("sede-map");
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "&copy; OpenStreetMap",
+    maxZoom: 19
+  }).addTo(map);
+  map.setView([startLat, startLng], startZoom);
+
+  let marker = null;
+  function setMarker(lat, lng, center=true){
+    if(marker){ marker.setLatLng([lat,lng]); }
+    else{
+      marker = L.marker([lat,lng], {draggable:true}).addTo(map);
+      marker.on("dragend", (e)=>{
+        const p = e.target.getLatLng();
+        inLat.value = p.lat.toFixed(6);
+        inLng.value = p.lng.toFixed(6);
+        updateMapsLink();
+      });
+    }
+    inLat.value = (+lat).toFixed(6);
+    inLng.value = (+lng).toFixed(6);
+    if(center) map.setView([lat,lng], 17);
+    updateMapsLink();
+  }
+  if(inLat.value && inLng.value){ setMarker(startLat, startLng, false); }
+
+  // Click en mapa para fijar coordenadas
+  map.on("click", (e)=> setMarker(e.latlng.lat, e.latlng.lng, true));
+
+  function updateMapsLink(){
+    if(inLat.value && inLng.value){
+      aMaps.href = "https://www.google.com/maps?q=" + inLat.value + "," + inLng.value;
+    }
+  }
+  updateMapsLink();
+
+  // Buscar en Nominatim
+  document.getElementById("btnBuscar").addEventListener("click", async ()=>{
+    const q = [inDir.value || "", inCom.value || "", "Chile"].join(" ").trim();
+    if(!q){ alert("Ingresa una dirección y/o comuna para buscar."); return; }
+    selRes.innerHTML = '<option value="">Buscando…</option>';
+
+    try{
+      const url = "https://nominatim.openstreetmap.org/search?format=json&limit=8&q=" + encodeURIComponent(q);
+      const resp = await fetch(url, {headers:{'Accept-Language':'es'}});
+      const data = await resp.json();
+
+      selRes.innerHTML = "";
+      if(!data.length){
+        selRes.innerHTML = '<option value="">Sin resultados</option>';
+        return;
+      }
+      data.forEach((it, idx)=>{
+        const opt = document.createElement("option");
+        opt.value = it.lat + "," + it.lon;
+        opt.textContent = it.display_name;
+        if(idx===0) opt.selected = true;
+        selRes.appendChild(opt);
+      });
+
+      // Toma el primero y fija marcador
+      const first = data[0];
+      setMarker(parseFloat(first.lat), parseFloat(first.lon), true);
+    }catch(e){
+      selRes.innerHTML = '<option value="">Error buscando dirección</option>';
+      alert("No se pudo buscar la dirección. Intenta de nuevo.");
+    }
+  });
+
+  // Cambiar al seleccionar otro resultado
+  selRes.addEventListener("change", ()=>{
+    const v = selRes.value;
+    if(!v) return;
+    const [lat, lng] = v.split(",").map(parseFloat);
+    setMarker(lat, lng, true);
+  });
+
+  // Si el usuario edita manualmente lat/lng, mueve el marcador
+  ["input","change"].forEach(ev=>{
+    inLat.addEventListener(ev, ()=>{
+      const la = parseFloat(inLat.value), lo = parseFloat(inLng.value);
+      if(!isNaN(la) && !isNaN(lo)) setMarker(la, lo, false);
+    });
+    inLng.addEventListener(ev, ()=>{
+      const la = parseFloat(inLat.value), lo = parseFloat(inLng.value);
+      if(!isNaN(la) && !isNaN(lo)) setMarker(la, lo, false);
+    });
+  });
+})();
+</script>
 {% endblock %}

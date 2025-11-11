@@ -21,7 +21,7 @@ urlpatterns = [
     path("panel/profesional/", views.panel_prof_multidisciplinario, name="panel_prof_multidisciplinario"),
     path("panel/atleta/", views.panel_atleta, name="panel_atleta"),
 
-    # Recuperar contraseña (password reset)
+    # Recuperar contraseña (
     path(
         "password_reset/",
         auth_views.PasswordResetView.as_view(
@@ -55,7 +55,7 @@ urlpatterns = [
         name="password_reset_complete",
     ),
 
-    # Equipo (CRUD) - nombres “nuevos”
+
     path("equipo/", views.usuarios_list, name="usuarios_list"),
     path("equipo/nuevo/", views.usuario_create, name="usuario_create"),
     path("equipo/<int:usuario_id>/", views.usuario_detail, name="usuario_detail"),
@@ -63,7 +63,7 @@ urlpatterns = [
     path("equipo/<int:usuario_id>/toggle/", views.usuario_toggle_active, name="usuario_toggle_active"),
     path("equipo/<int:usuario_id>/eliminar/", views.usuario_delete, name="usuario_delete"),
 
-    # Aliases para compatibilidad (opcional: puedes eliminarlos si ya no se usan)
+
     path("equipo/nuevo/", views.usuario_create, name="equipo_new"),
     path("equipo/", views.usuarios_list, name="equipo_list"),
     path("equipo/<int:usuario_id>/editar/", views.usuario_edit, name="equipo_edit"),
@@ -73,7 +73,7 @@ urlpatterns = [
 
     path("cambiar-password/", views.cambiar_password, name="cambiar_password"),
 
-    # Alias para compatibilidad con templates que usan {% url 'mis_cursos' %}
+
 path("panel/profesor/miscursos/", vp.mis_cursos, name="mis_cursos"),
 
 ]

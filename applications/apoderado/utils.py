@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from django.apps import apps
 from django.utils import timezone
 
-# mini normalizador local para evitar dependencias cruzadas
+
 def _rut_normaliza(rut: str) -> str:
     if not rut:
         return ""
@@ -93,9 +93,7 @@ def porcentaje_asistencia_semana(estudiante):
 
 
 def proxima_clase_de(estudiante):
-    """
-    Busca próxima clase según CursoHorario si existe relación estudiante->curso.
-    """
+
     if not estudiante:
         return None
 
@@ -104,13 +102,13 @@ def proxima_clase_de(estudiante):
     if not (Curso and CursoHorario):
         return None
 
-    # ¿cómo está vinculado el estudiante con un curso? probamos varias:
+
     curso = None
-    # a) FK directa
+
     if "curso" in [f.name for f in estudiante._meta.fields]:
         curso = getattr(estudiante, "curso", None)
 
-    # b) por inscripción intermedia
+
     if not curso:
         Ins = (
             get_model("core.Inscripcion")
@@ -133,12 +131,12 @@ def proxima_clase_de(estudiante):
         return None
 
     ahora = timezone.localtime()
-    # Buscar próximos horarios de la semana (día y hora)
+
     horarios = CursoHorario.objects.filter(curso=curso).order_by("dia", "hora_inicio")
     if not horarios.exists():
         return None
 
-    # calcular siguiente ocurrencia (máximo 2 semanas hacia adelante)
+
     for add_d in range(0, 14):
         d = ahora.date() + timedelta(days=add_d)
         dow = d.weekday()  # 0 lunes .. 6 domingo
@@ -150,7 +148,7 @@ def proxima_clase_de(estudiante):
 
 
 def proximas_citas_para(estudiante):
-    """Cuenta próximas citas PMUL del atleta."""
+
     if not estudiante:
         return 0
     Cita = get_model("pmul.Cita")
@@ -167,16 +165,16 @@ def proximas_citas_para(estudiante):
         return 0
 
 def curso_actual_de(estudiante):
-    """Devuelve un Curso para el estudiante (FK directa o por inscripción), o None."""
+
     Curso = get_model("core.Curso")
     if not Curso:
         return None
 
-    # a) FK directa
+
     if hasattr(estudiante, "curso") and estudiante.curso_id:
         return estudiante.curso
 
-    # b) Vía tabla de inscripciones (si existe)
+
     Ins = (get_model("core.Inscripcion") or get_model("atleta.Inscripcion") or get_model("atleta.InscripcionCurso"))
     if Ins and hasattr(Ins, "_meta"):
         fk_est = None

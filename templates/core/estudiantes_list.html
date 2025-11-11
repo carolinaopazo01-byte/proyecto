@@ -35,6 +35,14 @@
     background:#fee2e2; border-color:#ef4444; color:#7f1d1d;
   }
 
+  /* Botón Ver (neutro) */
+  .btn-view{
+    background:#eef2ff; border:1px solid #c7d2fe; color:#3730a3;
+  }
+  .btn-view:hover{
+    background:#e0e7ff; border-color:#a5b4fc; color:#312e81;
+  }
+
   @media (max-width: 576px){
     .search-input{ min-width: 0; width: 100%; }
   }
@@ -47,7 +55,10 @@
     <div class="page-head-left">
       <h4 class="mb-0">Estudiantes</h4>
     </div>
-    <a class="btn btn-primary" href="{% url 'core:estudiante_create' %}">Nuevo estudiante</a>
+
+    {% if request.user.tipo_usuario != 'PROF' %}
+      <a class="btn btn-primary" href="{% url 'core:estudiante_create' %}">Nuevo estudiante</a>
+    {% endif %}
   </div>
 
   <!-- Filtros / buscador -->
@@ -94,7 +105,7 @@
                 <th>Puntaje/Logro</th>
                 <th>Curso</th>
                 <th>Activo</th>
-                <th style="min-width:220px;">Acciones</th>
+                <th style="min-width:280px;">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -134,38 +145,45 @@
                 </td>
                 <td>
                   <div class="actions">
-                    <!-- Editar -->
-                    <a class="btn btn-sm btn-outline-primary" href="{% url 'core:estudiante_edit' e.id %}">
-                      <i class="fas fa-pen"></i> Editar
+                    <!-- Ver -->
+                    <a class="btn btn-sm btn-view" href="{% url 'core:estudiante_detail' e.id %}">
+                      <i class="fas fa-eye"></i> Ver
                     </a>
 
-                    <!-- Activar / Desactivar -->
-                    {% if e.activo %}
-                      <form method="post" action="{% url 'core:estudiante_desactivar' e.id %}" style="display:inline;">
+                    {% if request.user.tipo_usuario != 'PROF' %}
+                      <!-- Editar -->
+                      <a class="btn btn-sm btn-outline-primary" href="{% url 'core:estudiante_edit' e.id %}">
+                        <i class="fas fa-pen"></i> Editar
+                      </a>
+
+                      <!-- Activar / Desactivar -->
+                      {% if e.activo %}
+                        <form method="post" action="{% url 'core:estudiante_desactivar' e.id %}" style="display:inline;">
+                          {% csrf_token %}
+                          <button class="btn btn-sm btn-status-off" type="submit"
+                                  onclick="return confirm('¿Desactivar este estudiante?');">
+                            <i class="fas fa-user-slash"></i> Desactivar
+                          </button>
+                        </form>
+                      {% else %}
+                        <form method="post" action="{% url 'core:estudiante_activar' e.id %}" style="display:inline;">
+                          {% csrf_token %}
+                          <button class="btn btn-sm btn-status-on" type="submit"
+                                  onclick="return confirm('¿Activar este estudiante?');">
+                            <i class="fas fa-user-check"></i> Activar
+                          </button>
+                        </form>
+                      {% endif %}
+
+                      <!-- Eliminar -->
+                      <form method="post" action="{% url 'core:estudiante_delete' e.id %}" style="display:inline;">
                         {% csrf_token %}
-                        <button class="btn btn-sm btn-status-off" type="submit"
-                                onclick="return confirm('¿Desactivar este estudiante?');">
-                          <i class="fas fa-user-slash"></i> Desactivar
-                        </button>
-                      </form>
-                    {% else %}
-                      <form method="post" action="{% url 'core:estudiante_activar' e.id %}" style="display:inline;">
-                        {% csrf_token %}
-                        <button class="btn btn-sm btn-status-on" type="submit"
-                                onclick="return confirm('¿Activar este estudiante?');">
-                          <i class="fas fa-user-check"></i> Activar
+                        <button class="btn btn-sm btn-danger" type="submit"
+                                onclick="return confirm('¿Eliminar este estudiante?');">
+                          <i class="fas fa-trash-alt"></i> Eliminar
                         </button>
                       </form>
                     {% endif %}
-
-                    <!-- Eliminar -->
-                    <form method="post" action="{% url 'core:estudiante_delete' e.id %}" style="display:inline;">
-                      {% csrf_token %}
-                      <button class="btn btn-sm btn-danger" type="submit"
-                              onclick="return confirm('¿Eliminar este estudiante?');">
-                        <i class="fas fa-trash-alt"></i> Eliminar
-                      </button>
-                    </form>
                   </div>
                 </td>
               </tr>

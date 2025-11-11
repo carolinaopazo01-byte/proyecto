@@ -42,11 +42,6 @@
   .item{display:flex;gap:10px;align-items:flex-start}
   .badge-soft{background:#eef2ff;border:1px solid #e5e7eb;border-radius:8px;padding:.15rem .45rem;font-size:.8rem}
   .muted{color:#6b7280}
-
-  /* Barra de accesos y alertas */
-  .quickbar{display:flex;flex-wrap:wrap;gap:8px;margin:.75rem 0}
-  .quickbar .btn{font-weight:700}
-  .alerts{display:flex;flex-wrap:wrap;gap:8px;margin:.5rem 0 1rem}
 </style>
 {% endblock %}
 
@@ -54,32 +49,6 @@
 
   <div class="page-head">
     <div><h4>Panel Profesor / Entrenador</h4></div>
-    <div></div>
-  </div>
-
-  {# === Saludo === #}
-  <p>Hola, <strong>{{ request.user.username }}</strong>.</p>
-
-  {# === Alertas === #}
-  {% if alertas.planificaciones or alertas.inasistencias %}
-    <div class="alerts">
-      {% if alertas.planificaciones %}
-        <span class="btn btn-warning">Tienes {{ alertas.planificaciones }} planificaciones pendientes.</span>
-      {% endif %}
-      {% if alertas.inasistencias %}
-        <span class="btn btn-warning">Clases sin asistencia cargada: {{ alertas.inasistencias }}.</span>
-      {% endif %}
-    </div>
-  {% endif %}
-
-  {# === Accesos rápidos === #}
-  <div class="quickbar">
-    <a class="btn btn-outline-primary" href="{% url 'profesor:mi_asistencia_qr' %}">📷 Marcar mi asistencia (QR)</a>
-    <a class="btn btn-outline-primary" href="{% url 'profesor:planificaciones_prof' %}">📝 Planificaciones</a>
-    <a class="btn btn-outline-primary" href="{% url 'profesor:comunicados_prof' %}">📣 Comunicados</a>
-    <a class="btn btn-outline-primary" href="{% url 'profesor:perfil_profesor' %}">🔐 Mi perfil</a>
-    <a class="btn btn-outline-primary" href="{% url 'profesor:mis_cursos_prof' %}">📚 Mis cursos</a>
-    <a class="btn btn-outline-success" href="{% url 'profesor:alumno_temporal_new' %}">➕ Ingresar alumno temporalmente</a>
   </div>
 
   {# === Tarjeta: Comunicados === #}
@@ -88,7 +57,7 @@
       <span class="tile__icon"><i class="fas fa-bullhorn"></i></span>
       <h6 class="tile__title mb-0">Comunicados</h6>
     </div>
-    <p class="tile__desc">Publica y revisa los anuncios del programa.</p>
+    <p class="tile__desc">Revisa los comunicados oficiales del programa.</p>
     <a class="btn btn-primary" href="{% url 'profesor:comunicados_prof' %}">
       <i class="fas fa-envelope-open-text mr-1"></i> Ver comunicados
     </a>

@@ -1,0 +1,82 @@
+{% extends "base/plantilla.html" %}
+{% block title %}Asistencia{% endblock %}
+{% block header %}👥 Alumnos del curso — {{ curso.nombre }}{% endblock %}
+
+{% block content %}
+<div class="cpc-safe">
+
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="text-muted">
+      {{ curso.sede.nombre }} · {{ curso.disciplina.nombre }}
+      · Programa: {{ curso.get_programa_display }}
+    </div>
+    <div>
+      <a class="btn btn-primary btn-sm" href="{% url 'core:asistencia_tomar' curso.id %}">
+        Tomar/editar asistencia del día
+      </a>
+    </div>
+  </div>
+
+  {% if ultima %}
+    <div class="alert alert-light border d-flex justify-content-between align-items-center">
+      <div>
+        <strong>Última asistencia:</strong> {{ ultima.fecha|date:"d/m/Y" }}
+        {% if ultima.estado == "PEND" %}
+          <span class="badge bg-secondary ms-2">Pendiente</span>
+        {% elif ultima.estado == "ENCU" %}
+          <span class="badge bg-info text-dark ms-2">En curso</span>
+        {% elif ultima.estado == "CERR" %}
+          <span class="badge bg-success ms-2">Cerrada</span>
+        {% endif %}
+      </div>
+      <div class="text-muted small">
+        P: {{ resumen.P }} · A: {{ resumen.A }} · J: {{ resumen.J }} (Total: {{ resumen.total }})
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-warning">
+      Aún no hay asistencias registradas para este curso.
+    </div>
+  {% endif %}
+
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-striped table-sm align-middle mb-0">
+        <thead>
+          <tr>
+            <th style="width:48px;">#</th>
+            <th>Nombre</th>
+            <th>RUT</th>
+            <th style="width:160px;">Último estado</th>
+            <th>Observaciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td>{{ r.nombre }}</td>
+              <td>{{ r.rut }}</td>
+              <td>
+                {% if r.estado == "P" %}
+                  <span class="badge bg-success">Presente</span>
+                {% elif r.estado == "A" %}
+                  <span class="badge bg-danger">Ausente</span>
+                {% elif r.estado == "J" %}
+                  <span class="badge bg-warning text-dark">Justificado</span>
+                {% else %}
+                  <span class="badge bg-secondary">—</span>
+                {% endif %}
+              </td>
+              <td>{{ r.observaciones|default:"—" }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="text-muted">No hay alumnos inscritos.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

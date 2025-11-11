@@ -35,7 +35,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-# === Ajustes clave para desarrollo en HTTP (evitan que la cookie de sesión se pierda) ===
+
 CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_SECURE = False
 SECURE_SSL_REDIRECT = False           # ← importante en local (sin HTTPS)
@@ -74,10 +74,9 @@ USE_TZ = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Importante: app_label.ModelName. Tu app_label es "usuarios".
+
 AUTH_USER_MODEL = "usuarios.Usuario"
 
-# Backends de autenticación (tu backend por RUT + el de Django)
 AUTHENTICATION_BACKENDS = [
     "applications.usuarios.auth_backends.RutBackend",
     "django.contrib.auth.backends.ModelBackend",

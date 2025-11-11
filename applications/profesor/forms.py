@@ -1,5 +1,7 @@
 from django import forms
-from applications.core.models import Estudiante
+from django.apps import apps
+
+AlumnoTemporal = apps.get_model("profesor", "AlumnoTemporal")
 
 class AlumnoTemporalForm(forms.ModelForm):
     motivacion_beca = forms.CharField(
@@ -9,14 +11,14 @@ class AlumnoTemporalForm(forms.ModelForm):
     )
 
     class Meta:
-        model = Estudiante
+        model = AlumnoTemporal
         fields = [
             "nombres", "apellidos", "fecha_nacimiento", "rut",
             "direccion", "comuna", "telefono", "email",
             "n_emergencia", "prevision",
             "apoderado_nombre", "apoderado_telefono",
-            "apoderado_email", "apoderado_fecha_nacimiento",
-            "curso",
+            "apoderado_email", "apoderado_fecha_nacimiento", "apoderado_rut",
+            "curso", "motivacion_beca",
         ]
         labels = {
             "n_emergencia": "Número de emergencia",
@@ -24,6 +26,7 @@ class AlumnoTemporalForm(forms.ModelForm):
             "apoderado_telefono": "Teléfono (tutor/a)",
             "apoderado_email": "Correo electrónico (tutor/a)",
             "apoderado_fecha_nacimiento": "Fecha de nacimiento (tutor/a)",
+            "apoderado_rut": "RUT del/la tutor(a)",
             "curso": "Curso y sede al cual postula",
         }
         widgets = {

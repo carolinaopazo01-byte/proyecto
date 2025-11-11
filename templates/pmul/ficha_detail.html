@@ -1,48 +1,83 @@
 {% extends "base/plantilla.html" %}
-{% block title %}Ficha clínica{% endblock %}
-{% block header %}Ficha clínica{% endblock %}
-{% block content %}
-<div class="card p-3" style="max-width:900px;">
+{% load humanize %}
 
-  <!-- Bloque de cabecera -->
+{% block title %}Ficha clínica{% endblock %}
+{% block header %}📋 Ficha clínica{% endblock %}
+
+{% block extra_css %}
+<style>
+  .card-ficha{
+    max-width:900px;margin:auto;padding:18px;border:1px solid #e5e7eb;
+    border-radius:12px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.05);
+  }
+  .section-box{
+    border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;background:#fafafa;margin-bottom:12px;
+  }
+  .section-box div{margin-bottom:3px;font-size:.9rem}
+  .section-box div:last-child{margin-bottom:0}
+  h4{margin-top:1rem;font-weight:800;font-size:1.05rem}
+  ul.adjuntos{list-style:none;padding-left:0;margin-top:.5rem}
+  ul.adjuntos li{margin-bottom:6px}
+  .btn-sm{font-size:.78rem;padding:.25rem .55rem;font-weight:700}
+  form label{font-weight:600;font-size:.9rem}
+  @media(max-width:576px){
+    .card-ficha{padding:12px;font-size:.88rem}
+    h4{font-size:1rem}
+    form label{display:block;margin-bottom:4px}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card-ficha">
+
+  <!-- Fecha -->
   <p><b>Fecha:</b> {{ f.fecha|date:"d/m/Y" }}</p>
 
-  <!-- Datos del paciente con previsión -->
-  <div class="mb-2" style="padding:10px;border:1px solid #eee;border-radius:8px;background:#fafafa;">
+  <!-- Datos del paciente -->
+  <div class="section-box">
     <div><b>Atleta:</b> {{ f.paciente.nombres }} {{ f.paciente.apellidos }}</div>
     <div><b>RUT:</b> {{ f.paciente.rut }}</div>
-    <div><b>Previsión:</b> {{ f.paciente.get_prevision_display|default:"—" }}</div> <!-- 👈 NUEVO -->
+    <div><b>Previsión:</b> {{ f.paciente.get_prevision_display|default:"—" }}</div>
     <div><b>Contacto:</b> {{ f.paciente.email|default:"—" }} · {{ f.paciente.telefono|default:"—" }}</div>
     <div><b>Dirección:</b> {{ f.paciente.direccion|default:"—" }}, {{ f.paciente.comuna|default:"—" }}</div>
     <div><b>N° Emergencia:</b> {{ f.paciente.n_emergencia|default:"—" }}</div>
   </div>
 
+  <!-- Detalles -->
   <p><b>Profesional:</b> {{ f.profesional.username }} · {{ f.get_especialidad_display }}</p>
   <p><b>Motivo:</b> {{ f.motivo|default:"—" }}</p>
   <p><b>Observaciones:</b><br>{{ f.observaciones|linebreaks }}</p>
-  <p><b>Diagnóstico/Indicaciones:</b><br>{{ f.diagnostico|linebreaks|default:"—" }}</p>
+  <p><b>Diagnóstico / Indicaciones:</b><br>{{ f.diagnostico|linebreaks|default:"—" }}</p>
   <p><b>Estado:</b> {{ f.get_estado_display }}</p>
 
+  <!-- Adjuntos -->
   <h4>Adjuntos</h4>
   {% if f.adjuntos.all %}
-    <ul>
+    <ul class="adjuntos">
       {% for a in f.adjuntos.all %}
-        <li><a class="btn" href="{% url 'pmul:ficha_descargar_adjunto' f.id a.id %}">⬇️ {{ a.nombre|default:"Archivo" }}</a></li>
+        <li>
+          <a class="btn btn-sm btn-outline-primary" href="{% url 'pmul:ficha_descargar_adjunto' f.id a.id %}">
+            ⬇️ {{ a.nombre|default:"Archivo" }}
+          </a>
+        </li>
       {% endfor %}
     </ul>
   {% else %}
-    <p class="text-muted">— Sin adjuntos —</p>
+    <p class="text-muted mb-2">— Sin adjuntos —</p>
   {% endif %}
 
+  <!-- Publicación -->
   <h4>Publicación</h4>
   <form method="post" action="{% url 'pmul:ficha_toggle_publicacion' f.id %}">
     {% csrf_token %}
-    <label><input type="checkbox" name="publicar_profesor" {% if f.publicar_profesor %}checked{% endif %}> Profesor</label>
-    &nbsp;·&nbsp;
-    <label><input type="checkbox" name="publicar_coordinador" {% if f.publicar_coordinador %}checked{% endif %}> Coordinador</label>
-    &nbsp;·&nbsp;
-    <label><input type="checkbox" name="publicar_admin" {% if f.publicar_admin %}checked{% endif %}> Admin</label>
-    &nbsp;&nbsp;<button class="btn" type="submit">Guardar</button>
+    <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+      <label><input type="checkbox" name="publicar_profesor" {% if f.publicar_profesor %}checked{% endif %}> Profesor</label>
+      <label><input type="checkbox" name="publicar_coordinador" {% if f.publicar_coordinador %}checked{% endif %}> Coordinador</label>
+      <label><input type="checkbox" name="publicar_admin" {% if f.publicar_admin %}checked{% endif %}> Admin</label>
+    </div>
+    <button class="btn btn-primary btn-sm" type="submit"><i class="fas fa-save me-1"></i> Guardar</button>
   </form>
+
 </div>
 {% endblock %}

@@ -3,7 +3,7 @@ from .models import AsistenciaProfesor
 
 @admin.register(AsistenciaProfesor)
 class AsistenciaProfesorAdmin(admin.ModelAdmin):
-    # columnas que SÍ existen en el modelo
+
     list_display = ("usuario", "sede", "fecha", "hora", "tipo")
     list_filter = ("sede", "tipo", "fecha")
     ordering = ("-fecha", "-hora")

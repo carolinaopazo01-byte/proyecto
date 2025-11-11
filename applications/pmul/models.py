@@ -11,9 +11,7 @@ from applications.core.models import Estudiante
 
 Usuario = settings.AUTH_USER_MODEL
 
-# ----------------------------
-# Catálogos de apoyo
-# ----------------------------
+
 ESPECIALIDADES = [
     ("NUT", "Nutricionista"),
     ("KIN", "Kinesiólogo/a"),
@@ -37,11 +35,8 @@ def piso_por_especialidad(code: str) -> int:
     return 2
 
 
-# ----------------------------
-# Modelo de perfil profesional
-# ----------------------------
 class ProfesionalPerfil(models.Model):
-    """Perfil para profesionales PMUL sin tocar tu modelo de usuario."""
+
     user = models.OneToOneField(Usuario, on_delete=models.CASCADE, related_name="perfil_pmul")
     especialidad = models.CharField(max_length=5, choices=ESPECIALIDADES, default="OTRA")
 
@@ -52,9 +47,7 @@ class ProfesionalPerfil(models.Model):
         return f"{self.user} · {self.get_especialidad_display()}"
 
 
-# ----------------------------
-# Modelo de citas
-# ----------------------------
+
 class Cita(models.Model):
     ESTADOS = [
         ("PEND", "Pendiente"),
@@ -78,24 +71,22 @@ class Cita(models.Model):
     def __str__(self):
         return f"{self.paciente} · {self.inicio:%d/%m %H:%M}"
 
-    # ----------------------------
-    # Validaciones adicionales
-    # ----------------------------
+
     def clean(self):
         super().clean()
 
-        # Validar rango de tiempo
+
         if self.fin and self.fin <= self.inicio:
             raise ValidationError({"fin": "La hora de término debe ser posterior al inicio."})
 
-        # No permitir citas en el pasado
+
         if self.inicio and self.inicio < timezone.now():
             raise ValidationError({"inicio": "No puedes agendar en el pasado."})
 
-        # Filtrar solo citas activas (no canceladas)
+
         activos = ~Q(estado="CANC")
 
-        # 1) El atleta NO puede tener más de una cita el mismo día (activa)
+
         if self.paciente_id and self.inicio:
             qs = Cita.objects.filter(
                 paciente_id=self.paciente_id,
@@ -119,9 +110,7 @@ class Cita(models.Model):
             if qs.exists():
                 raise ValidationError("Se solapa con otra cita del profesional en ese horario.")
 
-    # ----------------------------
-    # Guardado con asignación automática
-    # ----------------------------
+
     def save(self, *args, **kwargs):
         # Autocompletar especialidad/piso según perfil del profesional
         try:
@@ -133,9 +122,7 @@ class Cita(models.Model):
         super().save(*args, **kwargs)
 
 
-# ----------------------------
-# Modelo de fichas clínicas
-# ----------------------------
+
 class FichaClinica(models.Model):
     ESTADOS_FICHA = [
         ("FIN", "Finalizada"),
@@ -168,9 +155,7 @@ class FichaClinica(models.Model):
         return f"Ficha {self.paciente} {self.fecha:%d/%m/%Y}"
 
 
-# ----------------------------
-# Modelo de adjuntos
-# ----------------------------
+
 class FichaAdjunto(models.Model):
     ficha = models.ForeignKey(FichaClinica, on_delete=models.CASCADE, related_name="adjuntos")
     archivo = models.FileField(upload_to="fichas_adjuntos/")
@@ -180,9 +165,7 @@ class FichaAdjunto(models.Model):
         return self.nombre or self.archivo.name
 
 
-# ----------------------------
-# Modelo de disponibilidad
-# ----------------------------
+
 class Disponibilidad(models.Model):
     """
     Franja disponible publicada por el profesional PMUL.
@@ -225,7 +208,7 @@ class Disponibilidad(models.Model):
             if self.fin <= self.inicio:
                 raise ValidationError("La hora de fin debe ser posterior a la de inicio.")
 
-        # Sin solapes con otras disponibilidades del mismo profesional (LIBRE/RESERVADA)
+
         if self.profesional_id and self.inicio and self.fin:
             qs = Disponibilidad.objects.filter(
                 profesional_id=self.profesional_id,
@@ -255,10 +238,7 @@ class Disponibilidad(models.Model):
             notas="",
             estado=None,  # si None => LIBRE
     ):
-        """
-        Genera objetos Disponibilidad (NO guarda solapes).
-        Devuelve (creados, omitidos) como enteros.
-        """
+
         tz = timezone.get_current_timezone()
 
         def aware_dt(d: datetime.date, t: datetime.time) -> datetime:

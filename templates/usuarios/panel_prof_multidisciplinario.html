@@ -1,20 +1,60 @@
 {% extends "base/plantilla_pmul.html" %}
-{% block title %}Panel PMUL{% endblock %}
-{% block header %}Hola, {{ request.user.username }}{% endblock %}
+{% block title %}Panel Profesional Multidisciplinario{% endblock %}
+
+{% block header %}
+Hola, {{ request.user.first_name|default:request.user.username }}
+{% endblock %}
 
 {% block content %}
-<div class="row g-3 mb-3">
-  <div class="col-md-3"><div class="card p-3"><div class="text-muted">📅 Citas de hoy</div><div class="h4 m-0">{{ citas_hoy }}</div></div></div>
-  <div class="col-md-3"><div class="card p-3"><div class="text-muted">✅ Atendidas esta semana</div><div class="h4 m-0">{{ atendidas_semana }}</div></div></div>
-  <div class="col-md-3"><div class="card p-3"><div class="text-muted">🏃‍♂️ Deportistas activos</div><div class="h4 m-0">{{ deportistas_activos }}</div></div></div>
-  <div class="col-md-3"><div class="card p-3"><div class="text-muted">⚠️ Pend./Reprog. semana</div><div class="h4 m-0">{{ pendientes_reprog }}</div></div></div>
-</div>
+<div class="container-fluid" style="max-width:960px;">
 
-<div class="d-flex flex-wrap gap-2">
-  <a class="btn btn-primary" href="{% url 'pmul:agenda' %}">📖 Mi Agenda</a>
-  <a class="btn btn-outline-primary" href="{% url 'pmul:slots_list' %}">🕓 Publicar disponibilidad</a>
-  <a class="btn btn-outline-secondary" href="{% url 'pmul:fichas_list' %}">🩺 Evaluaciones / Fichas clínicas</a>
-  <a class="btn btn-outline-secondary" href="{% url 'core:comunicados_list' %}">🗞️ Comunicados</a>
-  <a class="btn btn-outline-danger" href="{% url 'usuarios:logout' %}">🚪 Salir</a>
+  <!-- Título principal del perfil -->
+  <div class="mb-4 text-center">
+    <h3 class="fw-bold mb-1">🩺 Profesional Multidisciplinario</h3>
+  </div>
+
+  <!-- Citas más próximas -->
+  <div class="mb-4">
+    <h5 class="fw-bold mb-3">📅 Citas más próximas</h5>
+
+    {% if citas_proximas %}
+      <div class="list-group">
+        {% for cita in citas_proximas %}
+          <div class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-semibold">{{ cita.deportista }}</div>
+              <div class="text-muted small">
+                {{ cita.fecha|date:"d/m/Y" }} — {{ cita.hora_inicio|time:"H:i" }}
+              </div>
+            </div>
+            {% if cita.estado %}
+              <span class="badge bg-light text-dark">{{ cita.get_estado_display }}</span>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="alert alert-light border">No tienes citas próximas.</div>
+    {% endif %}
+  </div>
+
+  <!-- Comunicados -->
+  <div>
+    <h5 class="fw-bold mb-3">🗞️ Comunicados</h5>
+
+    {% if comunicados %}
+      <div class="list-group">
+        {% for c in comunicados %}
+          <div class="list-group-item">
+            <h6 class="mb-1 fw-bold">{{ c.titulo }}</h6>
+            <p class="mb-2 text-muted small">{{ c.creado|date:"d/m/Y H:i" }}</p>
+            <p class="mb-0">{{ c.cuerpo|linebreaksbr }}</p>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="alert alert-light border">No hay comunicados disponibles.</div>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

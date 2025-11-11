@@ -1,15 +1,16 @@
 # applications/core/views.py
+
 import os
+import base64
+from io import BytesIO
 from datetime import date, timedelta
 from math import radians, sin, cos, asin, sqrt
-from io import BytesIO
-import base64
+
 import matplotlib.pyplot as plt
 import pandas as pd
-from weasyprint import HTML
-from django.template.loader import render_to_string
-from django.db.models.functions import TruncMonth
 
+import re
+from weasyprint import HTML
 from django.apps import apps
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -18,10 +19,10 @@ from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from django.db.models import Q, Count
 from django.db.models.deletion import ProtectedError
-from django.http import (
-    HttpResponse, FileResponse, Http404, HttpResponseForbidden
-)
+from django.db.models.functions import TruncMonth, TruncDay
+from django.http import HttpResponse, FileResponse, Http404, HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
@@ -30,16 +31,24 @@ from applications.usuarios.utils import role_required
 from applications.usuarios.models import Usuario, Profesor
 from applications.atleta.models import Clase, AsistenciaAtleta
 
-from .models import (
-    Comunicado, Curso, Sede, Estudiante, Planificacion,
-    Deporte, PlanificacionVersion, Noticia, RegistroPeriodo
-)
-from .forms import (
-    DeporteForm, PlanificacionUploadForm, ComunicadoForm,
-    NoticiaForm, EstudianteForm
+# ⬇️ MODELOS de core (solo una vez y solo modelos)
+from applications.core.models import (
+    Comunicado,              # modelo
+    Curso, Sede, Estudiante,
+    Deporte, Planificacion, PlanificacionVersion,
+    Noticia, RegistroPeriodo,
+    AsistenciaCurso, AsistenciaCursoDetalle,
 )
 
-# -------- Helpers --------
+from .forms import (
+    DeporteForm,
+    PlanificacionUploadForm,
+    ComunicadoForm,
+    NoticiaForm,
+    EstudianteForm,
+)
+
+
 def _monday(d: date) -> date:
     return d - timedelta(days=d.weekday())
 
@@ -53,11 +62,7 @@ def _is_admin_or_coord(user) -> bool:
 
 
 def _periodo_abierto():
-    """
-    Retorna el último RegistroPeriodo abierto para público:
-    activo=True, estado=OPEN y dentro de rango de fechas (si existen).
-    (OJO: usamos Q importado de django.db.models, no el módulo .models)
-    """
+
     now = timezone.now()
     qs = RegistroPeriodo.objects.filter(
         activo=True,
@@ -68,14 +73,8 @@ def _periodo_abierto():
     return qs.order_by("-creado").first()
 
 
-# -------- Back-to helper (HTML-only) --------
+
 def _back_to_url(request, fallback_name: str) -> str:
-    """
-    Orden de preferencia (sin JS):
-    1) ?next=...
-    2) HTTP_REFERER
-    3) reverse(fallback_name)
-    """
     nxt = (request.GET.get("next") or "").strip()
     if nxt:
         return nxt
@@ -85,19 +84,13 @@ def _back_to_url(request, fallback_name: str) -> str:
     try:
         return reverse(fallback_name)
     except Exception:
-        # Si te pasan un path directo como fallback_name, úsalo tal cual.
         return fallback_name
 
-
-# === Helper: obtener alumnos de un curso, con o sin tabla de inscripciones ===
 def _estudiantes_del_curso(curso):
-    """
-    Devuelve los estudiantes asociados al curso.
-    Funciona tanto con InscripcionCurso como con la FK directa curso en Estudiante.
-    """
+
     EstudianteModel = apps.get_model('core', 'Estudiante')
 
-    # 1) Si existe modelo InscripcionCurso
+
     try:
         InscripcionCurso = apps.get_model('core', 'InscripcionCurso')
         if InscripcionCurso:
@@ -109,7 +102,7 @@ def _estudiantes_del_curso(curso):
     except Exception:
         pass
 
-    # 2) Si el curso tiene relación directa (FK) con Estudiante
+
     try:
         directos = EstudianteModel.objects.filter(curso=curso, activo=True).select_related("usuario")
         if directos.exists():
@@ -128,9 +121,76 @@ def _estudiantes_del_curso(curso):
     return EstudianteModel.objects.none()
 
 
-# ------- Home (informativo) -------
+def es_admin_o_coord(user):
+
+    return user.is_superuser or user.is_staff or user.groups.filter(name__in=["Coordinador"]).exists()
+
+
+@login_required
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+def asistencia_semaforo(request):
+
+    estudiantes = Estudiante.objects.filter(asistencias_curso__isnull=False).distinct()
+
+    data = []
+    for est in estudiantes:
+        registros = (
+            AsistenciaCursoDetalle.objects
+            .filter(estudiante=est)
+            .select_related("asistencia")
+            .order_by("asistencia__fecha")
+        )
+
+        faltas_consec = 0
+        max_faltas = 0
+        for r in registros:
+            if r.estado == "A":
+                faltas_consec += 1
+                max_faltas = max(max_faltas, faltas_consec)
+            else:
+                faltas_consec = 0
+
+        if max_faltas >= 3:
+            color = "rojo"
+        elif max_faltas == 2:
+            color = "amarillo"
+        else:
+            color = "verde"
+
+        data.append({
+            "estudiante": est,
+            "curso": est.curso,
+            "faltas_consec": max_faltas,
+            "color": color,
+        })
+
+    context = {"data": data}
+    return render(request, "core/semaforo_asistencia.html", context)
+
+
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from .models import Estudiante
+
+def estudiante_activar(request, estudiante_id):
+    estudiante = get_object_or_404(Estudiante, id=estudiante_id)
+    estudiante.activo = True
+    estudiante.save()
+    messages.success(request, f"✅ El estudiante {estudiante.nombres} {estudiante.apellidos} fue activado correctamente.")
+    return redirect('core:estudiantes_list')
+
+def estudiante_desactivar(request, estudiante_id):
+    estudiante = get_object_or_404(Estudiante, id=estudiante_id)
+    estudiante.activo = False
+    estudiante.save()
+    messages.warning(request, f"⚠️ El estudiante {estudiante.nombres} {estudiante.apellidos} fue desactivado correctamente.")
+    return redirect('core:estudiantes_list')
+
+
+
 @require_http_methods(["GET"])
 def home(request):
+    # Noticias (tal como ya lo tienes)
     noticias_slider = (
         Noticia.objects.filter(publicada=True)
         .exclude(imagen="").exclude(imagen__isnull=True)
@@ -140,17 +200,24 @@ def home(request):
         Noticia.objects.filter(publicada=True)
         .order_by("-publicada_en", "-creado")[:6]
     )
+
+    # 👇 NUEVO: comunicados públicos (últimos 4)
+    try:
+        comunicados_publicos = list(Comunicado.objects.publics().order_by("-creado")[:4])
+    except Exception:
+        comunicados_publicos = []
+
     return render(
         request,
         "core/home.html",
         {
             "noticias_slider": noticias_slider,
             "noticias": noticias,
+            "comunicados_publicos": comunicados_publicos,  # 👈 pasa al template
         },
     )
 
 
-# ================= ESTUDIANTES =================
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET"])
 def estudiantes_list(request):
@@ -177,12 +244,12 @@ def estudiantes_list(request):
     )
 
 
-# --- (Opcional) Listado visible para PROF: muestra solo sus alumnos ---
+
 @role_required(Usuario.Tipo.PROF)
 @require_http_methods(["GET"])
 def estudiantes_list_prof(request):
     q = (request.GET.get("q") or "").strip()
-    # alumnos asociados a los cursos donde el request.user es profesor
+
     qs = Estudiante.objects.filter(
         Q(curso__profesor=request.user) | Q(curso__profesores_apoyo=request.user)
     ).distinct().order_by("apellidos", "nombres")
@@ -255,8 +322,100 @@ def estudiante_delete(request, estudiante_id: int):
     messages.success(request, "Estudiante eliminado.")
     return redirect("core:estudiantes_list")
 
+# applications/core/views.py
+from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
+from django.http import HttpResponse
+from django.template.loader import render_to_string
 
-# ================= CURSOS =================
+from .models import Estudiante, AsistenciaCursoDetalle
+
+
+try:
+    from applications.pmul.models import Cita, FichaClinica
+    _PMUL_OK = True
+except Exception:
+    Cita = FichaClinica = None
+    _PMUL_OK = False
+
+
+def _estudiante_detail_context(pk: int):
+    est = (
+        Estudiante.objects
+        .select_related("curso", "curso__sede", "curso__disciplina", "curso__profesor")
+        .prefetch_related("curso__horarios")
+        .get(pk=pk)
+    )
+
+    acd_qs = (
+        AsistenciaCursoDetalle.objects
+        .select_related("asistencia", "asistencia__curso", "asistencia__curso__sede")
+        .filter(estudiante_id=pk)
+        .order_by("-asistencia__fecha", "-id")
+    )
+
+    total_registros   = acd_qs.count()
+    presentes         = acd_qs.filter(estado="P").count()
+    total_inasist     = acd_qs.filter(estado__in=["A", "J"]).count()
+    justificadas      = acd_qs.filter(estado="J").count()
+    injustificadas    = max(total_inasist - justificadas, 0)
+    ult_asistencias   = list(acd_qs[:20])
+
+    proximas_citas = []
+    ult_fichas     = []
+    if _PMUL_OK:
+        ahora = timezone.now()
+        proximas_citas = (
+            Cita.objects
+            .select_related("profesional")
+            .filter(paciente_id=pk, inicio__gte=ahora, estado__in=["PEND", "REPROG"])
+            .order_by("inicio")[:5]
+        )
+        ult_fichas = (
+            FichaClinica.objects
+            .select_related("profesional")
+            .filter(paciente_id=pk)
+            .order_by("-fecha")[:10]
+        )
+
+    return {
+        "e": est,
+        "ult_asistencias": ult_asistencias,
+        "kpi_total": total_registros,
+        "kpi_presentes": presentes,
+        "kpi_inasist": total_inasist,
+        "kpi_justif": justificadas,
+        "kpi_injustif": injustificadas,
+        "pmul_ok": _PMUL_OK,
+        "proximas_citas": proximas_citas,
+        "ult_fichas": ult_fichas,
+    }
+
+
+def estudiante_detail(request, pk):
+    ctx = _estudiante_detail_context(pk)
+    return render(request, "core/estudiante_detail.html", ctx)
+
+
+from io import BytesIO
+
+
+def estudiante_detail_pdf(request, pk):
+    ctx = _estudiante_detail_context(pk)
+
+    html_string = render_to_string("core/estudiante_detail_pdf.html", {**ctx, "request": request})
+    pdf_io = BytesIO()
+    HTML(string=html_string, base_url=request.build_absolute_uri("/")).write_pdf(pdf_io)
+    pdf_io.seek(0)
+
+    filename_rut = (ctx["e"].rut or f"est_{ctx['e'].id}").replace(".", "").replace("-", "")
+    return HttpResponse(
+        pdf_io.getvalue(),
+        content_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="detalle_{filename_rut}.pdf"'},
+    )
+
+
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET"])
 def cursos_list(request):
@@ -269,7 +428,7 @@ def cursos_list(request):
     return render(request, "core/cursos_list.html", {"cursos": cursos})
 
 
-# === Mis cursos (perfil profesor) ===
+
 @role_required(Usuario.Tipo.PROF)
 @require_http_methods(["GET"])
 def cursos_mios(request):
@@ -282,24 +441,131 @@ def cursos_mios(request):
     )
     return render(request, "core/cursos_list.html", {"cursos": cursos})
 
-
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
 def curso_create(request):
+    from django.db import transaction
+    from django.contrib import messages
+    from django.core.exceptions import ValidationError
     from .forms import CursoForm, CursoHorarioFormSet
+    from applications.core.models import CursoHorario
+
     if request.method == "POST":
         form = CursoForm(request.POST)
-        formset = CursoHorarioFormSet(request.POST, prefix="horarios")  # 👈 prefijo fijo
+        formset = CursoHorarioFormSet(request.POST, prefix="horarios")  # mantener visible ante errores
+
         if form.is_valid() and formset.is_valid():
-            curso = form.save()
-            formset.instance = curso
-            formset.save()
+            curso = form.save(commit=False)
+
+
+            profesor = curso.profesor
+            sede = curso.sede
+
+            conflictos = []
+            internos_por_dia = {}  # {dia: [(ini, fin), ...]}
+            hay_horarios_validos = False
+
+            for f in formset.cleaned_data:
+                if not f or f.get("DELETE", False):
+                    continue
+
+                dia = f.get("dia")
+                hora_inicio = f.get("hora_inicio")
+                hora_fin = f.get("hora_fin")
+
+                # Requisitos mínimos
+                if not (dia and hora_inicio and hora_fin):
+                    conflictos.append("Hay un horario incompleto (día/horas faltantes).")
+                    continue
+
+                # Orden lógico horas
+                if not (hora_inicio < hora_fin):
+                    conflictos.append(
+                        f"El horario {CursoHorario.Dia(dia).label} debe tener hora de inicio menor a la de término."
+                    )
+                    continue
+
+                hay_horarios_validos = True
+
+
+                bucket = internos_por_dia.setdefault(dia, [])
+                for (ini, fin) in bucket:
+
+                    if ini < hora_fin and fin > hora_inicio:
+                        conflictos.append(
+                            f"Hay traslape interno el {CursoHorario.Dia(dia).label}: "
+                            f"{ini.strftime('%H:%M')}–{fin.strftime('%H:%M')} con "
+                            f"{hora_inicio.strftime('%H:%M')}–{hora_fin.strftime('%H:%M')}."
+                        )
+                        break
+                bucket.append((hora_inicio, hora_fin))
+
+
+                if profesor:
+                    choques_prof = CursoHorario.objects.filter(
+                        curso__profesor=profesor,
+                        dia=dia,
+                        hora_inicio__lt=hora_fin,
+                        hora_fin__gt=hora_inicio,
+                    )
+                    if choques_prof.exists():
+                        conflictos.append(
+                            f"El profesor {profesor} ya tiene otro curso el "
+                            f"{CursoHorario.Dia(dia).label} entre {hora_inicio} y {hora_fin}."
+                        )
+
+                if sede:
+                    choques_sede = CursoHorario.objects.filter(
+                        curso__sede=sede,
+                        dia=dia,
+                        hora_inicio__lt=hora_fin,
+                        hora_fin__gt=hora_inicio,
+                    )
+                    if choques_sede.exists():
+                        conflictos.append(
+                            f"La sede {sede} ya tiene otro curso el "
+                            f"{CursoHorario.Dia(dia).label} entre {hora_inicio} y {hora_fin}."
+                        )
+
+            if not hay_horarios_validos:
+                conflictos.append("Debes ingresar al menos un horario válido para el curso.")
+
+            if conflictos:
+                for c in conflictos:
+                    messages.error(request, f"⚠️ {c}")
+
+                return render(request, "core/curso_form.html", {
+                    "form": form,
+                    "formset": formset,
+                    "is_edit": False,
+                    "show_back": True,
+                    "back_to": _back_to_url(request, "core:cursos_list"),
+                })
+
+
+            with transaction.atomic():
+                curso.save()
+                formset.instance = curso
+                formset.save()
+
+            messages.success(request, "✅ Curso creado correctamente.")
             return redirect("core:cursos_list")
+
+        else:
+            # Mostrar errores de ambos formularios
+            if not form.is_valid():
+                messages.error(request, "⚠️ Error en el formulario principal del curso.")
+            if not formset.is_valid():
+                messages.error(request, "⚠️ Error en los horarios del curso.")
+
     else:
         form = CursoForm()
-        formset = CursoHorarioFormSet(prefix="horarios")  # 👈 prefijo fijo
+        formset = CursoHorarioFormSet(prefix="horarios")
+
     return render(request, "core/curso_form.html", {
-        "form": form, "formset": formset, "is_edit": False,
+        "form": form,
+        "formset": formset,
+        "is_edit": False,
         "show_back": True,
         "back_to": _back_to_url(request, "core:cursos_list"),
     })
@@ -344,7 +610,15 @@ def curso_configurar_cupos(request, curso_id: int):
     return HttpResponse(f"CORE / Cursos - CONFIGURAR CUPOS curso_id={curso_id} (GET) -> formulario")
 
 
-# ================= SEDES =================
+
+def _haversine_m(lat1, lon1, lat2, lon2) -> float:
+    R = 6371000.0
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a))
+    return R * c
+
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET"])
 def sedes_list(request):
@@ -356,6 +630,13 @@ def sedes_list(request):
         cap_val = int(request.GET.get("cap_val") or 0)
     except ValueError:
         cap_val = 0
+
+
+    def _f(x):
+        try: return float(x)
+        except (TypeError, ValueError): return None
+    lat0 = _f(request.GET.get("lat"))
+    lng0 = _f(request.GET.get("lng"))
 
     qs = Sede.objects.all().order_by("nombre")
 
@@ -372,7 +653,22 @@ def sedes_list(request):
     elif cap_cmp == "lt" and cap_val:
         qs = qs.filter(capacidad__lte=cap_val)
 
-    comunas = Sede.objects.exclude(comuna="").values_list("comuna", flat=True).distinct().order_by("comuna")
+    comunas = (
+        Sede.objects.exclude(comuna="")
+        .values_list("comuna", flat=True).distinct().order_by("comuna")
+    )
+
+    # --- NUEVO: mapa de distancias por id (para usar en el template) ---
+    distances = {}
+    nearest = None
+    nearest_d = None
+    if lat0 is not None and lng0 is not None:
+        for s in qs.exclude(latitud__isnull=True).exclude(longitud__isnull=True):
+            d = _haversine_m(lat0, lng0, s.latitud, s.longitud)
+            distances[s.id] = d
+            if nearest_d is None or d < nearest_d:
+                nearest, nearest_d = s, d
+
     return render(request, "core/sedes_list.html", {
         "sedes": qs,
         "q": q,
@@ -381,6 +677,11 @@ def sedes_list(request):
         "cap_cmp": cap_cmp,
         "cap_val": cap_val or "",
         "comunas": comunas,
+        # --- NUEVO contexto geo ---
+        "lat": lat0, "lng": lng0,
+        "distances": distances,      # dict {sede_id: metros}
+        "nearest": nearest,          # Sede más cercana (opcional)
+        "nearest_d": nearest_d,      # distancia en metros (opcional)
     })
 
 
@@ -388,7 +689,22 @@ def sedes_list(request):
 @require_http_methods(["GET"])
 def sede_detail(request, sede_id: int):
     sede = get_object_or_404(Sede, pk=sede_id)
-    return render(request, "core/sede_detail.html", {"sede": sede})
+
+    # --- NUEVO: si pasas lat/lng por GET, calcula distancia a esta sede ---
+    def _f(x):
+        try: return float(x)
+        except (TypeError, ValueError): return None
+    lat0 = _f(request.GET.get("lat"))
+    lng0 = _f(request.GET.get("lng"))
+    dist_m = None
+    if lat0 is not None and lng0 is not None and sede.latitud is not None and sede.longitud is not None:
+        dist_m = _haversine_m(lat0, lng0, sede.latitud, sede.longitud)
+
+    return render(request, "core/sede_detail.html", {
+        "sede": sede,
+        "lat": lat0, "lng": lng0,   # para mostrar lo que llegó
+        "dist_m": dist_m,           # metros hasta esta sede (si hubo lat/lng)
+    })
 
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
@@ -434,7 +750,7 @@ def sede_delete(request, sede_id: int):
     return redirect("core:sedes_list")
 
 
-# ================= COMUNICADOS =================
+
 @role_required(
     Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF,
     Usuario.Tipo.APOD, Usuario.Tipo.ATLE, Usuario.Tipo.PMUL
@@ -513,7 +829,7 @@ def comunicado_delete(request, comunicado_id):
     return redirect("core:comunicados_list")
 
 
-# =================== NOTICIAS (SOLO ADMIN) ===================
+
 @role_required(Usuario.Tipo.ADMIN)
 @require_http_methods(["GET"])
 def noticias_list(request):
@@ -601,7 +917,7 @@ def noticia_toggle_publicar(request, noticia_id: int):
     return redirect("core:noticias_list")
 
 
-# ================ Páginas informativas ================
+
 @require_http_methods(["GET"])
 def quienes_somos(request):
     return render(request, "pages/quienes.html")
@@ -622,7 +938,7 @@ def equipo_multidisciplinario(request):
     return render(request, "pages/equipo.html")
 
 
-# ===== Registro público (POSTULACIÓN) =====
+
 @require_http_methods(["GET", "POST"])
 def registro_publico(request):
     from .forms import RegistroPublicoForm
@@ -666,7 +982,7 @@ def registro_publico(request):
     })
 
 
-# ------- Profesores (stubs mínimos) -------
+
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET"])
 def profesores_list(request):
@@ -684,7 +1000,7 @@ def profesor_create(request):
     })
 
 
-# ================= PLANIFICACIONES =================
+
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF)
 @require_http_methods(["GET"])
 def planificaciones_list(request):
@@ -820,7 +1136,7 @@ def planificacion_historial(request, plan_id: int):
     return render(request, "core/planificacion_historial.html", {"p": p, "versiones": versiones})
 
 
-# ================= DEPORTES =================
+
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET"])
 def deportes_list(request):
@@ -868,462 +1184,6 @@ def deporte_delete(request, deporte_id: int):
     return redirect("core:deportes_list")
 
 
-# ================= REPORTES =================
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
-def reportes_home(request):
-    return render(request, "core/reportes_home.html")
-
-
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
-@require_http_methods(["GET"])
-def reportes_kpi(request):
-    """
-    Dashboard integral CPC con KPI filtrables por sede, programa y disciplina.
-    Todos los indicadores se consultan directamente desde la base de datos.
-    """
-    from django.db.models import Count, Q
-    from django.db.models.functions import TruncMonth
-    from datetime import date
-    from applications.usuarios.models import Usuario
-    from applications.core.models import (
-        Estudiante, Curso, Sede, Planificacion,
-        AsistenciaCurso, AsistenciaCursoDetalle
-    )
-
-    # === Parámetros de filtro ===
-    programa = (request.GET.get("programa") or "").strip()
-    sede_id = request.GET.get("sede") or ""
-    dep_id = request.GET.get("disciplina") or ""
-
-    # === QuerySets base ===
-    est_qs = Estudiante.objects.all()
-    curso_qs = Curso.objects.all()
-    plan_qs = Planificacion.objects.all()
-    asis_qs = AsistenciaCurso.objects.all()
-    asis_det_qs = AsistenciaCursoDetalle.objects.all()
-
-    # === Filtros (ajustados a los modelos reales) ===
-    if programa:
-        est_qs = est_qs.filter(curso__programa=programa)
-        curso_qs = curso_qs.filter(programa=programa)
-        plan_qs = plan_qs.filter(curso__programa=programa)
-        asis_qs = asis_qs.filter(curso__programa=programa)
-        asis_det_qs = asis_det_qs.filter(asistencia__curso__programa=programa)
-
-    if sede_id:
-        est_qs = est_qs.filter(curso__sede_id=sede_id)
-        curso_qs = curso_qs.filter(sede_id=sede_id)
-        plan_qs = plan_qs.filter(curso__sede_id=sede_id)
-        asis_qs = asis_qs.filter(curso__sede_id=sede_id)
-        asis_det_qs = asis_det_qs.filter(asistencia__curso__sede_id=sede_id)
-
-    if dep_id:
-        est_qs = est_qs.filter(curso__disciplina_id=dep_id)
-        curso_qs = curso_qs.filter(disciplina_id=dep_id)
-        plan_qs = plan_qs.filter(curso__disciplina_id=dep_id)
-        asis_qs = asis_qs.filter(curso__disciplina_id=dep_id)
-        asis_det_qs = asis_det_qs.filter(asistencia__curso__disciplina_id=dep_id)
-
-    # === KPI: GESTIÓN GENERAL ===
-    total_estudiantes = est_qs.count()
-    estudiantes_activos = est_qs.filter(activo=True).count()
-    total_profesores = Usuario.objects.filter(tipo_usuario=Usuario.Tipo.PROF).count()
-    total_cursos = curso_qs.count()
-    total_sedes = curso_qs.values("sede_id").distinct().count()
-    planes_total = plan_qs.count()
-    planes_publicas = plan_qs.filter(publica=True).count()
-    cumplimiento_planificacion = round((planes_publicas / planes_total) * 100, 1) if planes_total else 0
-    tasa_participacion = round((estudiantes_activos / total_estudiantes) * 100, 1) if total_estudiantes else 0
-
-    # === KPI: ACADÉMICO-DEPORTIVO ===
-    clases_total = asis_qs.count()
-    clases_realizadas = asis_qs.filter(estado=AsistenciaCurso.Estado.CERR).count()
-    cumplimiento_clases_prof = round((clases_realizadas / clases_total) * 100, 1) if clases_total else 0
-    total_detalles = asis_det_qs.count()
-    presentes = asis_det_qs.filter(estado="P").count()
-    promedio_asistencia_curso = round((presentes / total_detalles) * 100, 1) if total_detalles else 0
-
-    # === KPI: PARTICIPACIÓN ===
-    abandono = est_qs.filter(activo=False).count()
-    tasa_abandono = round((abandono / total_estudiantes) * 100, 1) if total_estudiantes else 0
-
-    # === KPI: OPERATIVO / RECURSOS ===
-    ratio_estudiantes_prof = round((total_estudiantes / total_profesores), 1) if total_profesores else 0
-    canceladas = 0  # No existe el campo cancelada en el modelo actual
-    tasa_cancelacion = 0
-    uso_recintos = round((clases_realizadas / clases_total) * 100, 1) if clases_total else 0
-
-    # === KPI: ESTRATÉGICOS / SOCIALES ===
-    comunas_activas = Sede.objects.exclude(comuna__isnull=True).values("comuna").distinct().count()
-    cobertura_territorial = round((comunas_activas / 15) * 100, 1)
-    mujeres = est_qs.filter(genero__iexact="F").count()
-    hombres = est_qs.filter(genero__iexact="M").count()
-    total_genero = mujeres + hombres
-    equidad_genero = round((mujeres / total_genero) * 100, 1) if total_genero else 0
-    eventos_comunitarios = 0  # el modelo Planificacion no tiene campo tipo
-
-    # === EVOLUCIÓN MENSUAL ===
-    est_mes = (
-        est_qs.annotate(mes=TruncMonth("creado"))
-        .values("mes").annotate(total=Count("id")).order_by("mes")
-    )
-    asis_mes = (
-        asis_qs.annotate(mes=TruncMonth("fecha"))
-        .values("mes").annotate(total=Count("id")).order_by("mes")
-    )
-    meses_labels = [e["mes"].strftime("%b") for e in est_mes]
-    datos_estudiantes = [e["total"] for e in est_mes]
-    datos_asistencia = [a["total"] for a in asis_mes]
-
-    # === KPI PRINCIPALES (para la vista) ===
-    kpi_data = [
-        {"label": "Total estudiantes", "value": total_estudiantes, "icon": "fa-users", "color": "#0ea5e9"},
-        {"label": "Estudiantes activos", "value": estudiantes_activos, "icon": "fa-user-check", "color": "#10b981"},
-        {"label": "Profesores", "value": total_profesores, "icon": "fa-chalkboard-teacher", "color": "#6366f1"},
-        {"label": "Cursos activos", "value": total_cursos, "icon": "fa-book", "color": "#84cc16"},
-        {"label": "Sedes activas", "value": total_sedes, "icon": "fa-map-marker-alt", "color": "#14b8a6"},
-        {"label": "Tasa participación", "value": f"{tasa_participacion}%", "icon": "fa-chart-line", "color": "#06b6d4"},
-        {"label": "Cumplimiento planificación", "value": f"{cumplimiento_planificacion}%", "icon": "fa-clipboard-check", "color": "#f59e0b"},
-        {"label": "Cumplimiento clases profesor", "value": f"{cumplimiento_clases_prof}%", "icon": "fa-chalkboard", "color": "#22c55e"},
-        {"label": "Asistencia promedio", "value": f"{promedio_asistencia_curso}%", "icon": "fa-calendar-check", "color": "#3b82f6"},
-        {"label": "Tasa abandono", "value": f"{tasa_abandono}%", "icon": "fa-user-times", "color": "#ef4444"},
-        {"label": "Ratio est./prof.", "value": ratio_estudiantes_prof, "icon": "fa-balance-scale", "color": "#f59e0b"},
-        {"label": "Uso recintos", "value": f"{uso_recintos}%", "icon": "fa-building", "color": "#a855f7"},
-        {"label": "Cancelaciones", "value": f"{tasa_cancelacion}%", "icon": "fa-ban", "color": "#f97316"},
-        {"label": "Cobertura territorial", "value": f"{cobertura_territorial}%", "icon": "fa-globe", "color": "#06b6d4"},
-        {"label": "Equidad de género", "value": f"{equidad_genero}%", "icon": "fa-venus-mars", "color": "#ec4899"},
-        {"label": "Eventos comunitarios", "value": eventos_comunitarios, "icon": "fa-users", "color": "#14b8a6"},
-    ]
-
-    ctx = {
-        "kpi_data": kpi_data,
-        "meses_labels": meses_labels,
-        "datos_estudiantes": datos_estudiantes,
-        "datos_asistencia": datos_asistencia,
-        "anio_actual": date.today().year,
-        "programa": programa,
-        "sede_id": sede_id,
-        "dep_id": dep_id,
-        "sedes": Sede.objects.order_by("nombre"),
-        "disciplinas": Deporte.objects.order_by("nombre"),
-    }
-    return render(request, "core/reportes_kpi.html", ctx)
-
-
-from django.shortcuts import render
-from .models import AsistenciaCurso
-from applications.core.models import Sede, Deporte
-
-def reportes_kpi_inasistencias(request):
-    sede_id = request.GET.get("sede")
-    dep_id = request.GET.get("disciplina")
-    programa = request.GET.get("programa")
-
-    # Base de asistencias
-    asistencias = AsistenciaCurso.objects.select_related("curso", "curso__sede", "curso__disciplina")
-
-    # Filtros
-    if sede_id:
-        asistencias = asistencias.filter(curso__sede_id=sede_id)
-    if dep_id:
-        asistencias = asistencias.filter(curso__disciplina_id=dep_id)
-    if programa:
-        asistencias = asistencias.filter(curso__programa=programa)
-
-    # Indicadores KPI
-    total_registros = asistencias.count()
-    total_inasistencias = asistencias.filter(estado="INASISTENTE").count()
-    total_justificadas = asistencias.filter(estado="INASISTENTE", justificada=True).count()
-    total_no_justificadas = total_inasistencias - total_justificadas
-
-    tasa_inasistencia = round((total_inasistencias / total_registros) * 100, 1) if total_registros else 0
-
-    kpi_inasistencias = [
-        {"label": "Total de Registros de Asistencia", "value": total_registros, "icon": "fa-calendar-check"},
-        {"label": "Total de Inasistencias", "value": total_inasistencias, "icon": "fa-user-xmark"},
-        {"label": "Justificadas", "value": total_justificadas, "icon": "fa-file-circle-check"},
-        {"label": "No Justificadas", "value": total_no_justificadas, "icon": "fa-circle-exclamation"},
-        {"label": "Tasa de Inasistencia (%)", "value": tasa_inasistencia, "icon": "fa-chart-line"},
-    ]
-
-    context = {
-        "kpi_inasistencias": kpi_inasistencias,
-        "sedes": Sede.objects.all(),
-        "disciplinas": Deporte.objects.all(),
-        "sede_id": sede_id,
-        "dep_id": dep_id,
-        "programa": programa,
-    }
-
-    return render(request, "core/reportes_kpi_inasistencias.html", context)
-
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
-def reporte_inasistencias_export_csv(request):
-    try:
-        base = date.fromisoformat(request.GET.get("semana") or "")
-    except ValueError:
-        base = timezone.localdate()
-    lunes = base - timedelta(days=base.weekday())
-    domingo = lunes + timedelta(days=6)
-
-    clases = (
-        Clase.objects
-        .select_related("profesor", "sede_deporte__sede", "sede_deporte__deporte")
-        .filter(fecha__range=(lunes, domingo))
-    )
-    sede_id = request.GET.get("sede") or ""
-    deporte_id = request.GET.get("disciplina") or ""
-    prof_id = request.GET.get("prof") or ""
-    if sede_id:
-        clases = clases.filter(sede_deporte__sede_id=sede_id)
-    if deporte_id:
-        clases = clases.filter(sede_deporte__deporte_id=deporte_id)
-    if prof_id:
-        clases = clases.filter(profesor_id=prof_id)
-
-    asist = AsistenciaAtleta.objects.filter(clase__in=clases)
-    resp = HttpResponse(content_type="text/csv; charset=utf-8")
-    resp["Content-Disposition"] = 'attachment; filename="reporte_inasistencias.csv"'
-    resp.write("\ufeff")
-    resp.write("Actividad,Profesor,Sede,Fecha,Inscritos,Presentes,Ausentes,%Asistencia\n")
-    for c in clases.order_by("fecha", "hora_inicio"):
-        qs = asist.filter(clase=c)
-        p = qs.filter(presente=True).count()
-        a = qs.filter(presente=False).count()
-        tot = p + a
-        pct = round((p / tot) * 100, 1) if tot else 0
-        etiqueta = getattr(c, "tema", "") or str(getattr(c.sede_deporte, "deporte", "") or "")
-        prof = c.profesor.get_full_name() if getattr(c, "profesor", None) else ""
-        sede = str(getattr(c.sede_deporte, "sede", "") or "")
-        fecha_str = c.fecha.isoformat()
-        resp.write(f'"{etiqueta}","{prof}","{sede}",{fecha_str},{tot},{p},{a},{pct}\n')
-    return resp
-
-
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
-def reporte_inasistencias_detalle(request, clase_id: int):
-    clase = get_object_or_404(
-        Clase.objects.select_related("profesor", "sede_deporte__sede", "sede_deporte__deporte"),
-        pk=clase_id
-    )
-    semana_base = clase.fecha
-    lunes = semana_base - timedelta(days=semana_base.weekday())
-    domingo = lunes + timedelta(days=6)
-
-    asist_semana = AsistenciaAtleta.objects.filter(
-        atleta__isnull=False,
-        clase__fecha__range=(lunes, domingo)
-    ).select_related("atleta__usuario")
-
-    registros_clase = AsistenciaAtleta.objects.filter(clase=clase).select_related("atleta__usuario")
-    filas = []
-    faltas_semana = asist_semana.values("atleta_id").annotate(faltas=Count("id", filter=Q(presente=False)))
-    faltas_map = {r["atleta_id"]: r["faltas"] for r in faltas_semana}
-
-    for r in registros_clase:
-        at = r.atleta
-        nombre = at.usuario.get_full_name() if at and at.usuario_id else "—"
-        rut = getattr(at, "rut", "—")
-        tel_apod = getattr(getattr(at, "apoderado", None), "telefono", "") or ""
-        ult4 = AsistenciaAtleta.objects.filter(atleta=at).order_by("-clase__fecha")[:4]
-        faltas_ult4 = sum(1 for x in ult4 if not x.presente)
-        filas.append({
-            "rut": rut,
-            "nombre": nombre,
-            "faltas_semana": faltas_map.get(at.id, 0),
-            "faltas_ult4": faltas_ult4,
-            "tel_apod": tel_apod,
-            "presente": r.presente,
-            "observ": r.observaciones,
-        })
-
-    return render(request, "core/reportes_kpi_asistencias.html", {
-        "clase": clase,
-        "lunes": lunes, "domingo": domingo,
-        "filas": filas,
-    })
-
-
-# 🧑‍🏫 Asistencia por clase (selector)
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF)
-@require_http_methods(["GET"])
-def reporte_asistencia_por_clase(request):
-    fecha = request.GET.get("fecha") or ""
-    try:
-        fecha_dt = date.fromisoformat(fecha) if fecha else None
-    except ValueError:
-        fecha_dt = None
-
-    sede_id = request.GET.get("sede") or ""
-    deporte_id = request.GET.get("disciplina") or ""
-    clase_id = request.GET.get("clase") or ""
-
-    clases = Clase.objects.select_related("profesor", "sede_deporte__sede", "sede_deporte__deporte").all()
-    if fecha_dt:
-        clases = clases.filter(fecha=fecha_dt)
-    if sede_id:
-        clases = clases.filter(sede_deporte__sede_id=sede_id)
-    if deporte_id:
-        clases = clases.filter(sede_deporte__deporte_id=deporte_id)
-
-    seleccionada = None
-    registros = []
-    if clase_id:
-        seleccionada = get_object_or_404(clases, pk=clase_id)
-        registros = AsistenciaAtleta.objects.filter(clase=seleccionada).select_related("atleta__usuario").order_by(
-            "atleta__usuario__last_name")
-
-    return render(request, "core/reportes_kpi_asistencias.html", {
-        "fecha": fecha,
-        "sede_id": sede_id,
-        "deporte_id": deporte_id,
-        "clase_id": int(clase_id) if clase_id else "",
-        "sedes": Sede.objects.order_by("nombre"),
-        "disciplinas": Deporte.objects.order_by("nombre"),
-        "clases": clases.order_by("-fecha", "hora_inicio"),
-        "seleccionada": seleccionada,
-        "registros": registros,
-    })
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
-def reporte_inscripciones(request):
-    """Vista de reporte de inscripciones por curso."""
-    return render(request, "core/reportes_kpi_asistencias.html")
-
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
-def reporte_calendario(request):
-    """Vista del calendario consolidado de clases, citas y eventos."""
-    return render(request, "core/reporte_calendario.html")
-
-
-# Placeholders
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
-def reporte_asistencia_por_curso(request):
-    return render(request, "core/reportes_kpi_estudiantes.html", {"titulo": "Asistencia por curso (rango) – próximamente"})
-
-
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
-def reporte_asistencia_por_sede(request):
-    return render(request, "core/reportes_kpi_estudiantes.html", {"titulo": "Asistencia por sede (rango) – próximamente"})
-
-
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
-def reporte_llegadas_tarde(request):
-    return render(request, "core/reportes_kpi_estudiantes.html", {"titulo": "Llegadas tarde – próximamente"})
-
-
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
-def reportes_exportar_todo(request):
-    return HttpResponse("Exportador general (xlsx/pdf) – por implementar")
-
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
-def exportar_kpi_excel(request):
-    """Exporta los KPI generales a un archivo Excel."""
-    data = obtener_kpi_generales()
-
-    # Convertimos solo los datos numéricos simples
-    plano = {
-        "Total estudiantes": [data["total_estudiantes"]],
-        "Estudiantes activos": [data["estudiantes_activos"]],
-        "Total cursos": [data["total_cursos"]],
-        "Total sedes": [data["total_sedes"]],
-        "Cumplimiento planificación (%)": [data["cumplimiento_planificacion"]],
-    }
-
-    df = pd.DataFrame(plano)
-    response = HttpResponse(
-        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-    response["Content-Disposition"] = 'attachment; filename="reporte_kpi.xlsx"'
-    df.to_excel(response, index=False)
-    return response
-
-
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
-def exportar_kpi_pdf(request):
-    data = obtener_kpi_generales()
-
-    # Generar un gráfico simple de ejemplo (estudiantes por mes)
-    meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun"]
-    valores = [12, 18, 25, 30, 22, 35]
-
-    fig, ax = plt.subplots()
-    ax.plot(meses, valores, marker="o", linewidth=2, color="#003366")
-    ax.set_title("Evolución mensual de estudiantes")
-    ax.set_ylabel("Cantidad")
-    ax.set_xlabel("Mes")
-    buffer = BytesIO()
-    plt.tight_layout()
-    plt.savefig(buffer, format="png")
-    buffer.seek(0)
-    chart_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
-    plt.close(fig)
-
-    contexto = {
-        "titulo": "Reporte de Indicadores CPC",
-        "kpi": [
-            ("Total estudiantes", data["total_estudiantes"]),
-            ("Estudiantes activos", data["estudiantes_activos"]),
-            ("Total cursos", data["total_cursos"]),
-            ("Total sedes", data["total_sedes"]),
-            ("Cumplimiento planificación (%)", data["cumplimiento_planificacion"]),
-        ],
-        "chart_base64": chart_base64,
-        "logo_url": request.build_absolute_uri("/static/img/logo_cpc.png"),  # ajusta el path
-        "ahora": timezone.now(),
-    }
-
-    html = render_to_string("core/pdf_kpi_base.html", contexto)
-    pdf = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
-
-    response = HttpResponse(pdf, content_type="application/pdf")
-    response["Content-Disposition"] = 'attachment; filename="reporte_kpi.pdf"'
-    return response
-
-def obtener_kpi_generales():
-    """Devuelve los datos numéricos generales usados por los reportes KPI"""
-    from applications.core.models import Estudiante, Curso, Sede, Planificacion, AsistenciaCurso, AsistenciaCursoDetalle
-
-    # Conteos generales
-    total_estudiantes = Estudiante.objects.count()
-    estudiantes_activos = Estudiante.objects.filter(activo=True).count()
-    total_cursos = Curso.objects.count()
-    total_sedes = Sede.objects.count()
-    total_planificaciones = Planificacion.objects.count()
-    planif_publicas = Planificacion.objects.filter(publica=True).count()
-
-    cumplimiento_planificacion = (
-        round((planif_publicas / total_planificaciones) * 100, 1)
-        if total_planificaciones > 0 else 0
-    )
-
-    # KPI mensuales (crecimiento de estudiantes)
-    est_mes = (
-        Estudiante.objects.annotate(mes=TruncMonth("creado"))
-        .values("mes")
-        .annotate(total=Count("id"))
-        .order_by("mes")
-    )
-
-    # KPI mensuales de asistencia (clases registradas)
-    asis_mes = (
-        AsistenciaCurso.objects.annotate(mes=TruncMonth("fecha"))
-        .values("mes")
-        .annotate(total=Count("id"))
-        .order_by("mes")
-    )
-
-    return {
-        "total_estudiantes": total_estudiantes,
-        "estudiantes_activos": estudiantes_activos,
-        "total_cursos": total_cursos,
-        "total_sedes": total_sedes,
-        "cumplimiento_planificacion": cumplimiento_planificacion,
-        "est_mes": list(est_mes),
-        "asis_mes": list(asis_mes),
-    }
-
-
-# ========= Utilidades de ubicación / QR =========
 def _haversine_m(lat1, lon1, lat2, lon2) -> float:
     R = 6371000.0
     dlat = radians(lat2 - lat1)
@@ -1429,17 +1289,41 @@ def mi_asistencia_qr(request):
     })
 
 
-# ====== Asistencia (visualizar alumnos del curso) ======
+
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF)
 @require_http_methods(["GET"])
 def asistencia_estudiantes(request, curso_id: int):
+    from .models import AsistenciaCurso, AsistenciaCursoDetalle  # ajusta import si ya los tienes arriba
+
     curso = get_object_or_404(Curso, pk=curso_id)
 
-    # Seguridad: profesor solo ve sus cursos
+
     if _es_prof(request.user) and not (
         curso.profesor_id == request.user.id or curso.profesores_apoyo.filter(id=request.user.id).exists()
     ):
         return HttpResponseForbidden("No puedes ver alumnos de este curso.")
+
+
+    ultima = (
+        AsistenciaCurso.objects
+        .filter(curso=curso)
+        .order_by("-fecha")
+        .first()
+    )
+
+
+    detalles_map = {}
+    resumen = {"P": 0, "A": 0, "J": 0, "total": 0}
+    if ultima:
+        qs_det = (AsistenciaCursoDetalle.objects
+                  .select_related("estudiante")
+                  .filter(asistencia=ultima))
+        for d in qs_det:
+            detalles_map[d.estudiante_id] = d
+            resumen["total"] += 1
+            if d.estado in ("P", "A", "J"):
+                resumen[d.estado] += 1
+
 
     alumnos = _estudiantes_del_curso(curso)
     rows = []
@@ -1448,13 +1332,27 @@ def asistencia_estudiantes(request, curso_id: int):
             nombre = (f"{est.usuario.first_name} {est.usuario.last_name}".strip()
                       or est.usuario.get_username())
         else:
-            nombre = f"{getattr(est, 'nombres', '')} {getattr(est, 'apellidos', '')}".strip() or getattr(est, "rut", "—")
-        rows.append({"est": est, "nombre": nombre, "rut": getattr(est, "rut", "—")})
+            nombre = (f"{getattr(est, 'nombres', '')} {getattr(est, 'apellidos', '')}".strip()
+                      or getattr(est, "rut", "—"))
 
-    return render(request, "profesor/asistencia_estudiantes.html", {"curso": curso, "rows": rows})
+        det = detalles_map.get(est.id)
+        rows.append({
+            "est": est,
+            "nombre": nombre,
+            "rut": getattr(est, "rut", "—"),
+            "estado": getattr(det, "estado", ""),               # "", "P", "A", "J"
+            "observaciones": getattr(det, "observaciones", ""), # puede ser ""
+        })
+
+    ctx = {
+        "curso": curso,
+        "rows": rows,
+        "ultima": ultima,
+        "resumen": resumen if ultima else None,
+    }
+    return render(request, "profesor/asistencia_estudiantes.html", ctx)
 
 
-# ====== Tomar asistencia del día ======
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF)
 @require_http_methods(["GET", "POST"])
 def asistencia_tomar(request, curso_id: int):
@@ -1463,7 +1361,7 @@ def asistencia_tomar(request, curso_id: int):
 
     curso = get_object_or_404(Curso, pk=curso_id)
 
-    # Seguridad: solo el profesor o apoyo pueden verla
+
     if _es_prof(request.user) and not (
         curso.profesor_id == request.user.id or curso.profesores_apoyo.filter(id=request.user.id).exists()
     ):
@@ -1471,24 +1369,22 @@ def asistencia_tomar(request, curso_id: int):
 
     hoy = timezone.localdate()
 
-    # 🧠 Buscar o crear la asistencia de hoy
+    # Buscar o crear la asistencia de hoy
     asistencia, creada = AsistenciaCurso.objects.get_or_create(
         curso=curso, fecha=hoy, defaults={"creado_por": request.user}
     )
 
-    # 🧩 Siempre sincronizar los alumnos del curso
+    # Sincronizar alumnos del curso -> crear detalles faltantes
     alumnos_curso = list(Estudiante.objects.filter(curso=curso))
     existentes = set(asistencia.detalles.values_list("estudiante_id", flat=True))
     nuevos = [a for a in alumnos_curso if a.id not in existentes]
-
     if nuevos:
         AsistenciaCursoDetalle.objects.bulk_create([
             AsistenciaCursoDetalle(asistencia=asistencia, estudiante=a)
             for a in nuevos
         ])
-        print(f"DEBUG: se agregaron {len(nuevos)} nuevos alumnos al detalle")
 
-    # 🧾 Procesar acciones POST
+    # POST
     if request.method == "POST":
         accion = (request.POST.get("accion") or "").lower()
 
@@ -1507,25 +1403,32 @@ def asistencia_tomar(request, curso_id: int):
             return redirect("core:asistencia_tomar", curso_id=curso.id)
 
         elif accion == "guardar":
+            actualizados = 0
             for d in asistencia.detalles.all():
-                estado = request.POST.get(f"estado_{d.estudiante_id}")
-                obs = (request.POST.get(f"obs_{d.estudiante_id}") or "").strip()
-                if estado in ("P", "A", "J"):
+                estado = request.POST.get(f"estado_{d.id}")
+                obs = (request.POST.get(f"obs_{d.id}") or "").strip()
+                if estado in ("P", "A", "J") and (d.estado != estado or (d.observaciones or "") != obs):
                     d.estado = estado
                     d.observaciones = obs
                     d.save(update_fields=["estado", "observaciones"])
-            messages.success(request, "Asistencia guardada.")
-            return redirect("core:asistencia_tomar", curso_id=curso.id)
+                    actualizados += 1
+            messages.success(request, f"Asistencia guardada. Registros actualizados: {actualizados}.")
+            # 👉 Al guardar, volver al listado
+            return redirect("profesor:asistencia_profesor")
 
-    # 🧍‍♂️ Construir la lista de alumnos para la tabla
-    detalles = asistencia.detalles.select_related("estudiante")
+        # (opcional) acción desconocida
+        messages.info(request, "Acción no reconocida.")
+        return redirect("core:asistencia_tomar", curso_id=curso.id)
+
+    # Construir filas para el template
+    detalles = asistencia.detalles.select_related("estudiante").order_by(
+        "estudiante__apellidos", "estudiante__nombres"
+    )
     rows = []
     for d in detalles:
         est = d.estudiante
-        nombre = (
-                f"{getattr(est, 'nombres', '')} {getattr(est, 'apellidos', '')}".strip()
-                or getattr(est, "rut", "—")
-        )
+        nombre = (f"{getattr(est, 'nombres', '')} {getattr(est, 'apellidos', '')}".strip()
+                  or getattr(est, "rut", "—"))
         rows.append({
             "ins": d,
             "est": est,
@@ -1534,24 +1437,21 @@ def asistencia_tomar(request, curso_id: int):
             "obs": d.observaciones,
         })
 
-    print(f"DEBUG: curso={curso}, alumnos={len(rows)}")
-
     ctx = {
         "curso": curso,
         "clase": asistencia,
         "rows": rows,
-        "resumen": asistencia.resumen,
+        "resumen": getattr(asistencia, "resumen", {"P": 0, "A": 0, "J": 0, "total": len(rows)}),
     }
     return render(request, "profesor/asistencia_tomar.html", ctx)
 
-# --- Compat: si tu urls antiguas apuntan a 'asistencia_profesor', redirige al tomar ---
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF)
 @require_http_methods(["GET", "POST"])
 def asistencia_profesor(request, curso_id: int):
     return redirect("core:asistencia_tomar", curso_id=curso_id)
 
 
-# ====== Ficha estudiante (stub) ======
+
 @role_required(Usuario.Tipo.PROF, Usuario.Tipo.PMUL, Usuario.Tipo.COORD, Usuario.Tipo.ADMIN)
 @require_http_methods(["GET", "POST"])
 def ficha_estudiante(request, estudiante_id: int):
@@ -1589,7 +1489,7 @@ def inscribir_en_curso(request, curso_id: int, estudiante_id: int):
         return redirect("core:cursos_list")
 
 
-# ---------- Helper APODERADO ----------
+
 def _ensure_apoderado_user(nombre_completo: str, rut: str, telefono: str = "", email: str = ""):
     if not rut:
         return None
@@ -1620,7 +1520,7 @@ def _ensure_apoderado_user(nombre_completo: str, rut: str, telefono: str = "", e
         return None
 
 
-# ---------- Rutas opcionales para crear según programa ----------
+
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET"])
 def estudiante_nuevo_selector(request):
@@ -1701,7 +1601,7 @@ def estudiante_create_alto(request):
     })
 
 
-# ====== Solicitudes de registro público (genéricas de compatibilidad) ======
+
 def _get_registro_publico_model():
     try:
         from .forms import RegistroPublicoForm
@@ -1793,7 +1693,7 @@ def solicitud_marcar_gestionada(request, pk: int):
     return redirect("core:registro_list")
 
 
-# === Postulaciones (Registro Público) ===
+
 def _get_postulacion_model():
     Model = apps.get_model('core', 'PostulacionEstudiante')
     if not Model:
@@ -1801,8 +1701,7 @@ def _get_postulacion_model():
     estados_map = {key: label for key, label in getattr(Model, 'Estado').choices}
     return Model, estados_map
 
-
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF)
 @require_http_methods(["GET"])
 def registro_list(request):
     Model, estados_map = _get_postulacion_model()
@@ -1812,10 +1711,24 @@ def registro_list(request):
     q = (request.GET.get("q") or "").strip()
     estado = (request.GET.get("estado") or "").strip().upper()
 
-    qs = Model.objects.all()
-    if estado in estados_map:
+    # per_page seguro (mín 1, máx 200)
+    try:
+        per_page = int(request.GET.get("per_page") or 25)
+        if per_page < 1:
+            per_page = 25
+        if per_page > 200:
+            per_page = 200
+    except Exception:
+        per_page = 25
+
+
+    qs = Model.objects.all().select_related("periodo", "deporte_interes", "sede_interes")
+
+
+    if estado and estado != "ALL" and estado in estados_map:
         qs = qs.filter(estado=estado)
 
+    # Búsqueda
     if q:
         qs = qs.filter(
             Q(rut__icontains=q) |
@@ -1826,24 +1739,40 @@ def registro_list(request):
             Q(comuna__icontains=q)
         )
 
-    order_field = "creado" if hasattr(Model, "creado") else ("modificado" if hasattr(Model, "modificado") else "id")
+    # Campo de orden robusto
+    def _has_field(m, name: str) -> bool:
+        try:
+            m._meta.get_field(name)
+            return True
+        except Exception:
+            return False
+
+    if _has_field(Model, "creado"):
+        order_field = "creado"
+    elif _has_field(Model, "modificado"):
+        order_field = "modificado"
+    else:
+        order_field = "id"
+
     qs = qs.order_by(f"-{order_field}")
 
-    paginator = Paginator(qs, 25)
+    # Paginación
+    paginator = Paginator(qs, per_page)
     page_obj = paginator.get_page(request.GET.get("page") or 1)
 
-    kpis = {key: Model.objects.filter(estado=key).count() for key in estados_map.keys()}
-    kpis["ALL"] = Model.objects.count()
+
+    kpis = {code: Model.objects.filter(estado=code).count() for code in estados_map.keys()}
+    kpis["ALL"] = sum(kpis.values())
 
     return render(request, "core/registro_list.html", {
         "page_obj": page_obj,
-        "items": page_obj,
+        "items": page_obj,   # compat con tu template
         "q": q,
         "estado": estado,
         "estados_map": estados_map,
         "kpis": kpis,
+        "per_page": per_page,
     })
-
 
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET", "POST"])
@@ -1858,12 +1787,14 @@ def registro_detail(request, pk: int):
         accion = (request.POST.get("accion") or "").strip().lower()
         trans = {
             "contactada": "CON",
-            "aceptada": "ACE",
+            "aceptada":  "ACE",
             "rechazada": "REC",
-            "reabrir": "NEW",
+            "reabrir":   "NEW",
         }
         if accion in trans:
             nuevo = trans[accion]
+
+            # Actualiza estado y comentarios (si cambió)
             if obj.estado != nuevo:
                 obj.estado = nuevo
                 nota = (request.POST.get("nota") or "").strip()
@@ -1878,18 +1809,38 @@ def registro_detail(request, pk: int):
                 messages.success(request, f"Postulación actualizada a: {estados_map.get(nuevo, nuevo)}.")
             else:
                 messages.info(request, "La postulación ya estaba en ese estado.")
-        else:
-            messages.error(request, "Acción inválida.")
+
+            # ✅ Al aceptar, crear/actualizar Estudiante y luego redirigir a historial
+            if nuevo == "ACE":
+                try:
+                    from applications.core.services import crear_estudiante_desde_postulacion
+                    est, creado = crear_estudiante_desde_postulacion(obj)
+                    if creado:
+                        messages.success(request, f"Estudiante creado: {getattr(est, 'nombres', '')} {getattr(est, 'apellidos', '')}.")
+                    else:
+                        messages.info(request, f"Estudiante actualizado: {getattr(est, 'nombres', '')} {getattr(est, 'apellidos', '')}.")
+                except Exception as e:
+                    messages.warning(request, f"Postulación aceptada, pero no se pudo crear/actualizar el estudiante: {e}")
+
+                next_url = request.GET.get("next") or request.POST.get("next")
+                if next_url:
+                    return redirect(next_url)
+                return redirect("/postulaciones/?estado=ACE")  # fallback sin reverse
+
+            # Otras acciones: permanecer en el detalle
+            return redirect("core:registro_detail", pk=obj.pk)
+
+        messages.error(request, "Acción inválida.")
         return redirect("core:registro_detail", pk=obj.pk)
 
     return render(request, "core/registro_detail.html", {
         "obj": obj,
         "estados_map": estados_map,
-        "show_back": True, "back_to": _back_to_url(request, "core:registro_list"),
+        "show_back": True,
+        "back_to": _back_to_url(request, "core:registro_list"),
     })
 
 
-# === ADMIN: períodos de registro ===
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
 @require_http_methods(["GET"])
 def periodos_list(request):
@@ -1980,490 +1931,898 @@ def periodo_cerrar_hoy(request, periodo_id: int):
     return redirect("core:periodos_list")
 
 
-# ========== EXPORTAR KPI ESTUDIANTES ==========
-@login_required
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
-def exportar_excel_estudiantes(request):
-    data = obtener_kpi_estudiantes()  # función que ya usamos para los KPI
-    df = pd.DataFrame(data)
-    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    response["Content-Disposition"] = 'attachment; filename="kpi_estudiantes.xlsx"'
-    df.to_excel(response, index=False)
-    return response
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD, Usuario.Tipo.PROF)
+@require_http_methods(["GET"])
+def asistencia_listado_por_curso(request):
 
 
-# ========== EXPORTAR KPI ASISTENCIAS ==========
-@login_required
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
-def exportar_excel_asistencias(request):
-    data = obtener_kpi_asistencias()
-    df = pd.DataFrame(data)
-    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    response["Content-Disposition"] = 'attachment; filename="kpi_asistencias.xlsx"'
-    df.to_excel(response, index=False)
-    return response
+    cursos_qs = Curso.objects.all()
+    if getattr(request.user, "tipo_usuario", "") == Usuario.Tipo.PROF:
+        cursos_qs = cursos_qs.filter(
+            Q(profesor=request.user) | Q(profesores_apoyo=request.user)
+        ).distinct()
 
+    cursos = list(
+        cursos_qs.select_related("sede", "disciplina").order_by("nombre")
+    )
+    if not cursos:
+        return render(request, "profesor/asistencia_listado.html", {"cursos": []})
 
-# ========== EXPORTAR KPI PLANIFICACIONES ==========
-@login_required
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
-def exportar_excel_planificaciones(request):
-    data = obtener_kpi_planificaciones()
-    df = pd.DataFrame(data)
-    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    response["Content-Disposition"] = 'attachment; filename="kpi_planificaciones.xlsx"'
-    df.to_excel(response, index=False)
-    return response
-
-
-# ========== EXPORTAR KPI DESEMPEÑO ==========
-@login_required
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
-def exportar_excel_desempeno(request):
-    data = obtener_kpi_desempeno()
-    df = pd.DataFrame(data)
-    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    response["Content-Disposition"] = 'attachment; filename="kpi_desempeno.xlsx"'
-    df.to_excel(response, index=False)
-    return response
-
-
-# ========== EXPORTAR KPI GENERAL ==========
-@login_required
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
-def exportar_excel_general(request):
-    # Combina todos los KPI en un solo DataFrame
-    data_general = {
-        "Estudiantes": obtener_kpi_estudiantes(),
-        "Asistencias": obtener_kpi_asistencias(),
-        "Planificaciones": obtener_kpi_planificaciones(),
-        "Desempeño": obtener_kpi_desempeno(),
-    }
-
-    # Crear un Excel con múltiples hojas
-    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    response["Content-Disposition"] = 'attachment; filename="kpi_general.xlsx"'
-
-    with pd.ExcelWriter(response, engine="openpyxl") as writer:
-        for nombre, datos in data_general.items():
-            df = pd.DataFrame(datos)
-            df.to_excel(writer, sheet_name=nombre, index=False)
-
-    return response
-
-# ===== FUNCIONES KPI CON DATOS REALES =====
-from django.db.models import Count, Q
-from django.db.models.functions import TruncMonth
-from applications.core.models import Estudiante, Curso, Sede, Planificacion, AsistenciaCurso, AsistenciaCursoDetalle
-
-
-def obtener_kpi_estudiantes():
-    """Indicadores de estudiantes"""
-    total = Estudiante.objects.count()
-    activos = Estudiante.objects.filter(activo=True).count()
-    inactivos = total - activos
-
-    # Nuevos por mes
-    nuevos_mes = (
-        Estudiante.objects.annotate(mes=TruncMonth("creado"))
-        .values("mes")
-        .annotate(nuevos=Count("id"))
-        .order_by("mes")
+    # 2) Última asistencia por curso (una por curso)
+    curso_ids = [c.id for c in cursos]
+    asistencias = (
+        AsistenciaCurso.objects
+        .filter(curso_id__in=curso_ids)
+        .select_related("curso")
+        .order_by("curso_id", "-fecha")
     )
 
-    data = []
-    for e in nuevos_mes:
-        mes = e["mes"].strftime("%b")
-        retencion = round((activos / total) * 100, 1) if total else 0
-        data.append({
-            "Mes": mes,
-            "Nuevos": e["nuevos"],
-            "Activos": activos,
-            "Inactivos": inactivos,
-            "Retención %": retencion,
-        })
-    return data
+    ultima_por_curso = {}
+    for a in asistencias:
+        if a.curso_id not in ultima_por_curso:
+            ultima_por_curso[a.curso_id] = a
 
 
-def obtener_kpi_asistencias():
-    """Indicadores de asistencia"""
-    total_clases = AsistenciaCurso.objects.count()
-    total_registros = AsistenciaCursoDetalle.objects.count()
-    presentes = AsistenciaCursoDetalle.objects.filter(estado="P").count()
-    ausentes = AsistenciaCursoDetalle.objects.filter(estado="A").count()
-    justificados = AsistenciaCursoDetalle.objects.filter(estado="J").count()
-
-    tasa_asistencia = round((presentes / total_registros) * 100, 1) if total_registros else 0
-
-    # Por mes
-    por_mes = (
-        AsistenciaCurso.objects.annotate(mes=TruncMonth("fecha"))
-        .values("mes")
-        .annotate(clases=Count("id"))
-        .order_by("mes")
+    ultima_ids = [a.id for a in ultima_por_curso.values()]
+    detalles = (
+        AsistenciaCursoDetalle.objects
+        .filter(asistencia_id__in=ultima_ids)
+        .select_related("estudiante")
+        .order_by("estudiante__apellidos", "estudiante__nombres")
     )
 
-    data = []
-    for m in por_mes:
-        mes = m["mes"].strftime("%b")
-        data.append({
-            "Mes": mes,
-            "Clases registradas": m["clases"],
-            "Presentes": presentes,
-            "Ausentes": ausentes,
-            "Justificados": justificados,
-            "Tasa asistencia %": tasa_asistencia,
-        })
-    return data
+    det_map = {}
+    for d in detalles:
+        det_map.setdefault(d.asistencia_id, []).append(d)
 
 
-def obtener_kpi_planificaciones():
-    """Indicadores de planificación docente"""
-    total = Planificacion.objects.count()
-    publicadas = Planificacion.objects.filter(publica=True).count()
-    cumplimiento = round((publicadas / total) * 100, 1) if total else 0
+    for c in cursos:
+        a = ultima_por_curso.get(c.id)
+        c.ultima = a
+        c.ultima_detalles = det_map.get(a.id, []) if a else []
 
-    por_mes = (
-        Planificacion.objects.annotate(mes=TruncMonth("semana"))
-        .values("mes")
-        .annotate(planificadas=Count("id"))
-        .order_by("mes")
-    )
-
-    data = []
-    for p in por_mes:
-        mes = p["mes"].strftime("%b")
-        data.append({
-            "Mes": mes,
-            "Planificadas": p["planificadas"],
-            "Publicadas": publicadas,
-            "Cumplimiento %": cumplimiento,
-        })
-    return data
+    return render(request, "profesor/asistencia_listado.html", {"cursos": cursos})
 
 
-def obtener_kpi_desempeno():
-    """Indicadores de desempeño deportivo"""
-    # Si no hay campos de logros, usaremos proxies (por ejemplo, planificaciones tipo evento)
-    logros_nacionales = Planificacion.objects.filter(tipo__icontains="nacional").count() if hasattr(Planificacion, "tipo") else 0
-    logros_internacionales = Planificacion.objects.filter(tipo__icontains="internacional").count() if hasattr(Planificacion, "tipo") else 0
 
-    # Evolución mensual de logros (si existen tipos)
-    por_mes = (
-        Planificacion.objects.filter(tipo__icontains="logro").annotate(mes=TruncMonth("semana"))
-        .values("mes")
-        .annotate(total=Count("id"))
-        .order_by("mes")
-    ) if hasattr(Planificacion, "tipo") else []
+from datetime import date, datetime, timedelta
+from calendar import monthrange
+import json
 
-    data = []
-    for l in por_mes:
-        mes = l["mes"].strftime("%b")
-        data.append({
-            "Mes": mes,
-            "Logros Nacionales": logros_nacionales,
-            "Logros Internacionales": logros_internacionales,
-        })
-    if not data:
-        data.append({
-            "Mes": "—",
-            "Logros Nacionales": logros_nacionales,
-            "Logros Internacionales": logros_internacionales,
-        })
-    return data
+import pandas as pd
+from weasyprint import HTML
 
-@login_required
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
-def exportar_kpi_general(request):
-    """Exporta todos los KPI en un solo PDF con formato visual."""
-    data = {
-        "estudiantes": obtener_kpi_estudiantes(),
-        "asistencias": obtener_kpi_asistencias(),
-        "planificaciones": obtener_kpi_planificaciones(),
-        "desempeno": obtener_kpi_desempeno(),
-        "generales": obtener_kpi_generales(),
-    }
-
-    html = render_to_string("core/reportes_pdf_general.html", data)
-    pdf = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
-
-    response = HttpResponse(pdf, content_type="application/pdf")
-    response["Content-Disposition"] = "attachment; filename='reporte_general_kpi.pdf'"
-    return response
-
-@login_required
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
-def exportar_kpi_estudiantes(request):
-    """Exporta el reporte PDF de KPI de estudiantes."""
-    data = {"kpi_estudiantes": obtener_kpi_estudiantes()}
-
-    html = render_to_string("core/reportes_pdf_estudiantes.html", data)
-    pdf = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
-
-    response = HttpResponse(pdf, content_type="application/pdf")
-    response["Content-Disposition"] = "attachment; filename='kpi_estudiantes.pdf'"
-    return response
-
-@login_required
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
-def exportar_kpi_asistencias(request):
-    """Exporta el reporte PDF de KPI de asistencias."""
-    data = {"kpi_asistencias": obtener_kpi_asistencias()}
-
-    html = render_to_string("core/reportes_pdf_asistencias.html", data)
-    pdf = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
-
-    response = HttpResponse(pdf, content_type="application/pdf")
-    response["Content-Disposition"] = "attachment; filename='kpi_asistencias.pdf'"
-    return response
-
-@login_required
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
-def exportar_kpi_planificaciones(request):
-    """Exporta el reporte PDF de KPI de planificaciones."""
-    data = {"kpi_planificaciones": obtener_kpi_planificaciones()}
-
-    html = render_to_string("core/reportes_pdf_planificaciones.html", data)
-    pdf = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
-
-    response = HttpResponse(pdf, content_type="application/pdf")
-    response["Content-Disposition"] = "attachment; filename='kpi_planificaciones.pdf'"
-    return response
-
-@login_required
-@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
-def exportar_kpi_desempeno(request):
-    """Exporta el reporte PDF de KPI de desempeño."""
-    data = {"kpi_desempeno": obtener_kpi_desempeno()}
-
-    html = render_to_string("core/reportes_pdf_desempeno.html", data)
-    pdf = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
-
-    response = HttpResponse(pdf, content_type="application/pdf")
-    response["Content-Disposition"] = "attachment; filename='kpi_desempeno.pdf'"
-    return response
-
-def reportes_kpi_estudiantes(request):
-    programa = request.GET.get("programa", "").strip()
-
-    # Filtrar estudiantes por programa (si corresponde)
-    estudiantes = Estudiante.objects.all()
-    if programa:
-        estudiantes = estudiantes.filter(curso__programa=programa)
-
-    # Indicadores base
-    total_estudiantes = estudiantes.count()
-    activos = estudiantes.filter(activo=True).count()
-    nuevos = estudiantes.filter(creado__year=2025).count()  # ejemplo: ajustar año dinámico
-    retencion = 0
-    if total_estudiantes:
-        retencion = round((activos / total_estudiantes) * 100, 1)
-
-    kpi_estudiantes = [
-        {"label": "Total de Estudiantes", "value": total_estudiantes, "icon": "fa-users"},
-        {"label": "Estudiantes Activos", "value": activos, "icon": "fa-user-check"},
-        {"label": "Nuevos este año", "value": nuevos, "icon": "fa-user-plus"},
-        {"label": "Tasa de Retención (%)", "value": f"{retencion}%", "icon": "fa-chart-line"},
-    ]
-
-    return render(request, "core/reportes_kpi_estudiantes.html", {
-        "kpi_estudiantes": kpi_estudiantes,
-        "programa": programa,
-    })
-
-def reportes_kpi_planificaciones(request):
-    profesor_id = request.GET.get("profesor")
-
-    planificaciones = Planificacion.objects.all()
-    if profesor_id:
-        planificaciones = planificaciones.filter(autor_id=profesor_id)
-
-    total = planificaciones.count()
-    publicadas = planificaciones.filter(publica=True).count()
-
-    cumplimiento = 0
-    if total:
-        cumplimiento = round((publicadas / total) * 100, 1)
-
-    kpi_planificaciones = [
-        {"label": "Total de Planificaciones", "value": total, "icon": "fa-clipboard-list"},
-        {"label": "Publicadas", "value": publicadas, "icon": "fa-paper-plane"},
-        {"label": "Cumplimiento (%)", "value": f"{cumplimiento}%", "icon": "fa-bullseye"},
-    ]
-
-    return render(request, "core/reportes_kpi_planificaciones.html", {
-        "kpi_planificaciones": kpi_planificaciones,
-        "profesores": Usuario.objects.filter(tipo_usuario="PROF"),
-        "profesor_id": profesor_id,
-    })
-
-def reportes_kpi_desempeno(request):
-    dep_id = request.GET.get("disciplina")
-
-    estudiantes = Estudiante.objects.all()
-    if dep_id:
-        estudiantes = estudiantes.filter(curso__disciplina_id=dep_id)
-
-    logros_nac = estudiantes.filter(logro_nacional=True).count()
-    logros_int = estudiantes.filter(logro_internacional=True).count()
-    total = estudiantes.count()
-
-    porc_logros = 0
-    if total:
-        porc_logros = round(((logros_nac + logros_int) / total) * 100, 1)
-
-    kpi_desempeno = [
-        {"label": "Logros Nacionales", "value": logros_nac, "icon": "fa-medal"},
-        {"label": "Logros Internacionales", "value": logros_int, "icon": "fa-earth-americas"},
-        {"label": "Porcentaje con Logros", "value": f"{porc_logros}%", "icon": "fa-chart-pie"},
-    ]
-
-    return render(request, "core/reportes_kpi_desempeno.html", {
-        "kpi_desempeno": kpi_desempeno,
-        "disciplinas": Deporte.objects.all(),
-        "dep_id": dep_id,
-    })
-
-def reportes_kpi_asistencias(request):
-    sede_id = request.GET.get("sede")
-    dep_id = request.GET.get("disciplina")
-
-    asistencias = AsistenciaCurso.objects.select_related("curso")
-
-    # Aplicar filtros
-    if sede_id:
-        asistencias = asistencias.filter(curso__sede_id=sede_id)
-    if dep_id:
-        asistencias = asistencias.filter(curso__disciplina_id=dep_id)
-
-    total_asistencias = asistencias.count()
-    cursos_con_asistencia = asistencias.values("curso").distinct().count()
-
-    promedio = 0
-    if cursos_con_asistencia:
-        promedio = round(total_asistencias / cursos_con_asistencia, 1)
-
-    kpi_asistencias = [
-        {"label": "Total de Asistencias Registradas", "value": total_asistencias, "icon": "fa-calendar-check"},
-        {"label": "Cursos con Asistencias", "value": cursos_con_asistencia, "icon": "fa-chalkboard-teacher"},
-        {"label": "Promedio de Asistencia por Curso", "value": promedio, "icon": "fa-chart-bar"},
-    ]
-
-    return render(request, "core/reportes_kpi_asistencias.html", {
-        "kpi_asistencias": kpi_asistencias,
-        "sedes": Sede.objects.all(),
-        "disciplinas": Deporte.objects.all(),
-        "sede_id": sede_id,
-        "dep_id": dep_id,
-    })
-
-def exportar_kpi_inasistencias(request):
-    # Aquí generas el PDF o Excel de inasistencias
-    # Por ahora, algo simple para que no falle:
-    from django.http import HttpResponse
-    return HttpResponse("Exportar KPI de Inasistencias (PDF)")
-
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models import Q, Count, F
+from django.db.models.functions import TruncMonth, TruncDay
 from django.http import HttpResponse
 from django.shortcuts import render
-from .models import AsistenciaCursoDetalle
+from django.utils import timezone
+from django.views.decorators.http import require_http_methods
+
+from applications.usuarios.utils import role_required
+from applications.usuarios.models import Usuario
+from applications.core.models import (
+    Estudiante, Curso, Sede, Deporte, Planificacion,
+    AsistenciaCurso, AsistenciaCursoDetalle
+)
+
+ASIS_P, ASIS_A, ASIS_J = "P", "A", "J"
 
 
-def reportes_kpi_inasistencias(request):
-    """Vista para mostrar los KPI de inasistencias (pantalla web)."""
-    total_inasistencias = AsistenciaCursoDetalle.objects.filter(estado="A").count()
-    justificadas = AsistenciaCursoDetalle.objects.filter(estado="J").count()
-    injustificadas = total_inasistencias - justificadas
+# --------- helpers ----------
+def _to_date(v):
 
-    kpi_inasistencias = [
-        {"label": "Inasistencias Totales", "value": total_inasistencias, "icon": "fa-calendar-xmark"},
-        {"label": "Justificadas", "value": justificadas, "icon": "fa-file-circle-check"},
-        {"label": "No Justificadas", "value": injustificadas, "icon": "fa-file-circle-xmark"},
+    try:
+        return v.date() if isinstance(v, datetime) else v
+    except Exception:
+        return v
+
+def _sf(qs, **kwargs):
+
+    try:
+        return qs.filter(**kwargs)
+    except Exception:
+        return qs
+
+def _first_existing_field(model_cls, candidates):
+
+    names = {f.name for f in model_cls._meta.get_fields()}
+    for c in candidates:
+        if c in names:
+            return c
+    return None
+
+def _week_range(semana_str: str):
+
+    try:
+        base = date.fromisoformat(semana_str) if semana_str else timezone.localdate()
+    except ValueError:
+        base = timezone.localdate()
+    lunes = base - timedelta(days=base.weekday())  # 0=lunes
+    domingo = lunes + timedelta(days=6)
+    return lunes, domingo
+
+def _month_range(mes_str: str):
+
+    today = timezone.localdate()
+    if not mes_str:
+        y, m = today.year, today.month
+    else:
+        try:
+            y, m = map(int, mes_str.split("-"))
+        except Exception:
+            y, m = today.year, today.month
+    last_day = monthrange(y, m)[1]
+    return date(y, m, 1), date(y, m, last_day), y, m
+
+def _year_range(anio_str: str):
+
+    today = timezone.localdate()
+    try:
+        y = int(anio_str) if anio_str else today.year
+    except Exception:
+        y = today.year
+    return date(y, 1, 1), date(y, 12, 31), y
+
+def _serie_meses_completos(inicio: date, fin: date):
+
+    items, y, m = [], inicio.year, inicio.month
+    while True:
+        items.append(date(y, m, 1))
+        if y == fin.year and m == fin.month:
+            break
+        m += 1
+        if m == 13:
+            m, y = 1, y + 1
+    return items
+
+def _aplicar_filtros_basicos(est_qs, curso_qs, plan_qs, asis_qs, asis_det_qs,
+                             programa: str, sede_id: str, dep_id: str):
+    if programa:
+        est_qs      = _sf(est_qs,      curso__programa__icontains=programa)
+        curso_qs    = _sf(curso_qs,    programa__icontains=programa)
+        plan_qs     = _sf(plan_qs,     curso__programa__icontains=programa)
+        asis_qs     = _sf(asis_qs,     curso__programa__icontains=programa)
+        asis_det_qs = _sf(asis_det_qs, asistencia__curso__programa__icontains=programa)
+    if sede_id:
+        est_qs      = _sf(est_qs,      curso__sede_id=sede_id)
+        curso_qs    = _sf(curso_qs,    sede_id=sede_id)
+        plan_qs     = _sf(plan_qs,     curso__sede_id=sede_id)
+        asis_qs     = _sf(asis_qs,     curso__sede_id=sede_id)
+        asis_det_qs = _sf(asis_det_qs, asistencia__curso__sede_id=sede_id)
+    if dep_id:
+        est_qs      = _sf(est_qs,      curso__disciplina_id=dep_id)
+        curso_qs    = _sf(curso_qs,    disciplina_id=dep_id)
+        plan_qs     = _sf(plan_qs,     curso__disciplina_id=dep_id)
+        asis_qs     = _sf(asis_qs,     curso__disciplina_id=dep_id)
+        asis_det_qs = _sf(asis_det_qs, asistencia__curso__disciplina_id=dep_id)
+    return est_qs, curso_qs, plan_qs, asis_qs, asis_det_qs
+
+# Serializador JSON seguro para pasar listas/dicts al template
+def _j(x):
+    return json.dumps(x, ensure_ascii=False, cls=DjangoJSONEncoder)
+
+
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+@require_http_methods(["GET"])
+def dashboard_kpi(request):
+    programa = (request.GET.get("programa") or "").strip()
+    sede_id  = request.GET.get("sede") or ""
+    dep_id   = request.GET.get("disciplina") or ""
+    anio_actual = timezone.now().year
+    __dbg = request.GET.get("__dbg") == "1"
+
+    est_fecha_field = _first_existing_field(Estudiante, [
+        "creado","fecha_creacion","created_at","created","fecha_registro","fecha","inscrito_en","registrado_en"
+    ]) or "id"
+
+    asis_fecha_field = _first_existing_field(AsistenciaCurso, [
+        "fecha","creado","fecha_creacion","created_at","created"
+    ]) or "fecha"
+
+    # QS base (con filtros)
+    est_qs   = Estudiante.objects.all()
+    curso_qs = Curso.objects.select_related("sede","profesor","disciplina")
+    plan_qs  = Planificacion.objects.select_related("curso","curso__sede","curso__profesor","curso__disciplina")
+    asis_qs  = AsistenciaCurso.objects.select_related("curso","curso__sede","curso__disciplina")
+    asis_det_qs = AsistenciaCursoDetalle.objects.select_related("asistencia","asistencia__curso")
+
+    # Filtros
+    if programa:
+        est_qs      = _sf(est_qs,      curso__programa__icontains=programa)
+        curso_qs    = _sf(curso_qs,    programa__icontains=programa)
+        plan_qs     = _sf(plan_qs,     curso__programa__icontains=programa)
+        asis_qs     = _sf(asis_qs,     curso__programa__icontains=programa)
+        asis_det_qs = _sf(asis_det_qs, asistencia__curso__programa__icontains=programa)
+    if sede_id:
+        est_qs      = _sf(est_qs,      curso__sede_id=sede_id)
+        curso_qs    = _sf(curso_qs,    sede_id=sede_id)
+        plan_qs     = _sf(plan_qs,     curso__sede_id=sede_id)
+        asis_qs     = _sf(asis_qs,     curso__sede_id=sede_id)
+        asis_det_qs = _sf(asis_det_qs, asistencia__curso__sede_id=sede_id)
+    if dep_id:
+        est_qs      = _sf(est_qs,      curso__disciplina_id=dep_id)
+        curso_qs    = _sf(curso_qs,    disciplina_id=dep_id)
+        plan_qs     = _sf(plan_qs,     curso__disciplina_id=dep_id)
+        asis_qs     = _sf(asis_qs,     curso__disciplina_id=dep_id)
+        asis_det_qs = _sf(asis_det_qs, asistencia__curso__disciplina_id=dep_id)
+
+    # ---- MÉTRICAS CON FILTROS
+    def _metricas(_est, _curso, _plan, _asis, _det):
+        total_estudiantes = _est.count()
+        activos           = _sf(_est, activo=True).count()
+        total_profesores  = Usuario.objects.filter(tipo_usuario=Usuario.Tipo.PROF).count()
+        total_cursos      = _curso.count()
+
+        total_plan = _plan.count()
+        plan_publicas = _sf(_plan, publica=True).count()
+        cumplimiento_planificacion = round((plan_publicas/total_plan)*100, 1) if total_plan else 0.0
+
+        clases_total    = _asis.count()
+        clases_cerradas = _sf(_asis, estado=getattr(AsistenciaCurso.Estado, "CERR", "CERR")).count() if hasattr(AsistenciaCurso, "Estado") else 0
+        uso_recintos    = round((clases_cerradas/clases_total)*100, 1) if clases_total else 0.0
+
+        detalles_total = _det.count()
+        presentes      = _sf(_det, estado="P").count()
+        ausentes       = _sf(_det, estado="A").count()
+        justificadas   = _sf(_det, estado="J").count()
+        tasa_asistencia   = round((presentes/detalles_total)*100, 1) if detalles_total else 0.0
+        tasa_inasistencia = round(((ausentes+justificadas)/detalles_total)*100, 1) if detalles_total else 0.0
+        ratio_est_prof    = round((total_estudiantes/total_profesores), 1) if total_profesores else 0.0
+
+        # Series 12 meses
+        hoy = timezone.localdate()
+        inicio_12 = (hoy.replace(day=1) - timedelta(days=365)).replace(day=1)
+        fin_12    = hoy.replace(day=1)
+        meses = []
+        y, m = inicio_12.year, inicio_12.month
+        while True:
+            meses.append(date(y, m, 1))
+            if y == fin_12.year and m == fin_12.month:
+                break
+            m += 1
+            if m == 13: m, y = 1, y+1
+
+        est_map = {}
+        if est_fecha_field != "id":
+            est_mes = (_est.annotate(m=TruncMonth(est_fecha_field))
+                           .values("m").annotate(total=Count("id")))
+            est_map = { (r["m"].date() if isinstance(r["m"], datetime) else r["m"]) : r["total"] for r in est_mes }
+
+        cla_mes = (_asis.annotate(m=TruncMonth(asis_fecha_field))
+                        .values("m").annotate(total=Count("id")))
+        cla_map = { (r["m"].date() if isinstance(r["m"], datetime) else r["m"]) : r["total"] for r in cla_mes }
+
+        est_labels = [m_.strftime("%b %Y") for m_ in meses]
+        est_series = [est_map.get(m_, 0) for m_ in meses]
+        cla_labels = [m_.strftime("%b %Y") for m_ in meses]
+        cla_series = [cla_map.get(m_, 0) for m_ in meses]
+
+        # Top inasistencia
+        top_rows = (_det.values("asistencia__curso__id","asistencia__curso__nombre")
+                        .annotate(total=Count("id"),
+                                  ina=Count("id", filter=Q(estado__in=["A","J"]))))
+
+        top_inas = []
+        for r in top_rows:
+            t = r["total"] or 0
+            pct = round((r["ina"]/t)*100, 1) if t else 0.0
+            top_inas.append({
+                "curso_id": r["asistencia__curso__id"],
+                "curso": r["asistencia__curso__nombre"],
+                "pct": pct, "total": t
+            })
+        top_inas = sorted(top_inas, key=lambda x: x["pct"], reverse=True)[:5]
+
+        # Profes con menor % de cierre
+        prof_rows = (_asis.values("curso__profesor__first_name","curso__profesor__last_name")
+                          .annotate(total=Count("id"),
+                                    cerr=Count("id", filter=Q(estado=getattr(AsistenciaCurso.Estado,"CERR","CERR"))))
+                          .filter(total__gt=0))
+        prof_bad = []
+        for r in prof_rows:
+            t = r["total"] or 0
+            pct = round((r["cerr"]/t)*100, 1) if t else 0.0
+            name = f'{r["curso__profesor__first_name"]} {r["curso__profesor__last_name"]}'.strip() or "—"
+            prof_bad.append({"prof": name, "pct": pct, "total": t})
+        prof_bad = sorted(prof_bad, key=lambda x: x["pct"])[:10]
+
+        return {
+            "totales": (total_estudiantes, total_cursos, clases_total, detalles_total),
+            "cards": {
+                "total_estudiantes": total_estudiantes,
+                "activos": activos,
+                "total_cursos": total_cursos,
+                "cumpl_plan": cumplimiento_planificacion,
+                "uso_recintos": uso_recintos,
+                "tasa_asist": tasa_asistencia,
+                "tasa_inasist": tasa_inasistencia,
+                "ratio_ep": ratio_est_prof,
+            },
+            "series": (est_labels, est_series, cla_labels, cla_series),
+            "dist": (presentes, ausentes, justificadas),
+            "tops": (top_inas, prof_bad),
+        }
+
+    M = _metricas(est_qs, curso_qs, plan_qs, asis_qs, asis_det_qs)
+    total_estudiantes, total_cursos, clases_total, detalles_total = M["totales"]
+
+
+    alerta_filtros = False
+    if (total_estudiantes == 0 and clases_total == 0 and detalles_total == 0):
+        est_all, curso_all = Estudiante.objects.all(), Curso.objects.all()
+        plan_all = Planificacion.objects.all()
+        asis_all = AsistenciaCurso.objects.all()
+        det_all  = AsistenciaCursoDetalle.objects.all()
+        M2 = _metricas(est_all, curso_all, plan_all, asis_all, det_all)
+        if any(M2["totales"]):
+            M = M2
+            alerta_filtros = True
+
+    (est_labels, est_series, cla_labels, cla_series) = M["series"]
+    (presentes, ausentes, justificadas) = M["dist"]
+    (top_inasistencia, top_prof_bajo_cumpl) = M["tops"]
+
+    cards = M["cards"]
+    kpi_cards = [
+        {"label":"Total estudiantes","value":cards["total_estudiantes"],"icon":"fa-users","color":"#0ea5e9"},
+        {"label":"Activos","value":cards["activos"],"icon":"fa-user-check","color":"#10b981"},
+        {"label":"Cursos","value":cards["total_cursos"],"icon":"fa-book","color":"#84cc16"},
+        {"label":"Cumpl. planificación","value":f'{cards["cumpl_plan"]}%',"icon":"fa-clipboard-check","color":"#f59e0b"},
+        {"label":"Uso recintos (proxy)","value":f'{cards["uso_recintos"]}%',"icon":"fa-building","color":"#a855f7"},
+        {"label":"Tasa asistencia","value":f'{cards["tasa_asist"]}%',"icon":"fa-calendar-check","color":"#06b6d4"},
+        {"label":"Tasa inasistencia","value":f'{cards["tasa_inasist"]}%',"icon":"fa-calendar-xmark","color":"#ef4444"},
+        {"label":"Ratio est./prof.","value":cards["ratio_ep"],"icon":"fa-scale-balanced","color":"#6366f1"},
     ]
 
-    return render(request, "core/reportes_kpi_inasistencias.html", {
-        "kpi_inasistencias": kpi_inasistencias
-    })
+    if __dbg:
+        print("[KPI][GENERAL] filtros => programa:", programa, "sede:", sede_id, "dep:", dep_id)
+        print("[KPI][GENERAL] totales (con/fallback):", M["totales"], "| alerta_filtros:", alerta_filtros)
+        print("[KPI][GENERAL] est_series:", len(est_series), "cla_series:", len(cla_series))
+        print("[KPI][GENERAL] P/A/J:", presentes, ausentes, justificadas)
+
+    ctx = {
+        "modo":"general",
+        "programa": programa, "sede_id": str(sede_id), "dep_id": str(dep_id),
+        "sedes": Sede.objects.order_by("nombre"),
+        "disciplinas": Deporte.objects.order_by("nombre"),
+        "anio_actual": anio_actual,
+        "kpi_cards": kpi_cards,
 
 
-def exportar_kpi_inasistencias(request):
-    """Exportación PDF (simplificada temporalmente)."""
-    return HttpResponse("Exportar KPI de Inasistencias (PDF pendiente de implementar)")
+        "est_labels": _j(est_labels), "est_series": _j(est_series),
+        "cla_labels": _j(cla_labels), "cla_series": _j(cla_series),
+
+        "dist_presente": presentes, "dist_ausente": ausentes, "dist_justificada": justificadas,
+        "top_inasistencia": top_inasistencia,
+        "top_prof_bajo_cumpl": top_prof_bajo_cumpl,
 
 
-def exportar_excel_inasistencias(request):
-    """Exportación Excel (simplificada temporalmente)."""
-    return HttpResponse("Exportar KPI de Inasistencias (Excel pendiente de implementar)")
+        "dia_labels": _j([]), "dia_series": _j([]),
 
+        "semana":"", "rango_str":"", "mes":"", "anio":"",
+        "alerta_filtros": alerta_filtros,
+    }
+    return render(request, "core/dashboard_kpi.html", ctx)
 
-# applications/core/views.py
-from django.shortcuts import render
-from django.contrib.auth.decorators import user_passes_test
-from .models import AsistenciaCursoDetalle, AsistenciaCurso, Estudiante
-
-def es_admin_o_coord(user):
-    """Restringe el acceso solo a administradores o coordinadores."""
-    return user.is_superuser or user.is_staff or user.groups.filter(name__in=["Coordinador"]).exists()
-
-
-@login_required
 @role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
-def asistencia_semaforo(request):
-    """
-    Muestra listado de estudiantes con color según faltas consecutivas.
-    """
-    estudiantes = Estudiante.objects.filter(asistencias_curso__isnull=False).distinct()
+@require_http_methods(["GET"])
+def dashboard_kpi_semana(request):
+    programa   = (request.GET.get("programa") or "").strip()
+    sede_id    = request.GET.get("sede") or ""
+    dep_id     = request.GET.get("disciplina") or ""
+    semana_str = request.GET.get("semana") or ""
+    lunes, domingo = _week_range(semana_str)
+    anio_actual = timezone.now().year
+    __dbg = request.GET.get("__dbg") == "1"
 
-    data = []
-    for est in estudiantes:
-        registros = (
-            AsistenciaCursoDetalle.objects
-            .filter(estudiante=est)
-            .select_related("asistencia")
-            .order_by("asistencia__fecha")
-        )
+    est_qs   = Estudiante.objects.all()
+    curso_qs = Curso.objects.select_related("sede", "profesor", "disciplina")
+    plan_qs  = Planificacion.objects.select_related("curso", "curso__sede", "curso__profesor", "curso__disciplina")\
+                                    .filter(semana__range=(lunes, domingo))
+    asis_qs  = AsistenciaCurso.objects.select_related("curso", "curso__sede", "curso__disciplina")\
+                                      .filter(fecha__range=(lunes, domingo))
+    asis_det_qs = AsistenciaCursoDetalle.objects.select_related("asistencia", "asistencia__curso")\
+                                               .filter(asistencia__fecha__range=(lunes, domingo))
 
-        faltas_consec = 0
-        max_faltas = 0
-        for r in registros:
-            if r.estado == "A":
-                faltas_consec += 1
-                max_faltas = max(max_faltas, faltas_consec)
-            else:
-                faltas_consec = 0
+    est_qs, curso_qs, plan_qs, asis_qs, asis_det_qs = _aplicar_filtros_basicos(
+        est_qs, curso_qs, plan_qs, asis_qs, asis_det_qs, programa, sede_id, dep_id
+    )
 
-        if max_faltas >= 3:
-            color = "rojo"
-        elif max_faltas == 2:
-            color = "amarillo"
-        else:
-            color = "verde"
+    nuevos_semana = _sf(est_qs, creado__range=(lunes, domingo)).count()
 
-        data.append({
-            "estudiante": est,
-            "curso": est.curso,
-            "faltas_consec": max_faltas,
-            "color": color,
-        })
+    clases_total    = asis_qs.count()
+    clases_cerradas = _sf(asis_qs, estado=getattr(AsistenciaCurso.Estado, "CERR", "CERR")).count() if hasattr(AsistenciaCurso, "Estado") else 0
+    uso_recintos    = round((clases_cerradas/clases_total)*100, 1) if clases_total else 0.0
 
-    context = {"data": data}
-    return render(request, "core/semaforo_asistencia.html", context)
+    presentes    = _sf(asis_det_qs, estado=ASIS_P).count()
+    ausentes     = _sf(asis_det_qs, estado=ASIS_A).count()
+    justificadas = _sf(asis_det_qs, estado=ASIS_J).count()
+
+    dias = [lunes + timedelta(days=i) for i in range(7)]
+    dia_labels = [d.strftime("%a %d-%m") for d in dias]
+    serie_diaria = (asis_qs.annotate(d=TruncDay("fecha")).values("d").annotate(total=Count("id")))
+    mapa = {_to_date(r["d"]): r["total"] for r in serie_diaria}
+    dia_series = [mapa.get(d, 0) for d in dias]
+
+    top_rows = (asis_det_qs.values("asistencia__curso__id", "asistencia__curso__nombre")
+                .annotate(total=Count("id"),
+                          ina=Count("id", filter=Q(estado__in=[ASIS_A, ASIS_J]))))
+    tmp = []
+    for r in top_rows:
+        total = r["total"] or 0
+        pct = round((r["ina"]/total)*100, 1) if total else 0.0
+        tmp.append({"curso_id": r["asistencia__curso__id"], "curso": r["asistencia__curso__nombre"], "pct": pct, "total": total})
+    top_inasistencia = sorted(tmp, key=lambda x: x["pct"], reverse=True)[:5]
+
+    total_plan = plan_qs.count()
+    plan_publicas = _sf(plan_qs, publica=True).count()
+    cumplimiento_planificacion = round((plan_publicas/total_plan)*100, 1) if total_plan else 0.0
+
+    ctx = {
+        "modo": "semanal",
+        "programa": programa, "sede_id": str(sede_id), "dep_id": str(dep_id),
+        "sedes": Sede.objects.order_by("nombre"),
+        "disciplinas": Deporte.objects.order_by("nombre"),
+        "semana": lunes.isoformat(),
+        "rango_str": f"{lunes:%d-%m-%Y} al {domingo:%d-%m-%Y}",
+        "anio_actual": anio_actual,
+        "kpi_cards": [
+            {"label": f"Semana {lunes:%d-%m} a {domingo:%d-%m}", "value": "", "icon": "fa-calendar-week", "color": "#0ea5e9"},
+            {"label": "Nuevos (semana)",  "value": nuevos_semana, "icon": "fa-user-plus", "color": "#84cc16"},
+            {"label": "Clases registradas","value": clases_total,  "icon": "fa-calendar", "color": "#3b82f6"},
+            {"label": "Cumpl. planificación", "value": f"{cumplimiento_planificacion}%", "icon": "fa-clipboard-check", "color": "#f59e0b"},
+            {"label": "Uso recintos (proxy)", "value": f"{uso_recintos}%", "icon": "fa-building", "color": "#a855f7"},
+        ],
+
+        # ✅ series en JSON
+        "dia_labels": _j(dia_labels), "dia_series": _j(dia_series),
+
+        "dist_presente": presentes, "dist_ausente": ausentes, "dist_justificada": justificadas,
+        "top_inasistencia": top_inasistencia,
+
+        # vacías para mantener la API del template
+        "est_labels": _j([]), "est_series": _j([]),
+        "cla_labels": _j([]), "cla_series": _j([]),
+
+        "top_prof_bajo_cumpl": [],
+        "mes": "", "anio": "",
+    }
+
+    if __dbg:
+        print("[KPI][SEMANA] dias:", len(dia_labels), "serie:", len(dia_series),
+              "| P/A/J:", presentes, ausentes, justificadas)
+
+    return render(request, "core/dashboard_kpi.html", ctx)
 
 
-from django.shortcuts import get_object_or_404, redirect
-from django.contrib import messages
-from .models import Estudiante
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+@require_http_methods(["GET"])
+def dashboard_kpi_mes(request):
+    programa = (request.GET.get("programa") or "").strip()
+    sede_id  = request.GET.get("sede") or ""
+    dep_id   = request.GET.get("disciplina") or ""
+    mes_str  = request.GET.get("mes") or ""
+    inicio, fin, y, m = _month_range(mes_str)
+    anio_actual = y
+    __dbg = request.GET.get("__dbg") == "1"
 
-def estudiante_activar(request, estudiante_id):
-    estudiante = get_object_or_404(Estudiante, id=estudiante_id)
-    estudiante.activo = True
-    estudiante.save()
-    messages.success(request, f"✅ El estudiante {estudiante.nombres} {estudiante.apellidos} fue activado correctamente.")
-    return redirect('core:estudiantes_list')
+    est_qs   = Estudiante.objects.all()
+    curso_qs = Curso.objects.select_related("sede", "profesor", "disciplina")
+    plan_qs  = Planificacion.objects.select_related("curso", "curso__sede", "curso__profesor", "curso__disciplina")\
+                                    .filter(semana__range=(inicio, fin))
+    asis_qs  = AsistenciaCurso.objects.select_related("curso", "curso__sede", "curso__disciplina")\
+                                      .filter(fecha__range=(inicio, fin))
+    asis_det_qs = AsistenciaCursoDetalle.objects.select_related("asistencia", "asistencia__curso")\
+                                               .filter(asistencia__fecha__range=(inicio, fin))
 
-def estudiante_desactivar(request, estudiante_id):
-    estudiante = get_object_or_404(Estudiante, id=estudiante_id)
-    estudiante.activo = False
-    estudiante.save()
-    messages.warning(request, f"⚠️ El estudiante {estudiante.nombres} {estudiante.apellidos} fue desactivado correctamente.")
-    return redirect('core:estudiantes_list')
+    est_qs, curso_qs, plan_qs, asis_qs, asis_det_qs = _aplicar_filtros_basicos(
+        est_qs, curso_qs, plan_qs, asis_qs, asis_det_qs, programa, sede_id, dep_id
+    )
 
+    nuevos_mes = _sf(est_qs, creado__range=(inicio, fin)).count()
+
+    clases_total    = asis_qs.count()
+    clases_cerradas = _sf(asis_qs, estado=getattr(AsistenciaCurso.Estado, "CERR", "CERR")).count() if hasattr(AsistenciaCurso, "Estado") else 0
+    uso_recintos    = round((clases_cerradas/clases_total)*100, 1) if clases_total else 0.0
+
+    presentes    = _sf(asis_det_qs, estado=ASIS_P).count()
+    ausentes     = _sf(asis_det_qs, estado=ASIS_A).count()
+    justificadas = _sf(asis_det_qs, estado=ASIS_J).count()
+
+    dias = [(inicio + timedelta(days=i)) for i in range((fin - inicio).days + 1)]
+    dia_labels = [d.strftime("%d-%b") for d in dias]
+    serie_diaria = (asis_qs.annotate(d=TruncDay("fecha")).values("d").annotate(total=Count("id")))
+    mapa = {_to_date(r["d"]): r["total"] for r in serie_diaria}
+    dia_series = [mapa.get(d, 0) for d in dias]
+
+    top_rows = (asis_det_qs.values("asistencia__curso__id", "asistencia__curso__nombre")
+                .annotate(total=Count("id"),
+                          ina=Count("id", filter=Q(estado__in=[ASIS_A, ASIS_J]))))
+    tmp = []
+    for r in top_rows:
+        total = r["total"] or 0
+        pct = round((r["ina"]/total)*100, 1) if total else 0.0
+        tmp.append({"curso_id": r["asistencia__curso__id"], "curso": r["asistencia__curso__nombre"], "pct": pct, "total": total})
+    top_inasistencia = sorted(tmp, key=lambda x: x["pct"], reverse=True)[:5]
+
+    total_plan = plan_qs.count()
+    plan_publicas = _sf(plan_qs, publica=True).count()
+    cumplimiento_planificacion = round((plan_publicas/total_plan)*100, 1) if total_plan else 0.0
+
+    ctx = {
+        "modo": "mensual",
+        "programa": programa, "sede_id": str(sede_id), "dep_id": str(dep_id),
+        "sedes": Sede.objects.order_by("nombre"),
+        "disciplinas": Deporte.objects.order_by("nombre"),
+        "anio_actual": anio_actual,
+        "kpi_cards": [
+            {"label": f"Mes {inicio:%B %Y}", "value": "", "icon": "fa-calendar-days", "color": "#0ea5e9"},
+            {"label": "Nuevos (mes)", "value": nuevos_mes, "icon": "fa-user-plus", "color": "#84cc16"},
+            {"label": "Clases registradas", "value": clases_total, "icon": "fa-calendar", "color": "#3b82f6"},
+            {"label": "Cumpl. planificación", "value": f"{cumplimiento_planificacion}%", "icon": "fa-clipboard-check", "color": "#f59e0b"},
+            {"label": "Uso recintos (proxy)", "value": f"{uso_recintos}%", "icon": "fa-building", "color": "#a855f7"},
+        ],
+
+        # ✅ series en JSON
+        "dia_labels": _j(dia_labels), "dia_series": _j(dia_series),
+
+        "dist_presente": presentes, "dist_ausente": ausentes, "dist_justificada": justificadas,
+        "top_inasistencia": top_inasistencia,
+
+        # vacías para mantener la API del template
+        "est_labels": _j([]), "est_series": _j([]),
+        "cla_labels": _j([]), "cla_series": _j([]),
+
+        "top_prof_bajo_cumpl": [],
+        "semana": "", "rango_str": "", "mes": f"{inicio:%Y-%m}", "anio": "",
+    }
+
+    if __dbg:
+        print("[KPI][MES] dias:", len(dia_labels), "serie:", len(dia_series),
+              "| P/A/J:", presentes, ausentes, justificadas)
+
+    return render(request, "core/dashboard_kpi.html", ctx)
+
+
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+@require_http_methods(["GET"])
+def dashboard_kpi_anio(request):
+    programa = (request.GET.get("programa") or "").strip()
+    sede_id  = request.GET.get("sede") or ""
+    dep_id   = request.GET.get("disciplina") or ""
+    anio_str = request.GET.get("anio") or ""
+    inicio, fin, y = _year_range(anio_str)
+    anio_actual = y
+    __dbg = request.GET.get("__dbg") == "1"
+
+    est_qs   = Estudiante.objects.all()
+    curso_qs = Curso.objects.select_related("sede", "profesor", "disciplina")
+    plan_qs  = Planificacion.objects.select_related("curso", "curso__sede", "curso__profesor", "curso__disciplina")\
+                                    .filter(semana__range=(inicio, fin))
+    asis_qs  = AsistenciaCurso.objects.select_related("curso", "curso__sede", "curso__disciplina")\
+                                      .filter(fecha__range=(inicio, fin))
+    asis_det_qs = AsistenciaCursoDetalle.objects.select_related("asistencia", "asistencia__curso")\
+                                               .filter(asistencia__fecha__range=(inicio, fin))
+
+    est_qs, curso_qs, plan_qs, asis_qs, asis_det_qs = _aplicar_filtros_basicos(
+        est_qs, curso_qs, plan_qs, asis_qs, asis_det_qs, programa, sede_id, dep_id
+    )
+
+    clases_total    = asis_qs.count()
+    clases_cerradas = _sf(asis_qs, estado=getattr(AsistenciaCurso.Estado, "CERR", "CERR")).count() if hasattr(AsistenciaCurso, "Estado") else 0
+    uso_recintos    = round((clases_cerradas/clases_total)*100, 1) if clases_total else 0.0
+
+    presentes    = _sf(asis_det_qs, estado=ASIS_P).count()
+    ausentes     = _sf(asis_det_qs, estado=ASIS_A).count()
+    justificadas = _sf(asis_det_qs, estado=ASIS_J).count()
+
+    meses = _serie_meses_completos(inicio, fin)
+    cla_mes = (asis_qs.annotate(m=TruncMonth("fecha"))
+               .values("m").annotate(total=Count("id")))
+    cla_map = {_to_date(r["m"]): r["total"] for r in cla_mes}
+    cla_labels = [m.strftime("%b %Y") for m in meses]
+    cla_series = [cla_map.get(m, 0) for m in meses]
+
+    top_rows = (asis_det_qs.values("asistencia__curso__id", "asistencia__curso__nombre")
+                .annotate(total=Count("id"),
+                          ina=Count("id", filter=Q(estado__in=[ASIS_A, ASIS_J]))))
+    tmp = []
+    for r in top_rows:
+        total = r["total"] or 0
+        pct = round((r["ina"]/total)*100, 1) if total else 0.0
+        tmp.append({"curso_id": r["asistencia__curso__id"], "curso": r["asistencia__curso__nombre"], "pct": pct, "total": total})
+    top_inasistencia = sorted(tmp, key=lambda x: x["pct"], reverse=True)[:5]
+
+    total_plan = plan_qs.count()
+    plan_publicas = _sf(plan_qs, publica=True).count()
+    cumplimiento_planificacion = round((plan_publicas/total_plan)*100, 1) if total_plan else 0.0
+
+    ctx = {
+        "modo": "anual",
+        "programa": programa, "sede_id": str(sede_id), "dep_id": str(dep_id),
+        "sedes": Sede.objects.order_by("nombre"),
+        "disciplinas": Deporte.objects.order_by("nombre"),
+        "anio_actual": anio_actual,
+        "kpi_cards": [
+            {"label": f"Año {y}", "value": "", "icon": "fa-calendar", "color": "#0ea5e9"},
+            {"label": "Clases registradas", "value": clases_total, "icon": "fa-calendar", "color": "#3b82f6"},
+            {"label": "Cumpl. planificación", "value": f"{cumplimiento_planificacion}%", "icon": "fa-clipboard-check", "color": "#f59e0b"},
+            {"label": "Uso recintos (proxy)", "value": f"{uso_recintos}%", "icon": "fa-building", "color": "#a855f7"},
+        ],
+
+
+        "cla_labels": _j(cla_labels), "cla_series": _j(cla_series),
+
+        "dist_presente": presentes, "dist_ausente": ausentes, "dist_justificada": justificadas,
+        "top_inasistencia": top_inasistencia,
+
+
+        "est_labels": _j([]), "est_series": _j([]),
+        "dia_labels": _j([]), "dia_series": _j([]),
+
+        "top_prof_bajo_cumpl": [],
+        "semana": "", "rango_str": "", "mes": "", "anio": f"{y}",
+    }
+
+    if __dbg:
+        print("[KPI][AÑO] meses:", len(cla_labels), "serie:", len(cla_series),
+              "| P/A/J:", presentes, ausentes, justificadas)
+
+    return render(request, "core/dashboard_kpi.html", ctx)
+
+
+# ----------------- EXPORTS -----------------
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+def exportar_kpi_general_pdf(request):
+    resp = dashboard_kpi(request)
+    pdf = HTML(string=resp.content.decode("utf-8"), base_url=request.build_absolute_uri()).write_pdf()
+    r = HttpResponse(pdf, content_type="application/pdf")
+    r["Content-Disposition"] = 'attachment; filename="kpi_general.pdf"'
+    return r
+
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+def exportar_kpi_general_excel(request):
+    programa = (request.GET.get("programa") or "").strip()
+    sede_id  = request.GET.get("sede") or ""
+    dep_id   = request.GET.get("disciplina") or ""
+
+    est_qs   = Estudiante.objects.all()
+    curso_qs = Curso.objects.all()
+    plan_qs  = Planificacion.objects.all()
+    asis_qs  = AsistenciaCurso.objects.all()
+    asis_det_qs = AsistenciaCursoDetalle.objects.all()
+    est_qs, curso_qs, plan_qs, asis_qs, asis_det_qs = _aplicar_filtros_basicos(
+        est_qs, curso_qs, plan_qs, asis_qs, asis_det_qs, programa, sede_id, dep_id
+    )
+
+    resumen = [{
+        "Total estudiantes": est_qs.count(),
+        "Activos": _sf(est_qs, activo=True).count(),
+        "Cursos": curso_qs.count(),
+        "Planificaciones": plan_qs.count(),
+        "Clases registradas": asis_qs.count(),
+        "Detalles asistencia": asis_det_qs.count(),
+    }]
+    df_resumen = pd.DataFrame(resumen)
+
+    est_fecha_field = _first_existing_field(Estudiante, [
+        "creado", "fecha_creacion", "created_at", "created", "fecha_registro", "fecha"
+    ]) or None
+
+    if est_fecha_field:
+        est_mes = (est_qs.annotate(mes=TruncMonth(est_fecha_field))
+                        .values("mes").annotate(total=Count("id")).order_by("mes"))
+        df_est_mes = pd.DataFrame([{"Mes": e["mes"].strftime("%Y-%m"), "Nuevos": e["total"]} for e in est_mes])
+    else:
+        df_est_mes = pd.DataFrame(columns=["Mes", "Nuevos"])
+
+    cla_mes = (asis_qs.annotate(mes=TruncMonth("fecha"))
+                      .values("mes").annotate(total=Count("id")).order_by("mes"))
+    df_cla_mes = pd.DataFrame([{"Mes": c["mes"].strftime("%Y-%m"), "Clases": c["total"]} for c in cla_mes])
+
+    top = (asis_det_qs.values("asistencia__curso__nombre")
+           .annotate(total=Count("id"), ina=Count("id", filter=Q(estado__in=[ASIS_A, ASIS_J]))))
+    rows = [{
+        "Curso": r["asistencia__curso__nombre"],
+        "Registros": r["total"],
+        "% Inasistencia": round((r["ina"]/r["total"])*100, 1) if r["total"] else 0
+    } for r in top]
+    df_top = pd.DataFrame(sorted(rows, key=lambda x: x["% Inasistencia"], reverse=True)[:20])
+
+    resp = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    resp["Content-Disposition"] = 'attachment; filename="kpi_general.xlsx"'
+    with pd.ExcelWriter(resp, engine="openpyxl") as writer:
+        df_resumen.to_excel(writer, sheet_name="Resumen", index=False)
+        df_est_mes.to_excel(writer, sheet_name="Estudiantes por mes", index=False)
+        df_cla_mes.to_excel(writer, sheet_name="Clases por mes", index=False)
+        df_top.to_excel(writer, sheet_name="Top inasistencia", index=False)
+    return resp
+
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+def exportar_kpi_semana_pdf(request):
+    resp = dashboard_kpi_semana(request)
+    pdf = HTML(string=resp.content.decode("utf-8"), base_url=request.build_absolute_uri()).write_pdf()
+    r = HttpResponse(pdf, content_type="application/pdf")
+    r["Content-Disposition"] = 'attachment; filename="kpi_semana.pdf"'
+    return r
+
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+def exportar_kpi_semana_excel(request):
+    programa   = (request.GET.get("programa") or "").strip()
+    sede_id    = request.GET.get("sede") or ""
+    dep_id     = request.GET.get("disciplina") or ""
+    semana_str = request.GET.get("semana") or ""
+    lunes, domingo = _week_range(semana_str)
+
+    est_qs   = Estudiante.objects.all()
+    curso_qs = Curso.objects.all()
+    plan_qs  = Planificacion.objects.filter(semana__range=(lunes, domingo))
+    asis_qs  = AsistenciaCurso.objects.filter(fecha__range=(lunes, domingo))
+    asis_det_qs = AsistenciaCursoDetalle.objects.filter(asistencia__fecha__range=(lunes, domingo))
+    est_qs, curso_qs, plan_qs, asis_qs, asis_det_qs = _aplicar_filtros_basicos(
+        est_qs, curso_qs, plan_qs, asis_qs, asis_det_qs, programa, sede_id, dep_id
+    )
+
+    resumen = [{
+        "Semana": f"{lunes:%Y-%m-%d} a {domingo:%Y-%m-%d}",
+        "Nuevos (semana)": _sf(est_qs, creado__range=(lunes, domingo)).count(),
+        "Clases registradas": asis_qs.count(),
+        "Planificaciones": plan_qs.count(),
+        "Detalles asistencia": asis_det_qs.count(),
+    }]
+    df_resumen = pd.DataFrame(resumen)
+
+    serie_diaria = (asis_qs.annotate(dia=TruncDay("fecha"))
+                    .values("dia").annotate(total=Count("id")).order_by("dia"))
+    df_dias = pd.DataFrame([{"Día": r["dia"].strftime("%Y-%m-%d"), "Clases": r["total"]} for r in serie_diaria])
+
+    top = (asis_det_qs.values("asistencia__curso__nombre")
+           .annotate(total=Count("id"), ina=Count("id", filter=Q(estado__in=[ASIS_A, ASIS_J]))))
+    rows = [{
+        "Curso": r["asistencia__curso__nombre"], "Registros": r["total"],
+        "% Inasistencia": round((r["ina"]/r["total"])*100, 1) if r["total"] else 0
+    } for r in top]
+    df_top = pd.DataFrame(sorted(rows, key=lambda x: x["% Inasistencia"], reverse=True)[:20])
+
+    resp = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    resp["Content-Disposition"] = 'attachment; filename="kpi_semana.xlsx"'
+    with pd.ExcelWriter(resp, engine="openpyxl") as writer:
+        df_resumen.to_excel(writer, sheet_name="Resumen", index=False)
+        df_dias.to_excel(writer, sheet_name="Clases por día", index=False)
+        df_top.to_excel(writer, sheet_name="Top inasistencia", index=False)
+    return resp
+
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+def exportar_kpi_mes_pdf(request):
+    resp = dashboard_kpi_mes(request)
+    pdf = HTML(string=resp.content.decode("utf-8"), base_url=request.build_absolute_uri()).write_pdf()
+    r = HttpResponse(pdf, content_type="application/pdf")
+    r["Content-Disposition"] = 'attachment; filename="kpi_mes.pdf"'
+    return r
+
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+def exportar_kpi_mes_excel(request):
+    programa = (request.GET.get("programa") or "").strip()
+    sede_id  = request.GET.get("sede") or ""
+    dep_id   = request.GET.get("disciplina") or ""
+    mes_str  = request.GET.get("mes") or ""
+    inicio, fin, y, m = _month_range(mes_str)
+
+    est_qs   = Estudiante.objects.all()
+    curso_qs = Curso.objects.all()
+    plan_qs  = Planificacion.objects.filter(semana__range=(inicio, fin))
+    asis_qs  = AsistenciaCurso.objects.filter(fecha__range=(inicio, fin))
+    asis_det_qs = AsistenciaCursoDetalle.objects.filter(asistencia__fecha__range=(inicio, fin))
+    est_qs, curso_qs, plan_qs, asis_qs, asis_det_qs = _aplicar_filtros_basicos(
+        est_qs, curso_qs, plan_qs, asis_qs, asis_det_qs, programa, sede_id, dep_id
+    )
+
+    resumen = [{
+        "Mes": f"{inicio:%Y-%m}",
+        "Nuevos (mes)": _sf(est_qs, creado__range=(inicio, fin)).count(),
+        "Clases registradas": asis_qs.count(),
+        "Planificaciones": plan_qs.count(),
+        "Detalles asistencia": asis_det_qs.count(),
+    }]
+    df_resumen = pd.DataFrame(resumen)
+
+    serie_diaria = (asis_qs.annotate(dia=TruncDay("fecha"))
+                    .values("dia").annotate(total=Count("id")).order_by("dia"))
+    df_dias = pd.DataFrame([{"Día": r["dia"].strftime("%Y-%m-%d"), "Clases": r["total"]} for r in serie_diaria])
+
+    top = (asis_det_qs.values("asistencia__curso__nombre")
+           .annotate(total=Count("id"), ina=Count("id", filter=Q(estado__in=[ASIS_A, ASIS_J]))))
+    rows = [{
+        "Curso": r["asistencia__curso__nombre"], "Registros": r["total"],
+        "% Inasistencia": round((r["ina"]/r["total"])*100, 1) if r["total"] else 0
+    } for r in top]
+    df_top = pd.DataFrame(sorted(rows, key=lambda x: x["% Inasistencia"], reverse=True)[:20])
+
+    resp = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    resp["Content-Disposition"] = 'attachment; filename="kpi_mes.xlsx"'
+    with pd.ExcelWriter(resp, engine="openpyxl") as writer:
+        df_resumen.to_excel(writer, sheet_name="Resumen", index=False)
+        df_dias.to_excel(writer, sheet_name="Clases por día", index=False)
+        df_top.to_excel(writer, sheet_name="Top inasistencia", index=False)
+    return resp
+
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+def exportar_kpi_anio_pdf(request):
+    # Llamamos al dashboard normal
+    resp = dashboard_kpi_anio(request)
+
+
+    html = resp.content.decode("utf-8")
+
+
+    html = html.replace("var(--primary-600)", "#008080")
+    html = html.replace("var(--primary-700)", "#006666")
+    html = html.replace("currentColor", "#000000")
+
+
+    html = re.sub(r"<svg.*?</svg>", "", html, flags=re.DOTALL)
+
+
+    pdf = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
+
+
+    r = HttpResponse(pdf, content_type="application/pdf")
+    r["Content-Disposition"] = 'attachment; filename="kpi_anio.pdf"'
+    return r
+
+@role_required(Usuario.Tipo.ADMIN, Usuario.Tipo.COORD)
+def exportar_kpi_anio_excel(request):
+    programa = (request.GET.get("programa") or "").strip()
+    sede_id  = request.GET.get("sede") or ""
+    dep_id   = request.GET.get("disciplina") or ""
+    anio_str = request.GET.get("anio") or ""
+    inicio, fin, y = _year_range(anio_str)
+
+    est_qs   = Estudiante.objects.all()
+    curso_qs = Curso.objects.all()
+    plan_qs  = Planificacion.objects.filter(semana__range=(inicio, fin))
+    asis_qs  = AsistenciaCurso.objects.filter(fecha__range=(inicio, fin))
+    asis_det_qs = AsistenciaCursoDetalle.objects.filter(asistencia__fecha__range=(inicio, fin))
+    est_qs, curso_qs, plan_qs, asis_qs, asis_det_qs = _aplicar_filtros_basicos(
+        est_qs, curso_qs, plan_qs, asis_qs, asis_det_qs, programa, sede_id, dep_id
+    )
+
+    resumen = [{
+        "Año": f"{y}",
+        "Clases registradas": asis_qs.count(),
+        "Planificaciones": plan_qs.count(),
+        "Detalles asistencia": asis_det_qs.count(),
+    }]
+    df_resumen = pd.DataFrame(resumen)
+
+    cla_mes = (asis_qs.annotate(mes=TruncMonth("fecha"))
+               .values("mes").annotate(total=Count("id")).order_by("mes"))
+    df_cla_mes = pd.DataFrame([{"Mes": c["mes"].strftime("%Y-%m"), "Clases": c["total"]} for c in cla_mes])
+
+    top = (asis_det_qs.values("asistencia__curso__nombre")
+           .annotate(total=Count("id"), ina=Count("id", filter=Q(estado__in=[ASIS_A, ASIS_J]))))
+    rows = [{
+        "Curso": r["asistencia__curso__nombre"], "Registros": r["total"],
+        "% Inasistencia": round((r["ina"]/r["total"])*100, 1) if r["total"] else 0
+    } for r in top]
+    df_top = pd.DataFrame(sorted(rows, key=lambda x: x["% Inasistencia"], reverse=True)[:20])
+
+    resp = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    resp["Content-Disposition"] = 'attachment; filename="kpi_anio.xlsx"'
+    with pd.ExcelWriter(resp, engine="openpyxl") as writer:
+        pd.DataFrame(resumen).to_excel(writer, sheet_name="Resumen", index=False)
+        df_cla_mes.to_excel(writer, sheet_name="Clases por mes", index=False)
+        df_top.to_excel(writer, sheet_name="Top inasistencia", index=False)
+    return resp
+
+@require_http_methods(["GET"])
+def comunicados_public(request):
+    items = Comunicado.objects.publics().order_by("-creado")
+    return render(request, "core/comunicado_public.html", {"items": items})
+
+@require_http_methods(["GET"])
+def comunicado_public_detail(request, pk:int):
+    obj = get_object_or_404(Comunicado.objects.publics(), pk=pk)
+    return render(request, "core/comunicado_public", {"obj": obj})

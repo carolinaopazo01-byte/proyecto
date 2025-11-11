@@ -14,48 +14,65 @@
   .hidden{ display:none; }
   .field-errors{ color:#dc3545; font-size:.85rem; margin-top:.15rem; }
 
-  /* Cabecera simple (consistente) */
   .page-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:.75rem; }
   .page-title{ margin:0; }
 
-  /* Secciones tipo card (consistente con otras vistas) */
   .section{ background:#fff; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
   .section + .section{ margin-top:.6rem; }
   .section__head{ padding:.55rem .8rem; background:var(--bg-head); border-bottom:1px solid #eef2f7; }
   .section__title{ font-weight:700; font-size:.95rem; margin:0; }
   .section__body{ padding:.8rem; }
 
-  /* Grilla de formulario */
+  /* Grid */
   .form-grid{ display:grid; grid-template-columns:repeat(12,1fr); gap:.6rem; }
-  .col-12{grid-column:span 12;} .col-8{grid-column:span 8;} .col-6{grid-column:span 6;}
-  .col-4{grid-column:span 4;} .col-3{grid-column:span 3;}
+  .col-12{grid-column:span 12;} .col-8{grid-column:span 12;} .col-6{grid-column:span 6;}
+  .col-4{grid-column:span 6;} .col-3{grid-column:span 3;}
   @media (max-width: 992px){ .col-8,.col-6,.col-4,.col-3{grid-column:span 12;} }
 
   .stack{ display:flex; flex-direction:column; gap:.25rem; }
   .form-label{ font-weight:600; font-size:var(--fs-xs); margin-bottom:0; }
 
-  /* Inputs con foco consistente */
-  .section .form-control, .section .form-select, .section input, .section select, .section textarea{
-    border:1px solid #cfd8e3; border-radius:8px; padding:.45rem .6rem;
-    transition: box-shadow .12s, border-color .12s;
+  /* Compacto + ancho 100% */
+  .section input[type="text"],
+  .section input[type="email"],
+  .section input[type="tel"],
+  .section input[type="date"],
+  .section input[type="number"],
+  .section select,
+  .section textarea,
+  .section .form-control,
+  .section .form-select{
+    height: 30px;
+    padding: .2rem .45rem;
+    font-size: .84rem;
+    border:1px solid #cfd8e3;
+    border-radius:8px;
+    line-height:1.2;
+    width:100%;               /* << más largos */
   }
-  .section .form-control:focus, .section .form-select:focus, .section input:focus, .section select:focus, .section textarea:focus{
-    border-color:#0d6efd; box-shadow:0 0 0 .2rem rgba(13,110,253,.15); outline:none;
+  .section textarea{ min-height: 60px; height:auto; padding:.35rem .5rem; line-height:1.25; }
+  .section .form-check-input{ width:16px; height:16px; margin-top:.15rem; }
+  .section .form-check-label{ font-size:.86rem; }
+
+  .section .form-control:focus,
+  .section .form-select:focus,
+  .section input:focus,
+  .section select:focus,
+  .section textarea:focus{
+    border-color:#0d6efd; box-shadow:0 0 0 .16rem rgba(13,110,253,.15); outline:none;
   }
 
-  /* Nota de ayuda */
-  .help-note{ color:#6b7280; font-size:.9rem; margin:.25rem 0 0; }
+  .help-note{ color:#6b7280; font-size:.86rem; margin:.25rem 0 0; }
 
-  /* Barra de acciones: sticky y centrada */
   .actions-wrap{
     position:sticky; bottom:16px; z-index:20;
     display:flex; justify-content:center; gap:.5rem;
-    padding:.6rem .8rem; max-width:720px; margin:1rem auto 0;
+    padding:.5rem .7rem; max-width:720px; margin:1rem auto 0;
     border:1px solid #e5e7eb; border-radius:12px;
     background:rgba(255,255,255,.95); backdrop-filter:saturate(120%) blur(4px);
     box-shadow:0 6px 20px rgba(0,0,0,.08);
   }
-  .btn-compact{ padding:.35rem .7rem; border-radius:8px; }
+  .btn-compact{ padding:.3rem .6rem; border-radius:8px; font-size:.9rem; }
 </style>
 {% endblock %}
 
@@ -67,7 +84,6 @@
 <form method="post" novalidate class="page">
   {% csrf_token %}
 
-  {# —— RESUMEN DE ERRORES —— #}
   {% if form.errors or form.non_field_errors %}
     <div class="alert alert-danger mb-2" role="alert" aria-live="assertive">
       <div><strong>Hay errores en el formulario.</strong> Revísalos por favor.</div>
@@ -134,7 +150,6 @@
           {% for e in form.tipo_usuario.errors %}<div class="field-errors">{{ e }}</div>{% endfor %}
         </div>
 
-        <!-- Sub-rol (solo visible si PMUL) -->
         <div id="group-subrol" class="col-6 stack hidden">
           <label class="form-label" for="{{ form.equipo_rol.id_for_label }}">Sub-rol (Equipo Multidisciplinario)</label>
           {{ form.equipo_rol }}
@@ -157,7 +172,6 @@
     </div>
   </section>
 
-  <!-- Acciones (sticky centradas) -->
   <div class="actions-wrap">
     <a class="btn btn-light btn-compact" href="{% url 'usuarios:usuarios_list' %}">Cancelar</a>
     <button class="btn btn-primary btn-compact" type="submit">Guardar</button>
@@ -170,13 +184,11 @@
 (function(){
   var selectRol = document.getElementById("id_tipo_usuario");
   var groupSubrol = document.getElementById("group-subrol");
-
   function toggleSubrol(){
     if(!selectRol || !groupSubrol) return;
     var esPMUL = (selectRol.value === "PMUL");
     groupSubrol.classList.toggle("hidden", !esPMUL);
   }
-
   toggleSubrol();
   if(selectRol){ selectRol.addEventListener("change", toggleSubrol); }
 })();

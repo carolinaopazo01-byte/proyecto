@@ -12,7 +12,7 @@ class Atleta(models.Model):
         BECADO = 'BEC', 'Becado'
         ALTO_REND = 'AR', 'Alto rendimiento'
 
-    # Relación con el usuario (nombres, email, etc.)
+
     usuario = models.OneToOneField(
         Usuario,
         on_delete=models.CASCADE,
@@ -20,22 +20,22 @@ class Atleta(models.Model):
         null=True, blank=True
     )
 
-    # Identificación del/la atleta
+
     rut = models.CharField(max_length=12, unique=True)
     fecha_nacimiento = models.DateField(null=True, blank=True)
     direccion = models.CharField(max_length=200, blank=True)
     comuna = models.CharField(max_length=80, blank=True)
     edad = models.PositiveSmallIntegerField(null=True, blank=True, editable=False)
 
-    # Clasificación/estado
+
     tipo_atleta = models.CharField(max_length=3, choices=TipoAtleta.choices, default=TipoAtleta.BECADO)
     estado = models.CharField(max_length=50, blank=True)
     faltas_consecutivas = models.IntegerField(default=0)
 
-    # Tutor / representante legal
+
     apoderado = models.ForeignKey('usuarios.Apoderado', on_delete=models.SET_NULL, null=True, blank=True)
 
-    # Información deportiva (postulación/logros)
+
     pertenece_organizacion = models.BooleanField(default=False)
     club_nombre = models.CharField(max_length=120, blank=True)
     logro_nacional = models.BooleanField(default=False)
@@ -53,7 +53,7 @@ class Atleta(models.Model):
             nombre = str(self.usuario) if self.usuario else "—"
         return f"{nombre} ({self.rut})"
 
-    # --------- utilidades internas ----------
+
     def _calc_edad(self):
         if not self.fecha_nacimiento:
             return None
@@ -63,9 +63,9 @@ class Atleta(models.Model):
         )
         return max(e, 0)
 
-    # --------- validaciones de negocio ----------
+
     def clean(self):
-        # Menores de edad: apoderado obligatorio
+
         edad_tmp = self._calc_edad()
         if edad_tmp is not None and edad_tmp < 18 and not self.apoderado:
             raise ValidationError("Para menores de edad, debe registrar un apoderado.")
@@ -80,7 +80,7 @@ class Atleta(models.Model):
         ):
             raise ValidationError("Si declaró logros, complete la categoría y el puntaje o logro obtenido.")
 
-    # --------- persistencia ----------
+
     def save(self, *args, **kwargs):
         self.edad = self._calc_edad()
         super().save(*args, **kwargs)
@@ -113,15 +113,15 @@ class Inscripcion(models.Model):
 
 
 class Clase(models.Model):
-    # Según el diagrama: Clase depende de la combinación Sede–Deporte
+
     sede_deporte = models.ForeignKey(
         "core.SedeDeporte",
         on_delete=models.PROTECT,            # protege historial de clases
         related_name="clases",
-        null=True, blank=True               # temporalmente opcional si migras desde curso
+        null=True, blank=True               #
     )
 
-    # Compatibilidad: curso opcional (puedes quitarlo luego)
+
     curso = models.ForeignKey(
         "core.Curso",
         on_delete=models.SET_NULL,          # no romper clase si borras un curso antiguo

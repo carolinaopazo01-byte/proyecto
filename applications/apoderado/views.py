@@ -24,15 +24,15 @@ def dashboard(request):
 
     apoderado = request.user
     hijos = hijos_de_apoderado(apoderado)
-    #hijos = list(hijos_de_apoderado(apoderado)) or []
 
-    # tarjetas de arriba (tomamos el 1º hijo si existe, pero mostramos lista completa abajo)
+
+
     hijo_ref = hijos[0] if hijos else None
     asistencia_pct = porcentaje_asistencia_semana(hijo_ref) if hijo_ref else None
     proxima = proxima_clase_de(hijo_ref) if hijo_ref else None
     citas = proximas_citas_para(hijo_ref) if hijo_ref else 0
 
-    # armamos data legible por atleta
+
     atletas = []
     for h in hijos:
         curso = curso_actual_de(h)
@@ -163,15 +163,15 @@ def alumno_detalle(request, pk):
 
     apoderado = request.user
 
-    # ------ Autorización: ¿este alumno pertenece a este apoderado? ------
+
     campos = [f.name for f in Estudiante._meta.fields]
     autorizado = False
 
-    # a) FK directa a usuario apoderado
+
     if "apoderado" in campos:
         autorizado = getattr(alumno, "apoderado_id", None) == apoderado.id
 
-    # b) Texto RUT del apoderado guardado en el alumno
+
     if not autorizado and "apoderado_rut" in campos:
         def _norm_rut(r):
             if not r:
@@ -188,8 +188,7 @@ def alumno_detalle(request, pk):
         messages.error(request, "No tienes permisos para ver este deportista.")
         return redirect("apoderado:dashboard")
 
-    # --------- Datos para las secciones del perfil ----------
-    # Próxima clase (si usas Curso/CursoHorario)
+
     Curso = apps.get_model("core", "Curso")
     CursoHorario = apps.get_model("core", "CursoHorario")
     prox = None
@@ -208,7 +207,7 @@ def alumno_detalle(request, pk):
                 if prox:
                     break
 
-    # Planificaciones visibles (de la semana corriente)
+
     Plan = apps.get_model("core", "Planificacion")
     planifs = []
     if Plan:
@@ -252,8 +251,8 @@ def dashboard_apoderado(request):
         .first()
     )
 
-    # próximas citas del equipo multidisciplinario (si las manejas)
-    prox_citas = 0  # puedes reemplazar con tu modelo de citas si existe
+    # próximas citas del equipo multidisciplinario
+    prox_citas = 0
 
     # comunicados dirigidos a apoderados o todos
     comunicados = (

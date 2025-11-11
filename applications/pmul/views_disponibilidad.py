@@ -17,7 +17,6 @@ from django.contrib import messages
 
 
 
-# ----------------- helpers de semana -----------------
 def _monday(d: date) -> date:
     return d - timedelta(days=d.weekday())
 
@@ -35,7 +34,7 @@ def _estudiante_de(request):
         .first()
     )
 
-# ================== PROFESIONAL (PMUL): mis slots ==================
+
 @login_required
 def mis_slots(request):
     if getattr(request.user, "tipo_usuario", "") != "PMUL":

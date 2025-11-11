@@ -1,24 +1,55 @@
 {% extends "base/plantilla.html" %}
-{% block title %}Semáforo de Asistencia{% endblock %}
-{% block header %}Semáforo de Asistencia{% endblock %}
+{% block title %}Historial de Asistencias{% endblock %}
+{% block header %}Historial de Asistencias{% endblock %}
 
 {% block extra_css %}
 <style>
-  .status-dot {
-    width: 16px; height: 16px; border-radius: 50%;
-    display: inline-block; margin-right: 6px;
-  }
-  .verde { background-color: #22c55e; }     /* verde */
-  .amarillo { background-color: #eab308; }  /* amarillo */
-  .rojo { background-color: #dc2626; }      /* rojo */
-
-  .table th, .table td {
-    vertical-align: middle;
-  }
+  .status-dot{ width:16px; height:16px; border-radius:50%; display:inline-block; margin-right:6px; }
+  .verde{ background-color:#22c55e; }
+  .amarillo{ background-color:#eab308; }
+  .rojo{ background-color:#dc2626; }
+  .table th, .table td{ vertical-align:middle; }
 </style>
 {% endblock %}
 
 {% block content %}
+<h5 class="mb-3">Historial de Asistencias</h5>
+
+{# ==== Toolbar: un solo botón de Historial ==== #}
+<div class="d-flex justify-content-end align-items-center gap-2 mb-2">
+  {% regroup data by curso as cursos_group %}
+
+  {% if cursos_group|length == 1 %}
+    <a class="btn btn-outline-secondary btn-sm"
+       href="{% url 'profesor:asistencia_historial' cursos_group.0.list.0.curso.id %}">
+      Historial
+    </a>
+  {% else %}
+    <select id="cursoSelect" class="form-select form-select-sm" style="max-width:320px">
+      <option value="">— Selecciona un curso —</option>
+      {% for g in cursos_group %}
+        <option value="{{ g.list.0.curso.id }}">{{ g.grouper }}</option>
+      {% endfor %}
+    </select>
+    <button id="btnHistorial" class="btn btn-outline-secondary btn-sm">Historial</button>
+    <script>
+      (function(){
+        var btn = document.getElementById('btnHistorial');
+        var sel = document.getElementById('cursoSelect');
+        if(btn && sel){
+          btn.addEventListener('click', function(){
+            var id = sel.value;
+            if(!id){ alert('Selecciona un curso.'); return; }
+            var base = "{% url 'profesor:asistencia_historial' 0 %}";
+            var go = base.replace(/\/0\//, '/' + id + '/');
+            window.location.href = go;
+          });
+        }
+      })();
+    </script>
+  {% endif %}
+</div>
+
 <div class="card p-3">
   <table class="table table-striped align-middle">
     <thead>
@@ -27,6 +58,7 @@
         <th>Curso</th>
         <th>Faltas consecutivas</th>
         <th>Estado</th>
+        <th class="text-end">Acciones</th>
       </tr>
     </thead>
     <tbody>
@@ -41,9 +73,12 @@
           {% if item.color == 'amarillo' %}Atención: 2 faltas consecutivas{% endif %}
           {% if item.color == 'rojo' %}Alerta: 3 o más faltas consecutivas{% endif %}
         </td>
+        <td class="text-end">
+          {# Sin botones por fila #}
+        </td>
       </tr>
       {% empty %}
-      <tr><td colspan="4" class="text-center text-muted">No hay registros de asistencia.</td></tr>
+      <tr><td colspan="5" class="text-center text-muted">No hay registros de asistencia.</td></tr>
       {% endfor %}
     </tbody>
   </table>

@@ -1,52 +1,97 @@
 {% extends "base/plantilla.html" %}
 {% block title %}Mis cursos{% endblock %}
 
-{% block content %}
-<h4 class="mb-3">Mis cursos</h4>
+{% block extra_css %}
+<style>
+  .courses-wrap{
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .courses-card{
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    box-shadow:0 2px 10px rgba(0,0,0,.05);
+  }
+  .table thead th{
+    white-space:nowrap;
+    background:#f8fafc;
+    border-bottom:1px solid #e5e7eb;
+  }
+  .table tbody td{ vertical-align:middle; }
+  .col-actions{ width:220px; }
 
-<table class="table table-sm table-hover align-middle">
-  <thead>
-    <tr>
-      <th>Nombre</th>
-      <th>Disciplina</th>
-      <th>Categoría</th>
-      <th>Sede</th>
-      <th>Horarios</th>
-      <th>Alumnos</th>
-      <th style="width:220px">Acciones</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for c in cursos %}
-    <tr>
-      <td>{{ c.nombre }}</td>
-      <td>{{ c.disciplina }}</td>
-      <td>{{ c.categoria|default:"—" }}</td>
-      <td>{{ c.sede }}</td>
-      <td>
-        {# si tu related_name de los horarios es "horarios" #}
-        {% for h in c.horarios.all %}
-          {{ h.get_dia_display }} {{ h.hora_inicio|time:"H:i" }}–{{ h.hora_fin|time:"H:i" }}{% if not forloop.last %}<br>{% endif %}
+  /* Chips suaves para valores vacíos */
+  .muted-chip{
+    display:inline-block;
+    padding:.1rem .45rem;
+    border:1px solid #e5e7eb;
+    border-radius:999px;
+    font-size:.78rem;
+    color:#64748b;
+    background:#fff;
+  }
+
+  /* Responsive fino para móvil */
+  @media (max-width: 576px){
+    .table-responsive{ border:1px solid #e5e7eb; border-radius:10px; }
+    .col-actions{ width:auto; }
+    .btn-group-sm .btn{ width:100%; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="courses-wrap">
+  <h4 class="mb-3">Mis cursos</h4>
+
+  <div class="card p-3 courses-card">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Disciplina</th>
+            <th>Categoría</th>
+            <th>Sede</th>
+            <th>Horarios</th>
+            <th>Alumnos</th>
+            <th class="text-end col-actions">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for c in cursos %}
+          <tr>
+            <td><strong>{{ c.nombre }}</strong></td>
+            <td>{{ c.disciplina }}</td>
+            <td>{% if c.categoria %}{{ c.categoria }}{% else %}<span class="muted-chip">—</span>{% endif %}</td>
+            <td>{{ c.sede }}</td>
+            <td style="min-width:220px">
+              {% for h in c.horarios.all %}
+                {{ h.get_dia_display }} {{ h.hora_inicio|time:"H:i" }}–{{ h.hora_fin|time:"H:i" }}{% if not forloop.last %}<br>{% endif %}
+              {% empty %}
+                <span class="text-muted">—</span>
+              {% endfor %}
+            </td>
+            <td>{{ c.alumnos_count|default:"—" }}</td>
+            <td class="text-end">
+              <div class="btn-group btn-group-sm" role="group" aria-label="Acciones">
+                <a class="btn btn-outline-secondary"
+                   href="{% url 'core:asistencia_estudiantes' c.id %}">
+                  Ver alumnos
+                </a>
+                <a class="btn btn-outline-secondary"
+                   href="{% url 'core:planificaciones_list' %}?curso={{ c.id }}">
+                  Ver planificación
+                </a>
+              </div>
+            </td>
+          </tr>
         {% empty %}
-          <span class="text-muted">—</span>
+          <tr><td colspan="7" class="text-center text-muted">No tienes cursos asignados.</td></tr>
         {% endfor %}
-        {# si no tienes related_name, usa: c.cursohorario_set.all #}
-      </td>
-      <td>{{ c.alumnos_count|default:"—" }}</td>
-      <td class="text-end">
-        <a class="btn btn-outline-secondary btn-sm"
-           href="{% url 'core:asistencia_estudiantes' c.id %}">
-          Ver alumnos
-        </a>
-        <a class="btn btn-outline-secondary btn-sm"
-           href="{% url 'core:planificaciones_list' %}?curso={{ c.id }}">
-          Ver planificación
-        </a>
-      </td>
-    </tr>
-  {% empty %}
-    <tr><td colspan="7">No tienes cursos asignados.</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
 {% endblock %}

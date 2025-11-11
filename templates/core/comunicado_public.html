@@ -1,0 +1,32 @@
+{% extends "base/public.html" %}
+
+{% block title %}{% if obj %}{{ obj.titulo }}{% else %}Comunicados{% endif %}{% endblock %}
+{% block header %}{% if obj %}{{ obj.titulo }}{% else %}Comunicados públicos{% endif %}{% endblock %}
+
+{% block content %}
+  {% if obj %}
+    <div class="card p-3" style="max-width:900px">
+      <div class="text-muted small mb-2">{{ obj.creado|date:"d/m/Y H:i" }}</div>
+      {{ obj.cuerpo|safe }}
+      <div class="mt-3">
+        <a class="btn btn-light" href="{% url 'core:comunicados_public' %}">← Volver</a>
+      </div>
+    </div>
+  {% else %}
+    <div class="card">
+      <div class="list-group list-group-flush">
+        {% for c in items %}
+          <a class="list-group-item list-group-item-action" href="{% url 'core:comunicado_public_detail' c.id %}">
+            <div class="d-flex w-100 justify-content-between">
+              <h6 class="mb-1">{{ c.titulo }}</h6>
+              <small class="text-muted">{{ c.creado|date:"d/m/Y" }}</small>
+            </div>
+            <p class="mb-1 text-muted">{{ c.cuerpo|striptags|truncatechars:180 }}</p>
+          </a>
+        {% empty %}
+          <div class="list-group-item text-muted">No hay comunicados públicos.</div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}

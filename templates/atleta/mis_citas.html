@@ -1,0 +1,75 @@
+{% extends "base/plantilla.html" %}
+{% load static %}
+
+{% block title %}Mis citas{% endblock %}
+
+{% block extra_css %}
+<style>
+  .page-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:.75rem}
+  .page-head h4{margin:0;font-weight:800;font-size:1.05rem;letter-spacing:.2px}
+  .chip{
+    display:inline-flex;align-items:center;gap:.35rem;
+    padding:.18rem .55rem;border-radius:999px;font-size:.78rem;font-weight:700;
+    border:1px solid var(--line,#e5e7eb); background:#fff; color:#0f172a;
+  }
+  .chip--ok{ background:#ecfdf5; border-color:#a7f3d0; color:#065f46; }      /* Pendiente */
+  .chip--done{ background:#eef2ff; border-color:#c7d2fe; color:#3730a3; }    /* Atendida */
+  .chip--warn{ background:#fff7ed; border-color:#fed7aa; color:#9a3412; }    /* Reprogramada */
+  .chip--danger{ background:#fef2f2; border-color:#fecaca; color:#991b1b; }  /* Cancelada */
+</style>
+{% endblock %}
+
+{% block content %}
+  <div class="page-head">
+    <h4>Mis citas</h4>
+    <div class="page-actions">
+      <a class="btn btn-sm btn-primary" href="{% url 'pmul:reservar_listado' %}?semana={% now 'Y-m-d' %}">
+        <i class="fas fa-calendar-plus"></i> Tomar hora
+      </a>
+    </div>
+  </div>
+
+  {% if items %}
+    <div class="card shadow-sm">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="thead-light">
+            <tr>
+              <th>Fecha</th>
+              <th>Horario</th>
+              <th>Profesional</th>
+              <th>Especialidad</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in items %}
+              <tr>
+                <td>{{ c.inicio|date:"d/m/Y" }}</td>
+                <td>{{ c.inicio|time:"H:i" }}–{{ c.fin|time:"H:i" }}</td>
+                <td>{% firstof c.profesional.get_full_name c.profesional.username "—" %}</td>
+                <td>{{ c.get_especialidad_display }}</td>
+                <td>
+                  <span class="chip
+                    {% if c.estado == 'PEND' %}chip--ok
+                    {% elif c.estado == 'REAL' %}chip--done
+                    {% elif c.estado == 'REPROG' %}chip--warn
+                    {% elif c.estado == 'CANC' %}chip--danger
+                    {% endif %}">
+                    {{ c.get_estado_display }}
+                  </span>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-info mb-0">
+      Aún no tienes citas. Puedes <a href="{% url 'pmul:reservar_listado' %}?semana={% now 'Y-m-d' %}">tomar una hora</a>.
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block extra_js %}{% endblock %}

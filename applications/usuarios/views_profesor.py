@@ -14,7 +14,7 @@ from applications.atleta.models import AsistenciaAtleta, Clase, Inscripcion
 from .forms_profesor import PlanificacionForm, ComunicadoForm
 
 
-# ---------------- helpers ----------------
+
 def _es_prof(user) -> bool:
     return (getattr(user, "tipo_usuario", "") or "").upper() == "PROF"
 

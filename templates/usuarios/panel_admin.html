@@ -58,13 +58,6 @@
           <i class="fas fa-traffic-light"></i><span>Semáforo de asistencia</span>
         </a>
       </li>
-
-      <div class="cpc-section-label">Contenido</div>
-      <li class="nav-item">
-        <a class="nav-link" href="{% url 'core:noticias_list' %}">
-          <i class="fas fa-newspaper"></i><span>Noticias (Portada)</span>
-        </a>
-      </li>
     {% endif %}
   {% endif %}
 
@@ -138,7 +131,7 @@
         <h6 class="tile__title mb-0">Reportes</h6>
       </div>
       <p class="tile__desc">Indicadores, listados y exportaciones.</p>
-      <a class="btn btn-primary" href="{% url 'core:reportes_home' %}">
+      <a class="btn btn-primary" href="{% url 'core:dashboard_kpi' %}">
         <i class="fas fa-file-alt mr-1"></i>Abrir reportes
       </a>
     </div>

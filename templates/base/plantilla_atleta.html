@@ -272,6 +272,35 @@
     @media (max-width: 991.98px){
       #menuBtn{ color: var(--bar-text) !important; }
     }
+
+    /* ======== ÚNICO FIX RESPONSIVE PARA CELULAR ======== */
+    @media (max-width: 575.98px){
+      html, body{
+        width:100%;
+        height:100%;
+        margin:0;
+        padding:0;
+        overflow-x:hidden;          /* evita scroll lateral */
+        background:var(--bg);
+      }
+      .app{
+        width:100vw;               /* asegura ancho exacto en móvil */
+        min-height:100vh;
+        display:flex;
+        flex-direction:row;        /* respeta layout original (sidebar + content) */
+      }
+      .sidebar{
+        width:100vw !important;    /* cuando se abre, ocupa todo el ancho */
+        max-width:100vw !important;
+      }
+      .container-page{
+        width:100%;
+        max-width:100%;
+        padding-left:12px;         /* margen interno seguro */
+        padding-right:12px;
+        box-sizing:border-box;
+      }
+    }
   </style>
 
   {% block extra_css %}{% endblock %}
@@ -314,14 +343,14 @@
       <section class="sb-section">
         <div class="sb-head"><i class="fas fa-calendar-check"></i><span>Mi agenda</span></div>
         <div class="sb-body">
-          <a class="sb-link" href="{% url 'pmul:reservar_listado' %}?semana={% now 'Y-m-d' %}">
+          <a class="sb-link" href="{% url 'atleta:horas_disponibles' %}">
             <i class="fas fa-calendar-plus"></i><span>Tomar hora (PMUL)</span>
+          </a>
+          <a class="sb-link" href="{% url 'atleta:mis_citas' %}">
+            <i class="fas fa-clipboard-check"></i><span>Mis citas</span>
           </a>
           <a class="sb-link" href="{% url 'atleta:asistencia_semana' %}?semana={% now 'Y-m-d' %}">
             <i class="fas fa-user-check"></i><span>Mi asistencia</span>
-          </a>
-          <a class="sb-link" href="{% url 'atleta:planificacion_semana' %}?semana={% now 'Y-m-d' %}">
-            <i class="fas fa-clipboard-list"></i><span>Planificación</span>
           </a>
         </div>
       </section>
@@ -380,121 +409,37 @@
 <script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
 <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
 
+<!-- Solo hace funcionar el botón hamburguesa. No toca estilos ni estructura. -->
 <script>
-  (function(){
-    var menuBtn  = document.getElementById('menuBtn');
-    var topbar   = document.getElementById('topbar');
-    var sidebar  = document.getElementById('sidebar');
-    var sbBrand  = document.getElementById('sbBrand');
+document.addEventListener("DOMContentLoaded", function() {
+  const menuBtn = document.getElementById("menuBtn");
+  const sidebar = document.getElementById("sidebar");
 
-    if(sidebar) sidebar.classList.add('sb-elevated');
+  if (!menuBtn || !sidebar) return;
 
-    function toggleSidebar(e){
-      if(e) e.preventDefault();
-      var open = document.body.classList.toggle('nav-open');
-      if(menuBtn) menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-      if (open){
-        if(menuBtn) menuBtn.classList.remove('is-hidden');
-        if(sidebar) sidebar.classList.add('sb-elevated');
+  // Estado inicial en móvil: cerrado (match con tu CSS)
+  function setInitial() {
+    if (window.innerWidth < 992) {
+      if (!document.body.classList.contains("nav-open")) {
+        sidebar.style.transform = "translateX(-100%)";
       }
+    } else {
+      sidebar.style.transform = "translateX(0)";
+      document.body.classList.remove("nav-open");
     }
-    if(menuBtn){ menuBtn.addEventListener('click', toggleSidebar); }
+  }
+  setInitial();
 
-    var mq = window.matchMedia('(min-width: 992px)');
-    function clean(){
-      if(mq.matches){
-        document.body.classList.remove('nav-open');
-        if(menuBtn) menuBtn.setAttribute('aria-expanded','false');
-      }
-    }
-    if(mq.addEventListener){ mq.addEventListener('change', clean); } else { mq.addListener(clean); }
+  menuBtn.addEventListener("click", function(e) {
+    e.preventDefault();
+    document.body.classList.toggle("nav-open");
+    const isOpen = document.body.classList.contains("nav-open");
+    menuBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    sidebar.style.transform = isOpen ? "translateX(0)" : "translateX(-100%)";
+  });
 
-    /* Móvil: ocultar hamburguesa al bajar, mostrar al subir */
-    var lastY = window.pageYOffset || document.documentElement.scrollTop || 0;
-    var threshold = 80;
-    window.addEventListener('scroll', function(){
-      if (!menuBtn) return;
-      var y = window.pageYOffset || document.documentElement.scrollTop || 0;
-      if (document.body.classList.contains('nav-open')) {
-        menuBtn.classList.remove('is-hidden');
-      } else {
-        if (y > lastY && y > threshold){ menuBtn.classList.add('is-hidden'); }
-        else { menuBtn.classList.remove('is-hidden'); }
-      }
-      lastY = y;
-    }, { passive:true });
-
-    /* Desktop: ocultar juntos topbar y franja superior del sidebar (sin efecto) */
-    var lastDesktopY = window.pageYOffset || document.documentElement.scrollTop || 0;
-    var deskThreshold = 40;
-    window.addEventListener('scroll', function(){
-      if(!topbar || !sbBrand) return;
-      var y = window.pageYOffset || document.documentElement.scrollTop || 0;
-      if (mq.matches){
-        var scrollingDown = y > lastDesktopY;
-        if (scrollingDown y > deskThreshold){
-          topbar.classList.add('topbar-hidden');
-          sbBrand.classList.add('sb-top-hidden');
-          if(sidebar) sidebar.classList.remove('sb-elevated');
-        } else {
-          topbar.classList.remove('topbar-hidden');
-          sbBrand.classList.remove('sb-top-hidden');
-          if(sidebar) sidebar.classList.add('sb-elevated');
-        }
-      } else {
-        topbar.classList.remove('topbar-hidden');
-        sbBrand.classList.remove('sb-top-hidden');
-      }
-      lastDesktopY = y;
-    }, { passive:true });
-
-    /* Móvil: sombra del sidebar suave al desplazarse */
-    var lastY2 = window.pageYOffset || document.documentElement.scrollTop || 0;
-    window.addEventListener('scroll', function(){
-      if(!sidebar) return;
-      var y = window.pageYOffset || document.documentElement.scrollTop || 0;
-      var scrollingDown = y > lastY2;
-      if (!mq.matches){
-        if (scrollingDown && y > 10) sidebar.classList.remove('sb-elevated');
-        else sidebar.classList.add('sb-elevated');
-      }
-      lastY2 = y;
-    }, { passive:true });
-  })();
-</script>
-
-<!-- Bloqueo de scroll en móvil al abrir menú -->
-<script>
-  (function(){
-    var origScrollTop = 0;
-    function lockScroll(){
-      origScrollTop = window.pageYOffset || document.documentElement.scrollTop || 0;
-      document.body.style.top = (-origScrollTop) + 'px';
-      document.body.classList.add('scroll-locked');
-    }
-    function unlockScroll(){
-      document.body.classList.remove('scroll-locked');
-      document.body.style.top = '';
-      window.scrollTo(0, origScrollTop);
-    }
-    var menuBtn = document.getElementById('menuBtn');
-    if(menuBtn){
-      var prevClick = menuBtn.onclick;
-      menuBtn.onclick = function(e){
-        if(prevClick) prevClick.call(this, e);
-        var open = document.body.classList.contains('nav-open');
-        if(open) lockScroll(); else unlockScroll();
-      };
-    }
-    var mq = window.matchMedia('(min-width: 992px)');
-    function onMQ(){
-      if(mq.matches){
-        unlockScroll();
-        document.body.classList.remove('nav-open');
-      }
-    }
-    if(mq.addEventListener){ mq.addEventListener('change', onMQ); } else { mq.addListener(onMQ); }
-  })();
+  window.addEventListener("resize", setInitial);
+});
 </script>
 
 {% block extra_js %}{% endblock %}
